@@ -34,6 +34,7 @@
 #include "WW3D2/light.h"
 #include "WW3D2/sphereobj.h"
 #include "WW3D2/boxrobj.h"
+#include "WW3D2/hanim.h"
 
 #include <vector>
 
@@ -121,7 +122,8 @@ void writeTestAssets()
 
 }
 
-void writeTestCube(const char* path, const char* meshName, const char* textureName)
+// Appends a cube mesh with half extent `size` around the origin.
+void appendCube(ChunkWriter& w, const char* meshName, const char* containerName, const char* textureName, float size)
 {
 	// Cube with 4 vertices per face.
 	static const float faces[6][3] = { { 0, 0, -1 }, { 0, 0, 1 }, { -1, 0, 0 }, { 1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 } };
@@ -136,7 +138,7 @@ void writeTestCube(const char* path, const char* meshName, const char* textureNa
 		for (int i = 0; i < 4; ++i)
 		{
 			float su = (i & 1) ? 1.0f : -1.0f, sv = (i & 2) ? -1.0f : 1.0f;
-			pos.insert(pos.end(), { n[0] + ux * su + vx * sv, n[1] + uy * su + vy * sv, n[2] + uz * su + vz * sv });
+			pos.insert(pos.end(), { (n[0] + ux * su + vx * sv) * size, (n[1] + uy * su + vy * sv) * size, (n[2] + uz * su + vz * sv) * size });
 			nrm.insert(nrm.end(), { n[0], n[1], n[2] });
 			uv.insert(uv.end(), { (i & 1) ? 1.0f : 0.0f, (i & 2) ? 1.0f : 0.0f });
 		}
@@ -145,13 +147,12 @@ void writeTestCube(const char* path, const char* meshName, const char* textureNa
 	}
 	uint32_t numVerts = (uint32_t)(pos.size() / 3), numTris = (uint32_t)(tris.size() / 3);
 
-	ChunkWriter w;
 	w.begin(0x00000000); // MESH
 	w.begin(0x0000001F); // MESH_HEADER3
 	w.u32((4 << 16) | 2);
 	w.u32(0);
 	w.name(meshName, 16);
-	w.name("", 16);
+	w.name(containerName, 16);
 	w.u32(numTris);
 	w.u32(numVerts);
 	w.u32(0);
@@ -161,10 +162,10 @@ void writeTestCube(const char* path, const char* meshName, const char* textureNa
 	w.u32(0);
 	w.u32(0x1 | 0x2 | 0x4);
 	w.u32(0x1);
-	w.f32(-1); w.f32(-1); w.f32(-1);
-	w.f32(1); w.f32(1); w.f32(1);
+	w.f32(-size); w.f32(-size); w.f32(-size);
+	w.f32(size); w.f32(size); w.f32(size);
 	w.f32(0); w.f32(0); w.f32(0);
-	w.f32(1.7320508f);
+	w.f32(1.7320508f * size);
 	w.end(false);
 	w.begin(0x00000002); for (float v : pos) w.f32(v); w.end(false);
 	w.begin(0x00000003); for (float v : nrm) w.f32(v); w.end(false);
@@ -213,10 +214,86 @@ void writeTestCube(const char* path, const char* meshName, const char* textureNa
 	w.end(true);
 	w.end(true);
 	w.end(true);
+}
 
+void writeFile(const char* path, const ChunkWriter& w)
+{
 	FILE* f = fopen(path, "wb");
 	fwrite(w.data.data(), 1, w.data.size(), f);
 	fclose(f);
+}
+
+void writeTestCube(const char* path, const char* meshName, const char* textureName)
+{
+	ChunkWriter w;
+	appendCube(w, meshName, "", textureName, 1.0f);
+	writeFile(path, w);
+}
+
+// Writes a hierarchical model like the game's units: a bone hierarchy, an HLod with a mesh
+// on each bone and an animation that turns the upper bone a quarter turn.
+void writeTestHierarchy(const char* path)
+{
+	ChunkWriter w;
+	w.begin(0x00000100); // HIERARCHY
+	w.begin(0x00000101);
+	w.u32((4 << 16) | 1);
+	w.name("HTEST", 16);
+	w.u32(2);
+	w.f32(0); w.f32(0); w.f32(0);
+	w.end(false);
+	w.begin(0x00000102); // PIVOTS
+	w.name("ROOTTRANSFORM", 16);
+	w.u32(0xFFFFFFFF);
+	for (int i = 0; i < 6; ++i) w.f32(0);
+	w.f32(0); w.f32(0); w.f32(0); w.f32(1);
+	w.name("TURRET", 16);
+	w.u32(0);
+	w.f32(0); w.f32(0); w.f32(1.4f);
+	for (int i = 0; i < 3; ++i) w.f32(0);
+	w.f32(0); w.f32(0); w.f32(0); w.f32(1);
+	w.end(false);
+	w.end(true);
+
+	appendCube(w, "BASE", "HTEST", "testtex.tga", 1.0f);
+	appendCube(w, "TOP", "HTEST", "testdds.tga", 0.4f);
+
+	w.begin(0x00000700); // HLOD
+	w.begin(0x00000701);
+	w.u32((1 << 16) | 0);
+	w.u32(1);
+	w.name("HTEST", 16);
+	w.name("HTEST", 16);
+	w.end(false);
+	w.begin(0x00000702); // LOD_ARRAY
+	w.begin(0x00000703); w.u32(2); w.f32(0.0f); w.end(false);
+	w.begin(0x00000704); w.u32(0); w.name("HTEST.BASE", 32); w.end(false);
+	w.begin(0x00000704); w.u32(1); w.name("HTEST.TOP", 32); w.end(false);
+	w.end(true);
+	w.end(true);
+
+	const uint32_t frames = 31;
+	w.begin(0x00000200); // ANIMATION
+	w.begin(0x00000201);
+	w.u32((4 << 16) | 1);
+	w.name("TURN", 16);
+	w.name("HTEST", 16);
+	w.u32(frames);
+	w.u32(30);
+	w.end(false);
+	w.begin(0x00000202); // channel: quaternion of the upper bone
+	w.u32(0 | ((frames - 1) << 16));
+	w.u32(4 | (6 << 16));
+	w.u32(1);
+	for (uint32_t f = 0; f < frames; ++f)
+	{
+		float a = 0.5f * 1.5707963f * (float)f / (float)(frames - 1);
+		w.f32(0); w.f32(0); w.f32(sinf(a)); w.f32(cosf(a));
+	}
+	w.end(false);
+	w.end(true);
+
+	writeFile(path, w);
 }
 } // namespace
 
@@ -338,6 +415,7 @@ int main(int argc, char** argv)
 	writeTestAssets();
 	writeTestCube("testcube.w3d", "TESTCUBE", "testtex.tga");
 	writeTestCube("testcube2.w3d", "TESTCUBE2", "testdds.tga");
+	writeTestHierarchy("htest.w3d");
 	RenderObjClass* cube = nullptr;
 	RenderObjClass* cube2 = nullptr;
 	if (assets->Load_3D_Assets("testcube.w3d"))
@@ -345,6 +423,26 @@ int main(int argc, char** argv)
 	if (assets->Load_3D_Assets("testcube2.w3d"))
 		cube2 = assets->Create_Render_Obj("TESTCUBE2");
 	printf("w3d mesh: %s %s\n", cube ? "loaded" : "FAILED", cube2 ? "loaded" : "FAILED");
+
+	RenderObjClass* model = nullptr;
+	HAnimClass* anim = nullptr;
+	if (assets->Load_3D_Assets("htest.w3d"))
+	{
+		model = assets->Create_Render_Obj("HTEST");
+		anim = assets->Get_HAnim("HTEST.TURN");
+	}
+	printf("w3d hlod: %s, animation: %s\n", model ? "loaded" : "FAILED", anim ? "loaded" : "FAILED");
+	if (model)
+	{
+		Matrix3D modelTm(true);
+		modelTm.Set_Translation(Vector3(5.5f, -1.0f, -1.0f));
+		model->Set_Transform(modelTm);
+		// Frame 15 turns the upper bone by 45 degrees; WW3D_TEST_FRAME selects another frame.
+		const char* frame = getenv("WW3D_TEST_FRAME");
+		if (anim)
+			model->Set_Animation(anim, frame ? (float)atof(frame) : 15.0f);
+		scene->Add_Render_Object(model);
+	}
 	if (cube2)
 	{
 		Matrix3D cubeTm(true);
@@ -391,6 +489,8 @@ int main(int argc, char** argv)
 	REF_PTR_RELEASE(box);
 	REF_PTR_RELEASE(cube);
 	REF_PTR_RELEASE(cube2);
+	REF_PTR_RELEASE(anim);
+	REF_PTR_RELEASE(model);
 	REF_PTR_RELEASE(sphere);
 	REF_PTR_RELEASE(sphere2);
 	REF_PTR_RELEASE(light);
