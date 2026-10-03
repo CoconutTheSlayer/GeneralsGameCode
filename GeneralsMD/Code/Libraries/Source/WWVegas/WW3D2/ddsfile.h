@@ -138,7 +138,7 @@ struct LegacyDDSURFACEDESC2 {
 	};
 	unsigned AlphaBitDepth;
 	unsigned Reserved;
-	void* Surface;
+	unsigned Surface;			// pointer in DX7, 32 bit in the file
 	union
 	{
 		LegacyDDCOLORKEY CKDestOverlay;
@@ -151,6 +151,7 @@ struct LegacyDDSURFACEDESC2 {
 	LegacyDDSCAPS2 Caps;
 	unsigned TextureStage;
 };
+static_assert(sizeof(LegacyDDSURFACEDESC2) == 124, "DDS surface description must match the file layout");
 
 
 enum DDSType

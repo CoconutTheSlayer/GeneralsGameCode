@@ -67,8 +67,38 @@ struct ChunkWriter
 	}
 };
 
+// 64x64 checker texture as a DXT1 DDS file; each 4x4 block has a single color.
+void writeCheckerDDS(const char* path)
+{
+	FILE* f = fopen(path, "wb");
+	uint32_t header[32] = {};
+	header[0] = 0x20534444;   // "DDS "
+	header[1] = 124;
+	header[2] = 0x1 | 0x2 | 0x4 | 0x1000 | 0x80000; // caps, height, width, pixel format, linear size
+	header[3] = 64;
+	header[4] = 64;
+	header[5] = 64 * 64 / 2;
+	header[7] = 1;            // mip levels
+	header[19] = 32;          // pixel format size
+	header[20] = 0x4;         // FOURCC
+	header[21] = 0x31545844;  // "DXT1"
+	header[27] = 0x1000;      // texture
+	fwrite(header, 4, 32, f);
+	for (int by = 0; by < 16; ++by)
+		for (int bx = 0; bx < 16; ++bx)
+		{
+			bool on = ((bx / 2) + (by / 2)) & 1;
+			uint16_t c = on ? (uint16_t)((4 << 11) | (40 << 5) | 28) : (uint16_t)((28 << 11) | (58 << 5) | 28);
+			uint16_t block[4] = { c, c, 0, 0 };
+			fwrite(block, 2, 4, f);
+		}
+	fclose(f);
+}
+
 void writeTestAssets()
 {
+	writeCheckerDDS("testdds.dds");
+
 	// 64x64 checker texture (32 bit uncompressed TGA, top-left origin).
 	{
 		FILE* f = fopen("testtex.tga", "wb");
@@ -89,6 +119,10 @@ void writeTestAssets()
 		fclose(f);
 	}
 
+}
+
+void writeTestCube(const char* path, const char* meshName, const char* textureName)
+{
 	// Cube with 4 vertices per face.
 	static const float faces[6][3] = { { 0, 0, -1 }, { 0, 0, 1 }, { -1, 0, 0 }, { 1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 } };
 	std::vector<float> pos, nrm, uv;
@@ -116,7 +150,7 @@ void writeTestAssets()
 	w.begin(0x0000001F); // MESH_HEADER3
 	w.u32((4 << 16) | 2);
 	w.u32(0);
-	w.name("TESTCUBE", 16);
+	w.name(meshName, 16);
 	w.name("", 16);
 	w.u32(numTris);
 	w.u32(numVerts);
@@ -167,7 +201,7 @@ void writeTestAssets()
 	w.end(false);
 	w.begin(0x00000030); // TEXTURES
 	w.begin(0x00000031);
-	w.begin(0x00000032); w.name("testtex.tga", 12); w.end(false);
+	w.begin(0x00000032); w.name(textureName, strlen(textureName) + 1); w.end(false);
 	w.end(true);
 	w.end(true);
 	w.begin(0x00000038); // MATERIAL_PASS
@@ -180,7 +214,7 @@ void writeTestAssets()
 	w.end(true);
 	w.end(true);
 
-	FILE* f = fopen("testcube.w3d", "wb");
+	FILE* f = fopen(path, "wb");
 	fwrite(w.data.data(), 1, w.data.size(), f);
 	fclose(f);
 }
@@ -300,11 +334,25 @@ int main(int argc, char** argv)
 	scene->Add_Render_Object(sphere2);
 
 	// A W3D mesh loaded through the asset manager, like every game object.
+	// The second cube refers to a TGA name but only a DDS file exists, like most game textures.
 	writeTestAssets();
+	writeTestCube("testcube.w3d", "TESTCUBE", "testtex.tga");
+	writeTestCube("testcube2.w3d", "TESTCUBE2", "testdds.tga");
 	RenderObjClass* cube = nullptr;
+	RenderObjClass* cube2 = nullptr;
 	if (assets->Load_3D_Assets("testcube.w3d"))
 		cube = assets->Create_Render_Obj("TESTCUBE");
-	printf("w3d mesh: %s\n", cube ? "loaded" : "FAILED");
+	if (assets->Load_3D_Assets("testcube2.w3d"))
+		cube2 = assets->Create_Render_Obj("TESTCUBE2");
+	printf("w3d mesh: %s %s\n", cube ? "loaded" : "FAILED", cube2 ? "loaded" : "FAILED");
+	if (cube2)
+	{
+		Matrix3D cubeTm(true);
+		cubeTm.Rotate_Z(-0.6f);
+		cubeTm.Set_Translation(Vector3(-5.0f, 6.0f, 0.5f));
+		cube2->Set_Transform(cubeTm);
+		scene->Add_Render_Object(cube2);
+	}
 	if (cube)
 	{
 		Matrix3D cubeTm(true);
@@ -342,6 +390,7 @@ int main(int argc, char** argv)
 	REF_PTR_RELEASE(font);
 	REF_PTR_RELEASE(box);
 	REF_PTR_RELEASE(cube);
+	REF_PTR_RELEASE(cube2);
 	REF_PTR_RELEASE(sphere);
 	REF_PTR_RELEASE(sphere2);
 	REF_PTR_RELEASE(light);
