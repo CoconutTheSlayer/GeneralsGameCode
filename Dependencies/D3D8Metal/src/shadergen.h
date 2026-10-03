@@ -58,7 +58,7 @@ struct StageKey
 	uint8_t alphaArg2;
 	uint8_t resultTemp;     // result goes to the temp register
 	uint8_t texCoordIndex;  // source texture coordinate set
-	uint8_t texGen;         // 0 passthru, 1 camera position, 2 camera normal, 3 reflection
+	uint8_t texGen;         // 0 passthru, 1 camera normal, 2 camera position, 3 reflection
 	uint8_t transformCount; // D3DTTFF_COUNTn, 0 when disabled
 	uint8_t projected;
 	uint8_t textureType;    // 0 none, 1 2D, 2 cube

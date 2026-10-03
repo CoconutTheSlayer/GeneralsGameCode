@@ -549,6 +549,133 @@ int main(int argc, char** argv)
 		g_device->Present(nullptr, nullptr, nullptr, nullptr);
 	}
 
+	// Scene 7: the terrain techniques of the fixed function path, checked pixel by pixel:
+	// texture coordinates generated from the camera space position through a texture matrix,
+	// a second stage blending by texture alpha, and linear vertex fog.
+	int failures7 = 0;
+	{
+		resetStates();
+		g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0);
+		g_device->BeginScene();
+		D3DMATRIX world = identity(), view = identity(), proj = identity();
+		// Orthographic projection of x in [-1, 1], y in [-0.75, 0.75], z in [0, 1].
+		proj._11 = 1.0f;
+		proj._22 = 1.0f / 0.75f;
+		g_device->SetTransform(D3DTS_WORLD, &world);
+		g_device->SetTransform(D3DTS_VIEW, &view);
+		g_device->SetTransform(D3DTS_PROJECTION, &proj);
+
+		// Stage 0: checker from u = 0.5x + 0.5, v = -0.5y / 0.75 + 0.5.
+		modulateStage0(checker);
+		g_device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+		g_device->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_NONE);
+		g_device->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, D3DTSS_TCI_CAMERASPACEPOSITION);
+		g_device->SetTextureStageState(0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2);
+		D3DMATRIX t0 = identity();
+		t0._11 = 0.5f;
+		t0._22 = -0.5f / 0.75f;
+		t0._41 = 0.5f;
+		t0._42 = 0.5f;
+		g_device->SetTransform(D3DTS_TEXTURE0, &t0);
+
+		// Stage 1: red with alpha rising from left to right, blended over stage 0 by its alpha.
+		IDirect3DTexture8* ramp = nullptr;
+		check(g_device->CreateTexture(64, 64, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &ramp), "ramp");
+		D3DLOCKED_RECT lr;
+		check(ramp->LockRect(0, &lr, nullptr, 0), "ramp lock");
+		for (int y = 0; y < 64; ++y)
+			for (int x = 0; x < 64; ++x)
+				((DWORD*)((uint8_t*)lr.pBits + y * lr.Pitch))[x] = ((DWORD)(x * 4) << 24) | 0x00FF0000;
+		ramp->UnlockRect(0);
+		g_device->SetTexture(1, ramp);
+		g_device->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_BLENDTEXTUREALPHA);
+		g_device->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+		g_device->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT);
+		g_device->SetTextureStageState(1, D3DTSS_ALPHAOP, D3DTOP_SELECTARG2);
+		g_device->SetTextureStageState(1, D3DTSS_ALPHAARG2, D3DTA_CURRENT);
+		g_device->SetTextureStageState(1, D3DTSS_MINFILTER, D3DTEXF_POINT);
+		g_device->SetTextureStageState(1, D3DTSS_MAGFILTER, D3DTEXF_POINT);
+		g_device->SetTextureStageState(1, D3DTSS_MIPFILTER, D3DTEXF_NONE);
+		g_device->SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1 | D3DTSS_TCI_CAMERASPACEPOSITION);
+		g_device->SetTextureStageState(1, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2);
+		g_device->SetTransform(D3DTS_TEXTURE1, &t0);
+
+		// Linear vertex fog over view space depth 0..1; the quad at depth 0.25 is 75% visible.
+		float fogStart = 0.0f, fogEnd = 1.0f;
+		g_device->SetRenderState(D3DRS_FOGENABLE, TRUE);
+		g_device->SetRenderState(D3DRS_FOGCOLOR, 0xFF0000FF);
+		g_device->SetRenderState(D3DRS_FOGVERTEXMODE, D3DFOG_LINEAR);
+		g_device->SetRenderState(D3DRS_FOGTABLEMODE, D3DFOG_NONE);
+		g_device->SetRenderState(D3DRS_FOGSTART, *(DWORD*)&fogStart);
+		g_device->SetRenderState(D3DRS_FOGEND, *(DWORD*)&fogEnd);
+
+		struct PosVertex { float x, y, z; DWORD color; };
+		PosVertex v[4] = {
+			{ -1.0f, 0.75f, 0.25f, 0xFFFFFFFF },
+			{ 1.0f, 0.75f, 0.25f, 0xFFFFFFFF },
+			{ -1.0f, -0.75f, 0.25f, 0xFFFFFFFF },
+			{ 1.0f, -0.75f, 0.25f, 0xFFFFFFFF },
+		};
+		g_device->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE);
+		g_device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(PosVertex));
+		g_device->EndScene();
+		saveFrame(out + "/scene7_terrain.png");
+
+		// Compare with the expected result.
+		IDirect3DSurface8* back = nullptr;
+		check(g_device->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &back), "GetBackBuffer");
+		IDirect3DSurface8* image = nullptr;
+		check(g_device->CreateImageSurface(W, H, D3DFMT_A8R8G8B8, &image), "CreateImageSurface");
+		check(g_device->CopyRects(back, nullptr, 0, image, nullptr), "CopyRects");
+		check(image->LockRect(&lr, nullptr, D3DLOCK_READONLY), "LockRect");
+		int checked = 0;
+		for (int py = 0; py < H; py += 7)
+		{
+			for (int px = 0; px < W; px += 7)
+			{
+				// Direct3D 8 samples attributes at integer pixel coordinates.
+				float x = ((float)px / W) * 2.0f - 1.0f, y = (1.0f - (float)py / H * 2.0f) * 0.75f;
+				float u = 0.5f * x + 0.5f, vv = -0.5f * y / 0.75f + 0.5f;
+				float tu = u * 64.0f, tv = vv * 64.0f;
+				// Skip pixels on texel edges, where rounding may pick either texel.
+				if (fabsf(tu - roundf(tu)) < 0.05f || fabsf(tv - roundf(tv)) < 0.05f)
+					continue;
+				int ix = (int)tu, iy = (int)tv;
+				bool on = ((ix / 8) + (iy / 8)) & 1;
+				const float g = on ? 64.0f / 255.0f : 1.0f; // checker colors 0xFFFFFFFF and 0xFF404040
+				float base[3] = { g, g, g };
+				float a = (ix * 4) / 255.0f;
+				float rgb[3] = { 1.0f * a + base[0] * (1 - a), base[1] * (1 - a), base[2] * (1 - a) };
+				const float fogBlue[3] = { 0.0f, 0.0f, 1.0f };
+				float expect[3];
+				for (int c = 0; c < 3; ++c)
+					expect[c] = 0.75f * rgb[c] + 0.25f * fogBlue[c];
+				const uint8_t* pix = (const uint8_t*)lr.pBits + py * lr.Pitch + px * 4;
+				int got[3] = { pix[2], pix[1], pix[0] };
+				++checked;
+				for (int c = 0; c < 3; ++c)
+				{
+					if (abs(got[c] - (int)lroundf(expect[c] * 255.0f)) > 3)
+					{
+						if (failures7 < 5)
+							printf("scene7 mismatch at %d,%d: got %d %d %d, expected %.0f %.0f %.0f\n", px, py, got[0], got[1], got[2],
+								expect[0] * 255, expect[1] * 255, expect[2] * 255);
+						++failures7;
+						break;
+					}
+				}
+			}
+		}
+		image->UnlockRect();
+		image->Release();
+		back->Release();
+		printf("scene7: %d of %d pixels match\n", checked - failures7, checked);
+		g_device->Present(nullptr, nullptr, nullptr, nullptr);
+		g_device->SetRenderState(D3DRS_FOGENABLE, FALSE);
+		g_device->SetTexture(1, nullptr);
+		ramp->Release();
+	}
+
 	checker->Release();
 	checker565->Release();
 	checker4444->Release();
@@ -557,5 +684,5 @@ int main(int argc, char** argv)
 	g_device->Release();
 	d3d->Release();
 	printf("done\n");
-	return 0;
+	return failures7 ? 1 : 0;
 }

@@ -426,8 +426,8 @@ std::string GenerateShaderSource(const ShaderKey& key)
 		std::string tc;
 		switch (st.texGen)
 		{
-		case 1: tc = "float4(viewPos, 1.0)"; break;
-		case 2: tc = "float4(viewNormal, 1.0)"; break;
+		case 1: tc = "float4(viewNormal, 1.0)"; break; // D3DTSS_TCI_CAMERASPACENORMAL
+		case 2: tc = "float4(viewPos, 1.0)"; break;    // D3DTSS_TCI_CAMERASPACEPOSITION
 		case 3: tc = "float4(reflect(normalize(viewPos), viewNormal), 1.0)"; break;
 		default:
 			if (src < numTex)
