@@ -1,5 +1,6 @@
 // Unit tests for the Win32 shim: run with a scratch directory as argument.
 #include <win32shim.h>
+#include <winsock.h>
 #include <io.h>
 #include <direct.h>
 #include <set>
@@ -111,6 +112,38 @@ int main(int argc, char** argv)
 	DWORD t0 = GetTickCount();
 	Sleep(20);
 	CHECK(GetTickCount() - t0 >= 15);
+
+	// Sockets, as used by the LAN code: non-blocking UDP on the loopback interface.
+	{
+		WSADATA wsa;
+		CHECK(WSAStartup(MAKEWORD(2, 2), &wsa) == 0);
+		SOCKET a = socket(AF_INET, SOCK_DGRAM, 0), b = socket(AF_INET, SOCK_DGRAM, 0);
+		CHECK(a != INVALID_SOCKET && b != INVALID_SOCKET);
+		sockaddr_in addr = {};
+		addr.sin_family = AF_INET;
+		addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+		CHECK(bind(b, (sockaddr*)&addr, sizeof(addr)) == 0);
+		int len = sizeof(addr);
+		CHECK(getsockname(b, (sockaddr*)&addr, &len) == 0 && addr.sin_port != 0);
+		unsigned long nonBlocking = 1;
+		CHECK(ioctlsocket(b, FIONBIO, &nonBlocking) == 0);
+		BOOL broadcast = TRUE;
+		CHECK(setsockopt(a, SOL_SOCKET, SO_BROADCAST, (char*)&broadcast, sizeof(broadcast)) == 0);
+		char packet[16];
+		CHECK(recvfrom(b, packet, (int)sizeof(packet), 0, (sockaddr*)nullptr, (int*)nullptr) == SOCKET_ERROR && WSAGetLastError() == WSAEWOULDBLOCK);
+		CHECK(sendto(a, "ping", 5, 0, (sockaddr*)&addr, sizeof(addr)) == 5);
+		int got = SOCKET_ERROR;
+		for (int i = 0; i < 100 && got == SOCKET_ERROR; ++i)
+		{
+			got = recvfrom(b, packet, (int)sizeof(packet), 0, (sockaddr*)nullptr, (int*)nullptr);
+			if (got == SOCKET_ERROR)
+				Sleep(1);
+		}
+		CHECK(got == 5 && strcmp(packet, "ping") == 0);
+		closesocket(a);
+		closesocket(b);
+		WSACleanup();
+	}
 
 	printf(g_failures ? "%d FAILURES\n" : "all shim tests passed\n", g_failures);
 	return g_failures ? 1 : 0;
