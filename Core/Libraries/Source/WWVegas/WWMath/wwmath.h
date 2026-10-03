@@ -580,6 +580,19 @@ WWINLINE float WWMath::Sqrt(float val)
 }
 #endif
 
+#if defined(__APPLE__)
+// The bit manipulation versions below shift by more than 31 bits for values below one,
+// which is undefined behavior that the optimizer may exploit.
+WWINLINE int WWMath::Float_To_Int_Chop(const float& f)
+{
+	return (int)f;
+}
+
+WWINLINE int WWMath::Float_To_Int_Floor (const float& f)
+{
+	return (int)floorf(f);
+}
+#else
 WWINLINE int WWMath::Float_To_Int_Chop(const float& f)
 {
     int a	= *reinterpret_cast<const int*>(&f);				// take bit pattern of float into a register
@@ -605,6 +618,7 @@ WWINLINE int WWMath::Float_To_Int_Floor (const float& f)
 	r = ((r & expsign) ^ (sign)) + ((!((mantissa<<8)&imask)&(expsign^((a-1)>>31)))&sign);	// if (fabs(value)<1.0) value = 0; copy sign; if (value < 0 && value==(int)(value)) value++;
 	return r;
 }
+#endif
 
 // ----------------------------------------------------------------------------
 // Inverse square root

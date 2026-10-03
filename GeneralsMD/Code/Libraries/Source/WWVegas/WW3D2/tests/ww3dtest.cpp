@@ -29,6 +29,7 @@
 #include "WW3D2/assetmgr.h"
 #include "WW3D2/rddesc.h"
 #include "WWMath/rect.h"
+#include "WWMath/wwmath.h"
 #include "WW3D2/scene.h"
 #include "WW3D2/camera.h"
 #include "WW3D2/light.h"
@@ -293,6 +294,25 @@ void writeTestHierarchy(const char* path)
 	w.end(false);
 	w.end(true);
 
+	// The same animation compressed with time codes: two keys that are interpolated.
+	w.begin(0x00000280); // COMPRESSED_ANIMATION
+	w.begin(0x00000281);
+	w.u32((4 << 16) | 1);
+	w.name("CTURN", 16);
+	w.name("HTEST", 16);
+	w.u32(frames);
+	w.u32(30 | (0 << 16)); // frame rate, time coded flavor
+	w.end(false);
+	w.begin(0x00000282);
+	w.u32(2);
+	w.u32(1 | (4 << 16) | (6 << 24)); // pivot, vector length, quaternion channel
+	w.u32(0);
+	w.f32(0); w.f32(0); w.f32(0); w.f32(1);
+	w.u32(frames - 1);
+	w.f32(0); w.f32(0); w.f32(sinf(0.7853982f)); w.f32(cosf(0.7853982f));
+	w.end(false);
+	w.end(true);
+
 	writeFile(path, w);
 }
 } // namespace
@@ -347,6 +367,7 @@ int main(int argc, char** argv)
 	RegisterClass(&wc);
 	HWND hwnd = CreateWindow("WW3DTest", "WW3D Test", WS_CAPTION | WS_VISIBLE, 0, 0, W, H, nullptr, nullptr, nullptr, nullptr);
 
+	WWMath::Init(); // as W3DDisplay::init does
 	if (WW3D::Init(hwnd) != WW3D_ERROR_OK)
 	{
 		printf("WW3D::Init failed\n");
@@ -432,6 +453,31 @@ int main(int argc, char** argv)
 		anim = assets->Get_HAnim("HTEST.TURN");
 	}
 	printf("w3d hlod: %s, animation: %s\n", model ? "loaded" : "FAILED", anim ? "loaded" : "FAILED");
+
+	// The compressed animation must pose the bones like the raw one.
+	if (model && anim)
+	{
+		HAnimClass* canim = assets->Get_HAnim("HTEST.CTURN");
+		if (canim)
+		{
+			model->Set_Animation(anim, 15.0f);
+			Matrix3D raw = model->Get_Bone_Transform(1);
+			model->Set_Animation(canim, 15.0f);
+			Matrix3D compressed = model->Get_Bone_Transform(1);
+			float diff = 0.0f;
+			for (int r = 0; r < 3; ++r)
+				for (int c = 0; c < 4; ++c)
+				{
+					float d = fabsf(raw[r][c] - compressed[r][c]);
+					diff = d > diff || d != d ? d : diff;
+				}
+			printf("compressed animation: max difference %f, turret x axis raw (%.3f %.3f %.3f) compressed (%.3f %.3f %.3f)\n",
+				diff, raw[0][0], raw[1][0], raw[2][0], compressed[0][0], compressed[1][0], compressed[2][0]);
+			canim->Release_Ref();
+		}
+		else
+			printf("compressed animation: FAILED\n");
+	}
 	if (model)
 	{
 		Matrix3D modelTm(true);
