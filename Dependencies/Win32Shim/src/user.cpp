@@ -1354,6 +1354,19 @@ BOOL ClipCursor(const RECT* rect)
 //-----------------------------------------------------------------------------
 int MessageBoxA(HWND hwnd, LPCSTR text, LPCSTR caption, UINT type)
 {
+	fprintf(stderr, "[MessageBox] %s: %s\n", caption ? caption : "", text ? text : "");
+	if (getenv("GENERALS_NO_MESSAGEBOX"))
+	{
+		// Unattended runs: pick the default (first) button.
+		switch (type & 0x0F)
+		{
+		case MB_YESNO:
+		case MB_YESNOCANCEL: return IDYES;
+		case MB_RETRYCANCEL: return IDCANCEL;
+		case MB_ABORTRETRYIGNORE: return IDABORT;
+		default: return IDOK;
+		}
+	}
 	ensureSDL();
 	SDL_MessageBoxButtonData buttons[3];
 	int count = 0;

@@ -2143,3 +2143,62 @@ DWORD GetModuleFileNameW(HMODULE module, LPWSTR buffer, DWORD len)
 
 int __argc = 0;
 char** __argv = nullptr;
+
+//-----------------------------------------------------------------------------
+// C runtime file functions with path translation
+//-----------------------------------------------------------------------------
+#undef fopen
+FILE* Win32Shim_fopen(const char* path, const char* mode)
+{
+	std::string p = Win32Shim_TranslatePath(path);
+	// Windows text/binary mode flags: 't' is not understood by the C library.
+	std::string m;
+	for (const char* c = mode; c && *c; ++c)
+	{
+		if (*c != 't')
+			m += *c;
+	}
+	return fopen(p.c_str(), m.c_str());
+}
+
+int Win32Shim_open(const char* path, int flags, ...)
+{
+	int mode = 0;
+	if (flags & O_CREAT)
+	{
+		va_list args;
+		va_start(args, flags);
+		mode = va_arg(args, int);
+		va_end(args);
+	}
+	std::string p = Win32Shim_TranslatePath(path);
+	// Windows permission bits are only read/write for the owner.
+	if (mode)
+		mode = 0644;
+	return open(p.c_str(), flags, mode);
+}
+
+int Win32Shim_access(const char* path, int mode)
+{
+	return access(Win32Shim_TranslatePath(path).c_str(), mode);
+}
+
+int Win32Shim_unlink(const char* path)
+{
+	return unlink(Win32Shim_TranslatePath(path).c_str());
+}
+
+int Win32Shim_mkdir(const char* path)
+{
+	return mkdir(Win32Shim_TranslatePath(path).c_str(), 0755);
+}
+
+int Win32Shim_chdir(const char* path)
+{
+	return chdir(Win32Shim_TranslatePath(path).c_str());
+}
+
+int Win32Shim_rmdir(const char* path)
+{
+	return rmdir(Win32Shim_TranslatePath(path).c_str());
+}

@@ -200,9 +200,10 @@ CTLineRef createLine(Font* font, const wchar_t* str, int len)
 			utf16.push_back((UniChar)c);
 	}
 	CFStringRef text = CFStringCreateWithCharacters(nullptr, utf16.data(), (CFIndex)utf16.size());
-	CFStringRef keys[] = { kCTFontAttributeName };
-	CFTypeRef values[] = { font->ctFont };
-	CFDictionaryRef attrs = CFDictionaryCreate(nullptr, (const void**)keys, (const void**)values, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+	// Draw with the context fill color rather than the default black foreground.
+	CFStringRef keys[] = { kCTFontAttributeName, kCTForegroundColorFromContextAttributeName };
+	CFTypeRef values[] = { font->ctFont, kCFBooleanTrue };
+	CFDictionaryRef attrs = CFDictionaryCreate(nullptr, (const void**)keys, (const void**)values, 2, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 	CFAttributedStringRef attributed = CFAttributedStringCreate(nullptr, text, attrs);
 	CTLineRef line = CTLineCreateWithAttributedString(attributed);
 	CFRelease(attributed);

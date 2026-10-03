@@ -366,11 +366,7 @@ void SetLastError(DWORD err);
 #define _vsnprintf vsnprintf
 #define _snwprintf swprintf
 #define _vsnwprintf vswprintf
-#define _access access
-#define _unlink unlink
 #define _getcwd getcwd
-#define _chdir chdir
-#define _rmdir rmdir
 #define _fileno fileno
 #define _isnan isnan
 #define _finite isfinite
@@ -431,6 +427,22 @@ char* _fullpath(char* absPath, const char* relPath, size_t maxLength);
 #define CP_UTF8 65001
 int MultiByteToWideChar(UINT codePage, DWORD flags, LPCSTR src, int srcLen, LPWSTR dst, int dstLen);
 int WideCharToMultiByte(UINT codePage, DWORD flags, LPCWSTR src, int srcLen, LPSTR dst, int dstLen, LPCSTR defChar, LPBOOL usedDefChar);
+
+//-----------------------------------------------------------------------------
+// C runtime file functions with Windows path translation (backslashes, drive letters)
+//-----------------------------------------------------------------------------
+FILE* Win32Shim_fopen(const char* path, const char* mode);
+int Win32Shim_open(const char* path, int flags, ...);
+int Win32Shim_access(const char* path, int mode);
+int Win32Shim_unlink(const char* path);
+int Win32Shim_mkdir(const char* path);
+int Win32Shim_chdir(const char* path);
+int Win32Shim_rmdir(const char* path);
+#define fopen Win32Shim_fopen
+#define _access Win32Shim_access
+#define _unlink Win32Shim_unlink
+#define _chdir Win32Shim_chdir
+#define _rmdir Win32Shim_rmdir
 
 //-----------------------------------------------------------------------------
 // Memory

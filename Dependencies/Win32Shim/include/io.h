@@ -18,7 +18,7 @@
 #define O_TEXT 0
 #define _S_IREAD S_IRUSR
 #define _S_IWRITE S_IWUSR
-#define _open open
+#define _open Win32Shim_open
 #define _close close
 #define _read read
 #define _write write

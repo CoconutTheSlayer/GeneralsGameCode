@@ -34,3 +34,9 @@ target_link_libraries(d3d8metal PUBLIC
 add_library(d3d8lib INTERFACE)
 target_link_libraries(d3d8lib INTERFACE d3d8metal)
 target_compile_definitions(d3d8lib INTERFACE BUILD_WITH_D3D8)
+
+# Visual regression test: renders scenes to PNG files.
+add_executable(d3d8metal_test EXCLUDE_FROM_ALL tests/d3d8test.cpp)
+target_link_libraries(d3d8metal_test PRIVATE d3d8metal)
+target_include_directories(d3d8metal_test PRIVATE ${CMAKE_SOURCE_DIR}/Dependencies/Utility)
+target_compile_definitions(d3d8metal_test PRIVATE NOMINMAX)
