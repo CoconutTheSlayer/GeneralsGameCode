@@ -296,6 +296,85 @@ int main(int argc, char** argv)
 	IDirect3DTexture8* checker4444 = makeChecker(D3DFMT_A4R4G4B4, 64, 0xFFFFFFFF, 0x00000000);
 	IDirect3DTexture8* dxt = makeDXT1();
 
+	// Draw call benchmark: d3d8metal_test <dir> --bench
+	if (argc > 2 && strcmp(argv[2], "--bench") == 0)
+	{
+		LitVertex quadVerts[4] = {
+			{ -0.1f, -0.1f, 0, 0, 0, -1, 0, 0 }, { 0.1f, -0.1f, 0, 0, 0, -1, 1, 0 },
+			{ -0.1f, 0.1f, 0, 0, 0, -1, 0, 1 }, { 0.1f, 0.1f, 0, 0, 0, -1, 1, 1 },
+		};
+		IDirect3DVertexBuffer8* vb = nullptr;
+		check(g_device->CreateVertexBuffer(sizeof(quadVerts), D3DUSAGE_WRITEONLY, LITFVF, D3DPOOL_MANAGED, &vb), "bench vb");
+		BYTE* vdata = nullptr;
+		vb->Lock(0, 0, &vdata, 0);
+		memcpy(vdata, quadVerts, sizeof(quadVerts));
+		vb->Unlock();
+		IDirect3DIndexBuffer8* ib = nullptr;
+		check(g_device->CreateIndexBuffer(6 * 2, D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_MANAGED, &ib), "bench ib");
+		BYTE* idata = nullptr;
+		ib->Lock(0, 0, &idata, 0);
+		const uint16_t indices[6] = { 0, 1, 2, 2, 1, 3 };
+		memcpy(idata, indices, sizeof(indices));
+		ib->Unlock();
+		IDirect3DTexture8* textures[4] = { checker, checker565, checker4444, dxt };
+		D3DLIGHT8 light = {};
+		light.Type = D3DLIGHT_DIRECTIONAL;
+		light.Diffuse = { 1, 1, 1, 1 };
+		light.Direction = { 0, 0, 1 };
+		const int frames = 200, draws = 5000, upDraws = 500;
+		double cpuMs = 0, totalMs = 0;
+		for (int frame = 0; frame < frames; ++frame)
+		{
+			LARGE_INTEGER t0, t1, t2, freq;
+			QueryPerformanceFrequency(&freq);
+			QueryPerformanceCounter(&t0);
+			resetStates();
+			g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0);
+			g_device->BeginScene();
+			setCamera();
+			g_device->SetRenderState(D3DRS_LIGHTING, TRUE);
+			g_device->SetLight(0, &light);
+			g_device->LightEnable(0, TRUE);
+			g_device->SetStreamSource(0, vb, sizeof(LitVertex));
+			g_device->SetIndices(ib, 0);
+			g_device->SetVertexShader(LITFVF);
+			for (int i = 0; i < draws; ++i)
+			{
+				D3DMATRIX world = identity();
+				world._41 = ((i % 100) - 50) * 0.05f;
+				world._42 = ((i / 100) % 50 - 25) * 0.05f;
+				world._43 = (float)(i % 7);
+				g_device->SetTransform(D3DTS_WORLD, &world);
+				D3DMATERIAL8 mat = {};
+				mat.Diffuse = { (i & 1) ? 1.0f : 0.5f, 0.8f, 0.6f, 1.0f };
+				mat.Ambient = { 0.2f, 0.2f, 0.2f, 1.0f };
+				g_device->SetMaterial(&mat);
+				modulateStage0(textures[i & 3]);
+				g_device->SetRenderState(D3DRS_ALPHABLENDENABLE, (i & 4) != 0);
+				g_device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+				g_device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+				g_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 4, 0, 2);
+			}
+			g_device->SetRenderState(D3DRS_LIGHTING, FALSE);
+			for (int i = 0; i < upDraws; ++i)
+				quad((float)(i % 60) * 10, (float)(i / 60) * 10, 8, 8, 0xFFFFFFFF, 0xFFFF0000, 0xFF00FF00, 0xFF0000FF);
+			g_device->EndScene();
+			QueryPerformanceCounter(&t1);
+			g_device->Present(nullptr, nullptr, nullptr, nullptr);
+			QueryPerformanceCounter(&t2);
+			if (frame >= 10)
+			{
+				cpuMs += (double)(t1.QuadPart - t0.QuadPart) * 1000.0 / freq.QuadPart;
+				totalMs += (double)(t2.QuadPart - t0.QuadPart) * 1000.0 / freq.QuadPart;
+			}
+		}
+		printf("bench: %d draws per frame, %.2f ms CPU per frame, %.2f ms per frame with Present\n", draws + upDraws,
+			cpuMs / (frames - 10), totalMs / (frames - 10));
+		vb->Release();
+		ib->Release();
+		return 0;
+	}
+
 	// Scene 1: clear + gouraud triangle + textured quads of each format.
 	resetStates();
 	g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF203040, 1.0f, 0);
