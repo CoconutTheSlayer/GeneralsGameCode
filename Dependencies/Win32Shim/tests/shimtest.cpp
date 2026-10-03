@@ -30,6 +30,8 @@ static DWORD WINAPI threadProc(LPVOID p)
 int main(int argc, char** argv)
 {
 	std::string root = argc > 1 ? argv[1] : "/tmp/shimtest";
+	// Keep the registry and user folders of the test out of the real home folder.
+	setenv("HOME", root.c_str(), 1);
 	std::string win = root;
 	for (char& c : win) if (c == '/') c = '\\';
 

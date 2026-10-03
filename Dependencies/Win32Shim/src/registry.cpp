@@ -275,7 +275,12 @@ std::string Win32Shim_UserDataDirectory()
 	{
 		const char* home = getenv("HOME");
 		dir = new std::string(std::string(home ? home : "/tmp") + "/Library/Application Support/GeneralsZH");
-		mkdir(dir->c_str(), 0755);
+		for (size_t slash = dir->find('/', 1); ; slash = dir->find('/', slash + 1))
+		{
+			mkdir(dir->substr(0, slash).c_str(), 0755);
+			if (slash == std::string::npos)
+				break;
+		}
 	}
 	return *dir;
 }
