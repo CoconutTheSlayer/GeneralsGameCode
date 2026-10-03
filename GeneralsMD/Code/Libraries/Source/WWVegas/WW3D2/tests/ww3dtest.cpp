@@ -123,8 +123,18 @@ void writeTestAssets()
 
 }
 
+// Optional skinning of the cube: vertices above `splitZ` belong to bone 1 at height `boneZ`,
+// the others to bone 0. Skin vertices are stored in the space of their bone.
+struct SkinInfo
+{
+	float centerZ;
+	float splitZ;
+	float boneZ;
+};
+
 // Appends a cube mesh with half extent `size` around the origin.
-void appendCube(ChunkWriter& w, const char* meshName, const char* containerName, const char* textureName, float size)
+void appendCube(ChunkWriter& w, const char* meshName, const char* containerName, const char* textureName, float size,
+	const SkinInfo* skin = nullptr)
 {
 	// Cube with 4 vertices per face.
 	static const float faces[6][3] = { { 0, 0, -1 }, { 0, 0, 1 }, { -1, 0, 0 }, { 1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 } };
@@ -147,6 +157,19 @@ void appendCube(ChunkWriter& w, const char* meshName, const char* containerName,
 		tris.insert(tris.end(), { base + 0, base + 2, base + 1, base + 1, base + 2, base + 3 });
 	}
 	uint32_t numVerts = (uint32_t)(pos.size() / 3), numTris = (uint32_t)(tris.size() / 3);
+	std::vector<uint16_t> bones(numVerts, 0);
+	if (skin)
+	{
+		for (uint32_t i = 0; i < numVerts; ++i)
+		{
+			pos[i * 3 + 2] += skin->centerZ;
+			if (pos[i * 3 + 2] > skin->splitZ)
+			{
+				bones[i] = 1;
+				pos[i * 3 + 2] -= skin->boneZ;
+			}
+		}
+	}
 
 	w.begin(0x00000000); // MESH
 	w.begin(0x0000001F); // MESH_HEADER3
@@ -163,6 +186,12 @@ void appendCube(ChunkWriter& w, const char* meshName, const char* containerName,
 	w.u32(0);
 	w.u32(0x1 | 0x2 | 0x4);
 	w.u32(0x1);
+	// The header attributes were written above; patch in the skin flag.
+	if (skin)
+	{
+		uint32_t attributes = 0x00020000;
+		memcpy(&w.data[w.data.size() - 8 - 4 * 8], &attributes, 4);
+	}
 	w.f32(-size); w.f32(-size); w.f32(-size);
 	w.f32(size); w.f32(size); w.f32(size);
 	w.f32(0); w.f32(0); w.f32(0);
@@ -170,6 +199,16 @@ void appendCube(ChunkWriter& w, const char* meshName, const char* containerName,
 	w.end(false);
 	w.begin(0x00000002); for (float v : pos) w.f32(v); w.end(false);
 	w.begin(0x00000003); for (float v : nrm) w.f32(v); w.end(false);
+	if (skin)
+	{
+		w.begin(0x0000000E); // VERTEX_INFLUENCES
+		for (uint16_t b : bones)
+		{
+			w.u32(b);
+			w.u32(0);
+		}
+		w.end(false);
+	}
 	w.begin(0x00000020); // TRIANGLES
 	for (uint32_t t = 0; t < numTris; ++t)
 	{
@@ -258,6 +297,22 @@ void writeTestHierarchy(const char* path)
 
 	appendCube(w, "BASE", "HTEST", "testtex.tga", 1.0f);
 	appendCube(w, "TOP", "HTEST", "testdds.tga", 0.4f);
+
+	// A box skinned to both bones; turning the upper bone twists it.
+	const SkinInfo skin = { 0.7f, 1.0f, 1.4f };
+	appendCube(w, "SKIN", "HSKIN", "testtex.tga", 0.6f, &skin);
+	w.begin(0x00000700); // HLOD
+	w.begin(0x00000701);
+	w.u32((1 << 16) | 0);
+	w.u32(1);
+	w.name("HSKIN", 16);
+	w.name("HTEST", 16);
+	w.end(false);
+	w.begin(0x00000702);
+	w.begin(0x00000703); w.u32(1); w.f32(0.0f); w.end(false);
+	w.begin(0x00000704); w.u32(0); w.name("HSKIN.SKIN", 32); w.end(false);
+	w.end(true);
+	w.end(true);
 
 	w.begin(0x00000700); // HLOD
 	w.begin(0x00000701);
@@ -454,6 +509,18 @@ int main(int argc, char** argv)
 	}
 	printf("w3d hlod: %s, animation: %s\n", model ? "loaded" : "FAILED", anim ? "loaded" : "FAILED");
 
+	RenderObjClass* skinned = assets->Create_Render_Obj("HSKIN");
+	printf("w3d skin: %s\n", skinned ? "loaded" : "FAILED");
+	if (skinned)
+	{
+		Matrix3D skinTm(true);
+		skinTm.Set_Translation(Vector3(6.5f, 8.0f, 1.5f));
+		skinned->Set_Transform(skinTm);
+		if (anim)
+			skinned->Set_Animation(anim, 15.0f);
+		scene->Add_Render_Object(skinned);
+	}
+
 	// The compressed animation must pose the bones like the raw one.
 	if (model && anim)
 	{
@@ -537,6 +604,7 @@ int main(int argc, char** argv)
 	REF_PTR_RELEASE(cube2);
 	REF_PTR_RELEASE(anim);
 	REF_PTR_RELEASE(model);
+	REF_PTR_RELEASE(skinned);
 	REF_PTR_RELEASE(sphere);
 	REF_PTR_RELEASE(sphere2);
 	REF_PTR_RELEASE(light);
