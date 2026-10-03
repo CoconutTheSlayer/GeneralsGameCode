@@ -71,6 +71,24 @@ int main()
 		printf("stream position %d / %d ms\n", (int)cur, (int)total);
 		AIL_close_stream(st);
 	}
+	// Movie style PCM streaming: 1 second of 880 Hz stereo in 20 ms chunks.
+	HSTREAM pcmStream = MilesMac_OpenPCMStream(2, 48000);
+	printf("pcm stream: %s\n", pcmStream ? "ok" : "FAILED");
+	std::vector<float> chunk(960 * 2);
+	for (int c = 0; c < 50; ++c)
+	{
+		for (int i = 0; i < 960; ++i)
+		{
+			float v = 0.3f * sinf(2 * 3.14159265f * 880.0f * (c * 960 + i) / 48000.0f);
+			chunk[i * 2] = v;
+			chunk[i * 2 + 1] = v;
+		}
+		MilesMac_QueuePCM(pcmStream, chunk.data(), 960, 2);
+		SDL_Delay(20);
+	}
+	SDL_Delay(200);
+	MilesMac_ClosePCMStream(pcmStream);
+
 	AIL_release_sample_handle(s);
 	AIL_release_3D_sample_handle(s3);
 	AIL_shutdown();

@@ -356,6 +356,10 @@ struct Voice
 	float minDist = 1.0f, maxDist = 1000.0f;
 	float occlusion = 0.0f;
 	S32 userData[8] = {};
+	// Live PCM voices (movie audio) wait for a little data before playing so that
+	// irregular delivery does not cause gaps.
+	bool live = false;
+	bool buffering = true;
 	AIL_sample_callback sampleEOS = nullptr;
 	AIL_3dsample_callback sample3DEOS = nullptr;
 	AIL_stream_callback streamEOS = nullptr;
@@ -452,6 +456,13 @@ void SDLCALL mixCallback(void*, SDL_AudioStream* stream, int additional, int)
 			computeGains(*v, gl, gr);
 			double step = (double)v->rate / g_outputRate;
 			int ch = pcm.channels;
+			if (v->live && v->buffering)
+			{
+				size_t queued = pcm.decodedFrames.load() - (size_t)v->position;
+				if (queued < (size_t)(pcm.rate / 10))
+					continue;
+				v->buffering = false;
+			}
 			for (int i = 0; i < frames; ++i)
 			{
 				size_t available = pcm.decodedFrames.load(std::memory_order_acquire);
@@ -460,7 +471,11 @@ void SDLCALL mixCallback(void*, SDL_AudioStream* stream, int additional, int)
 				{
 					bool atEnd = pcm.complete.load() && idx + 1 >= available;
 					if (!atEnd)
+					{
+						if (v->live)
+							v->buffering = true;
 						break; // still decoding: output silence for the rest of this block
+					}
 					v->loopsDone++;
 					if (v->loopCount == 0 || v->loopsDone < v->loopCount)
 					{
@@ -1354,6 +1369,67 @@ void __stdcall AIL_quick_unload(HAUDIO audio)
 {
 	if (audio)
 		AIL_close_stream((HSTREAM)audio);
+}
+
+//-----------------------------------------------------------------------------
+// macOS extension: a voice playing PCM that is supplied incrementally (movie audio)
+//-----------------------------------------------------------------------------
+HSTREAM MilesMac_OpenPCMStream(int channels, int rate)
+{
+	if (!g_started)
+		return nullptr;
+	auto pcm = std::make_shared<Pcm>();
+	pcm->channels = std::clamp(channels, 1, 2);
+	pcm->rate = rate > 0 ? rate : 44100;
+	Voice* v = newVoice(VOICE_STREAM);
+	std::lock_guard<std::recursive_mutex> lock(g_mutex);
+	v->pcm = pcm;
+	v->rate = pcm->rate;
+	v->loopCount = 1;
+	v->live = true;
+	v->state = STATE_PLAYING;
+	return (HSTREAM)v;
+}
+
+void MilesMac_QueuePCM(HSTREAM stream, const float* interleaved, int frames, int channels)
+{
+	if (stream == nullptr || interleaved == nullptr || frames <= 0 || channels <= 0)
+		return;
+	std::lock_guard<std::recursive_mutex> lock(g_mutex);
+	Voice* v = toVoice(stream);
+	Pcm& pcm = *v->pcm;
+	// Drop data that has been played to keep memory bounded.
+	size_t consumed = (size_t)v->position;
+	if (consumed > (size_t)pcm.rate)
+	{
+		pcm.frames.erase(pcm.frames.begin(), pcm.frames.begin() + (long)(consumed * pcm.channels));
+		pcm.decodedFrames = pcm.decodedFrames.load() - consumed;
+		v->position -= (double)consumed;
+	}
+	size_t start = pcm.decodedFrames.load();
+	pcm.frames.resize((start + (size_t)frames) * pcm.channels);
+	for (int f = 0; f < frames; ++f)
+	{
+		for (int c = 0; c < pcm.channels; ++c)
+		{
+			float sample = interleaved[f * channels + std::min(c, channels - 1)];
+			pcm.frames[(start + f) * pcm.channels + c] = (int16_t)std::clamp((int)lrintf(sample * 32767.0f), -32768, 32767);
+		}
+	}
+	pcm.decodedFrames = start + (size_t)frames;
+	pcm.totalFrames = pcm.decodedFrames.load();
+}
+
+void MilesMac_SetPCMVolume(HSTREAM stream, float volume)
+{
+	if (stream)
+		AIL_set_stream_volume_pan(stream, volume, 0.5f);
+}
+
+void MilesMac_ClosePCMStream(HSTREAM stream)
+{
+	if (stream)
+		AIL_close_stream(stream);
 }
 
 } // extern "C"
