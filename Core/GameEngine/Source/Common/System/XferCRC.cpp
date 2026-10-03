@@ -30,6 +30,8 @@
 // USER INCLUDES //////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#include "Common/UTF16.h"
+
 #include "Common/XferCRC.h"
 #include "Common/XferDeepCRC.h"
 #include "Common/crc.h"
@@ -338,6 +340,10 @@ void XferDeepCRC::xferUnicodeString( UnicodeString *unicodeStringData )
 
 	// save string data
 	if( len > 0 )
-		xferUser( (void *)unicodeStringData->str(), sizeof( WideChar ) * len );
+	{
+		UnsignedShort utf16[ 256 ];
+		WideCharToUTF16( unicodeStringData->str(), utf16, len );
+		xferUser( utf16, sizeof( UnsignedShort ) * len );
+	}
 
 }

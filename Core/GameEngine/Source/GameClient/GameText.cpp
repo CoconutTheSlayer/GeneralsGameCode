@@ -45,6 +45,8 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#include "Common/UTF16.h"
+
 #include "GameClient/GameText.h"
 #include "Common/Language.h"
 #include "Common/Registry.h"
@@ -944,7 +946,10 @@ Bool GameTextManager::parseCSF( const Char *filename )
 
 			if ( len )
 			{
-				file->read ( m_tbuffer, len*sizeof(WideChar) );
+				UnsignedShort utf16[ ARRAY_SIZE(m_tbuffer) ];
+				len = min( len, (Int)ARRAY_SIZE(m_tbuffer) - 1 );
+				file->read ( utf16, len*sizeof(UnsignedShort) );
+				UTF16ToWideChar( utf16, m_tbuffer, len );
 			}
 
 			if ( num == 0 )
@@ -959,7 +964,8 @@ Bool GameTextManager::parseCSF( const Char *filename )
 
 					while ( *ptr )
 					{
-						*ptr = ~*ptr;
+						// The text is stored as inverted UTF-16 code units.
+						*ptr = (WideChar)( ~*ptr & 0xFFFF );
 						ptr++;
 					}
 				}

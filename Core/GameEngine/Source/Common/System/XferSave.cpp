@@ -29,6 +29,8 @@
 
 // USER INCLUDES //////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+
+#include "Common/UTF16.h"
 #include "Common/XferSave.h"
 #include "Common/Snapshot.h"
 #include "Common/GameMemory.h"
@@ -332,7 +334,11 @@ void XferSave::xferUnicodeString( UnicodeString *unicodeStringData )
 
 	// save string data
 	if( len > 0 )
-		xferUser( (void *)unicodeStringData->str(), sizeof( WideChar ) * len );
+	{
+		UnsignedShort utf16[ 256 ];
+		WideCharToUTF16( unicodeStringData->str(), utf16, len );
+		xferUser( utf16, sizeof( UnsignedShort ) * len );
+	}
 
 }
 

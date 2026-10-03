@@ -47,6 +47,8 @@
 
 #include "PreRTS.h"
 
+#include "Common/UTF16.h"
+
 #include <fcntl.h>
 #include <io.h>
 #include <sys/stat.h>
@@ -380,7 +382,8 @@ Int LocalFile::readChar()
 
 Int LocalFile::readWideChar()
 {
-	WideChar character = L'\0';
+	// Files store UTF-16 code units.
+	UnsignedShort character = 0;
 
 	Int ret = read( &character, sizeof(character) );
 
@@ -439,7 +442,11 @@ Int LocalFile::writeFormat( const WideChar* format, ... )
 	Int length = vswprintf(buffer, sizeof(buffer) / sizeof(WideChar), format, args);
 	va_end(args);
 
-	return write( buffer, length * sizeof(WideChar) );
+	if (length <= 0)
+		return length;
+	UnsignedShort utf16[ ARRAY_SIZE(buffer) ];
+	WideCharToUTF16( buffer, utf16, length );
+	return write( utf16, length * sizeof(UnsignedShort) );
 }
 
 //=================================================================
@@ -461,7 +468,8 @@ Int LocalFile::writeChar( const Char* character )
 
 Int LocalFile::writeChar( const WideChar* character )
 {
-	if ( write( character, sizeof(WideChar) ) == sizeof(WideChar) ) {
+	UnsignedShort utf16 = (UnsignedShort)*character;
+	if ( write( &utf16, sizeof(utf16) ) == sizeof(utf16) ) {
 		return (Int)(intptr_t)character;
 	}
 
