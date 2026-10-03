@@ -68,7 +68,13 @@ static constexpr const Int MAX_UDP_PAYLOAD_SIZE = 1100;
 static constexpr const Int RETAIL_GAME_PACKET_SIZE = 476;
 
 // TheSuperHackers @info The legacy lanapi cannot use a larger packet size without breaking the gameinfo command
+#if defined(__APPLE__)
+// wchar_t is 4 bytes on macOS, which doubles the size of the wide strings in LANMessage.
+// macOS clients only talk to each other on LAN, so a larger packet is fine.
+static constexpr const Int MAX_LANAPI_PACKET_SIZE = MAX_UDP_PAYLOAD_SIZE;
+#else
 static constexpr const Int MAX_LANAPI_PACKET_SIZE = RETAIL_GAME_PACKET_SIZE;
+#endif
 
 // TheSuperHackers @bugfix Mauller 08/02/2026 Allow larger ethernet UDP payload to be used for game messages, this fixes connection issues and eliminates disconnection bugs
 #if RETAIL_COMPATIBLE_NETWORKING

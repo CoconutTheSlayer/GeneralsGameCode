@@ -51,7 +51,7 @@
 #include <signal.h>
 #include "WWLib/Except.h"
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 #include <windows.h>
 #else
 #include <errno.h>
@@ -82,7 +82,7 @@ void Convert_System_Error_To_String(int id, char* buffer, int buf_len)
 
 int Get_Last_System_Error()
 {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 	return GetLastError();
 #else
 	return errno;

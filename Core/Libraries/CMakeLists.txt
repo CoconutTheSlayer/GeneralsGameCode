@@ -8,8 +8,9 @@ add_subdirectory(Source/WWVegas)
 add_subdirectory(Source/profile)
 
 # debugging library
-add_subdirectory(Source/debug)
-
-add_subdirectory(Source/EABrowserDispatch)
-add_subdirectory(Source/EABrowserEngine)
+if(NOT APPLE)
+    add_subdirectory(Source/debug)
+    add_subdirectory(Source/EABrowserDispatch)
+    add_subdirectory(Source/EABrowserEngine)
+endif()
 add_subdirectory(Source/Compression)

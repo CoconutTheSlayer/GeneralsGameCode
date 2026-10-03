@@ -19,7 +19,10 @@
 // This file contains macros to help compiling on non-windows platforms.
 #pragma once
 
-#ifndef _WIN32
+#if !defined(_WIN32) && defined(__APPLE__)
+// macOS uses the fuller Win32 replacement from Dependencies/Win32Shim.
+#include <windows.h>
+#elif !defined(_WIN32)
 // For size_t
 #include <cstddef>
 // For isdigit

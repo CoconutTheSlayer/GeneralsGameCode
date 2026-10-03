@@ -52,6 +52,10 @@ if(MINGW)
     include(cmake/widl.cmake)
 endif()
 
+if(APPLE)
+    include(cmake/macos.cmake)
+endif()
+
 # Find/Add build dependencies and stubs shared by all projects
 if((WIN32 OR "${CMAKE_SYSTEM}" MATCHES "Windows") AND ${CMAKE_SIZEOF_VOID_P} EQUAL 4)
     include(cmake/dx8.cmake)

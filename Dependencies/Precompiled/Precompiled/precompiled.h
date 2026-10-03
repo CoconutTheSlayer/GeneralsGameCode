@@ -32,3 +32,15 @@
 #endif // __cplusplus
 
 #include "stdint_adapter.h"
+
+// On macOS every translation unit sees the Win32 shim, like windows.h through the
+// precompiled headers on Windows.
+#if defined(__APPLE__)
+#include <stddef.h>
+#ifdef __cplusplus
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+#endif

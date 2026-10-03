@@ -49,8 +49,14 @@
 #ifdef RTS_HAS_FFMPEG
 #include "VideoDevice/FFmpeg/FFmpegVideoPlayer.h"
 #endif
+#if defined(__APPLE__)
+#include "MacDevice/GameClient/MacKeyboard.h"
+#else
 #include "Win32Device/GameClient/Win32DIKeyboard.h"
+#endif
+#if !defined(__APPLE__)
 #include "Win32Device/GameClient/Win32DIMouse.h"
+#endif
 #include "Win32Device/GameClient/Win32Mouse.h"
 #include "W3DDevice/GameClient/W3DMouse.h"
 #include "W3DDevice/GameClient/W3DSnow.h"
@@ -126,7 +132,11 @@ protected:
 
 };
 
+#if defined(__APPLE__)
+inline Keyboard *W3DGameClient::createKeyboard() { return NEW MacKeyboard; }
+#else
 inline Keyboard *W3DGameClient::createKeyboard() { return NEW DirectInputKeyboard; }
+#endif
 inline Mouse *W3DGameClient::createMouse()
 {
 	//return new DirectInputMouse;

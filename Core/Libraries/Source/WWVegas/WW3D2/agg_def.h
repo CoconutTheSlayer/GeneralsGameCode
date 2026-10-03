@@ -41,9 +41,6 @@
 #include "WWLib/Vector.h"
 #include "WWLib/bittype.h"
 
-#ifdef _UNIX
-#include "osdep.h"
-#endif
 
 
 // Forward declarations

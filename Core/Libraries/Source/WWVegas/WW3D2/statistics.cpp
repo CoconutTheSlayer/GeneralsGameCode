@@ -26,9 +26,6 @@
 #include "texture.h"
 
 #include <memory.h>
-#ifdef _UNIX
-#include "osdep.h"
-#endif
 
 // ----------------------------------------------------------------------------
 //

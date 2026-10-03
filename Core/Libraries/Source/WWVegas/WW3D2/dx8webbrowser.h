@@ -51,6 +51,10 @@
 
 struct IDirect3DDevice8;
 
+#if defined(__APPLE__)
+typedef void* LPDISPATCH;
+#endif
+
 /**
 ** DX8WebBrowser
 **

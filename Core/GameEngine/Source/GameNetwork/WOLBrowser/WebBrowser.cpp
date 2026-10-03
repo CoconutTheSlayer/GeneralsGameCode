@@ -46,6 +46,27 @@
 #include "GameClient/GameWindow.h"
 #include "GameClient/Display.h"
 
+#if defined(__APPLE__)
+
+const FieldParse WebBrowserURL::m_URLFieldParseTable[] =
+{
+	{ "URL",										INI::parseAsciiString,							nullptr, offsetof( WebBrowserURL, m_url ) },
+	{ nullptr,											nullptr,																nullptr, 0 },
+};
+
+WebBrowserURL::WebBrowserURL()
+{
+	m_next = nullptr;
+	m_tag.clear();
+	m_url.clear();
+}
+
+WebBrowserURL::~WebBrowserURL()
+{
+}
+
+#else
+
 
 /**
 	* OLEInitializer class - Init and shutdown OLE & COM as a global
@@ -308,3 +329,5 @@ STDMETHODIMP WebBrowser::TestMethod(Int num1)
 	DEBUG_LOG(("WebBrowser::TestMethod - num1 = %d", num1));
 	return S_OK;
 }
+
+#endif // __APPLE__

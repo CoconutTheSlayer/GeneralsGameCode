@@ -18,7 +18,7 @@
 
 #include "mutex.h"
 #include "WWDebug/wwdebug.h"
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 #include <windows.h>
 #endif
 

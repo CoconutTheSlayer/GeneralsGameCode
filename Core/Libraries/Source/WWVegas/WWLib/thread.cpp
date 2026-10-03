@@ -25,7 +25,7 @@
 #include "systimer.h"
 #pragma warning ( pop )
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 #include <process.h>
 #include <windows.h>
 #endif
@@ -53,8 +53,10 @@ void __cdecl ThreadClass::Internal_Thread_Function(void* params)
 	tc->running=true;
 	tc->ThreadID = GetCurrentThreadId();
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32)
 	Register_Thread_ID(tc->ThreadID, tc->ThreadName);
+#endif
 
 #if defined(_MSC_VER)
 	// MSVC supports structured exception handling (__try/__except)
@@ -65,7 +67,7 @@ void __cdecl ThreadClass::Internal_Thread_Function(void* params)
 	} else {
 		tc->Thread_Function();
 	}
-#elif defined(__GNUC__) && defined(_WIN32)
+#elif defined(__GNUC__) && (defined(_WIN32) || defined(__APPLE__))
 	// GCC/MinGW-w64 doesn't support MSVC's __try/__except syntax
 	// Call Thread_Function directly without SEH support
 	tc->Thread_Function();
@@ -77,7 +79,7 @@ void __cdecl ThreadClass::Internal_Thread_Function(void* params)
 	tc->Thread_Function();
 #endif //_WIN32
 
-#ifdef _WIN32
+#if defined(_WIN32)
 	Unregister_Thread_ID(tc->ThreadID, tc->ThreadName);
 #endif // _WIN32
 	tc->handle=0;

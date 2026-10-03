@@ -39,7 +39,7 @@
 #ifndef _SYSTIMER_H
 
 #include "always.h"
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 #include <windows.h>
 #include "mmsys.h"
 

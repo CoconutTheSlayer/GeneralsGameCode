@@ -190,6 +190,13 @@ set(GAMEENGINEDEVICE_SRC
 #    Source/Win32Device/GameClient/Win32Mouse.cpp
 )
 
+if(APPLE)
+    list(REMOVE_ITEM GAMEENGINEDEVICE_SRC
+        Include/W3DDevice/GameClient/W3DWebBrowser.h
+        Source/W3DDevice/GameClient/W3DWebBrowser.cpp
+    )
+endif()
+
 add_library(z_gameenginedevice STATIC)
 
 target_sources(z_gameenginedevice PRIVATE ${GAMEENGINEDEVICE_SRC})

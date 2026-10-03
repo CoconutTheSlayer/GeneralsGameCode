@@ -93,7 +93,7 @@ struct PlayingAudio
 		return m_status == PS_Playing || m_rerequestOnNextUpdate;
 	}
 
-	static_assert(sizeof(m_status) == sizeof(long), "Must be size of long, because it is used with Interlocked functions");
+	static_assert(sizeof(m_status) == sizeof(LONG), "Must be size of LONG, because it is used with Interlocked functions");
 };
 
 struct ProviderInfo

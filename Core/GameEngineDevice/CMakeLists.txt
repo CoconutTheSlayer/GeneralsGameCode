@@ -211,6 +211,19 @@ if(NOT IS_VS6_BUILD)
     )
 endif()
 
+if(APPLE)
+    list(REMOVE_ITEM GAMEENGINEDEVICE_SRC
+        Include/VideoDevice/Bink/BinkVideoPlayer.h
+        Source/VideoDevice/Bink/BinkVideoPlayer.cpp
+        Include/Win32Device/GameClient/Win32DIKeyboard.h
+        Source/Win32Device/GameClient/Win32DIKeyboard.cpp
+    )
+    list(APPEND GAMEENGINEDEVICE_SRC
+        Include/MacDevice/GameClient/MacKeyboard.h
+        Source/MacDevice/GameClient/MacKeyboard.cpp
+    )
+endif()
+
 add_library(corei_gameenginedevice_private INTERFACE)
 add_library(corei_gameenginedevice_public INTERFACE)
 

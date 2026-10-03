@@ -24,7 +24,96 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
-#if defined(RTS_DEBUG) || defined(IG_DEBUG_STACKTRACE)
+#if (defined(RTS_DEBUG) || defined(IG_DEBUG_STACKTRACE)) && defined(__APPLE__)
+
+#include "Common/StackDump.h"
+#include "Common/Debug.h"
+
+#include <cxxabi.h>
+#include <dlfcn.h>
+#include <execinfo.h>
+
+// macOS implementation based on backtrace() and dladdr().
+
+void StackDumpDefaultHandler(const char*line)
+{
+	DEBUG_LOG((line));
+}
+
+void GetFunctionDetails(void *pointer, char*name, char*filename, unsigned int* linenumber, unsigned int* address)
+{
+	Dl_info info;
+	if (name)
+		strcpy(name, "<unknown>");
+	if (filename)
+		strcpy(filename, "<unknown>");
+	if (linenumber)
+		*linenumber = 0;
+	if (address)
+		*address = (unsigned int)(uintptr_t)pointer;
+	if (!dladdr(pointer, &info))
+		return;
+	if (name && info.dli_sname)
+	{
+		int status = 0;
+		char *demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
+		strlcpy(name, (status == 0 && demangled) ? demangled : info.dli_sname, 512);
+		free(demangled);
+	}
+	if (filename && info.dli_fname)
+		strlcpy(filename, info.dli_fname, 512);
+}
+
+void WriteStackLine(void*address, void (*callback)(const char*))
+{
+	char name[512];
+	char filename[512];
+	unsigned int line;
+	unsigned int addr;
+	GetFunctionDetails(address, name, filename, &line, &addr);
+	char text[1200];
+	snprintf(text, sizeof(text), "  %p %s (%s)", address, name, filename);
+	callback(text);
+}
+
+void FillStackAddresses(void**addresses, unsigned int count, unsigned int skip)
+{
+	void *frames[128];
+	int n = backtrace(frames, 128);
+	unsigned int out = 0;
+	for (int i = (int)skip + 1; i < n && out < count; ++i)
+		addresses[out++] = frames[i];
+	while (out < count)
+		addresses[out++] = nullptr;
+}
+
+void StackDumpFromAddresses(void**addresses, unsigned int count, void (*callback)(const char *))
+{
+	if (callback == nullptr)
+		callback = StackDumpDefaultHandler;
+	for (unsigned int i = 0; i < count && addresses[i] != nullptr; ++i)
+		WriteStackLine(addresses[i], callback);
+}
+
+void StackDump(void (*callback)(const char*))
+{
+	void *addresses[64];
+	FillStackAddresses(addresses, 64, 1);
+	StackDumpFromAddresses(addresses, 64, callback);
+}
+
+void StackDumpFromContext(DWORD, DWORD, DWORD, void (*callback)(const char*))
+{
+	StackDump(callback);
+}
+
+void DumpExceptionInfo( unsigned int u, EXCEPTION_POINTERS* e_info )
+{
+	DEBUG_LOG(("Exception %u", u));
+	StackDump(nullptr);
+}
+
+#elif defined(RTS_DEBUG) || defined(IG_DEBUG_STACKTRACE)
 
 #pragma pack(push, 8)
 

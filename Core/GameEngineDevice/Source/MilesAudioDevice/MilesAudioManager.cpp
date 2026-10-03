@@ -1078,9 +1078,9 @@ void MilesAudioManager::releasePlayingAudio( PlayingAudio *playing )
 void MilesAudioManager::stopPlayingAudio( PlayingAudio *playing )
 {
 	// Advance from Playing to Stopping
-	InterlockedCompareExchange(reinterpret_cast<volatile long*>(&playing->m_status), PS_Stopping, PS_Playing);
+	InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&playing->m_status), PS_Stopping, PS_Playing);
 	// Advance from Stopping to Stopped
-	const long prevStatus = InterlockedCompareExchange(reinterpret_cast<volatile long*>(&playing->m_status), PS_Stopped, PS_Stopping);
+	const LONG prevStatus = InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&playing->m_status), PS_Stopped, PS_Stopping);
 	if (prevStatus != PS_Stopping) {
 		return;
 	}
@@ -1597,7 +1597,7 @@ void MilesAudioManager::notifyOfAudioCompletion( UnsignedInt handle, UnsignedInt
 	}
 
 	// it will be cleaned up on the next frame update
-	InterlockedCompareExchange(reinterpret_cast<volatile long*>(&playing->m_status), PS_Stopping, PS_Playing);
+	InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&playing->m_status), PS_Stopping, PS_Playing);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -2740,7 +2740,7 @@ Bool MilesAudioManager::startNextLoop( PlayingAudio *playing )
 
 		if (playing->m_audioEventRTS->getDelay() > MSEC_PER_LOGICFRAME_REAL) {
 			playing->m_rerequestOnNextUpdate = true;
-			InterlockedCompareExchange(reinterpret_cast<volatile long*>(&playing->m_status), PS_Stopping, PS_Playing);
+			InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&playing->m_status), PS_Stopping, PS_Playing);
 			return true;
 		}
 
@@ -3027,19 +3027,19 @@ void MilesAudioManager::friend_forcePlayAudioEventRTS(const AudioEventRTS* event
 //-------------------------------------------------------------------------------------------------
 void AILCALLBACK setSampleCompleted( HSAMPLE sampleCompleted )
 {
-	TheAudio->notifyOfAudioCompletion((UnsignedInt) sampleCompleted, PAT_Sample);
+	TheAudio->notifyOfAudioCompletion((UnsignedInt)(intptr_t) sampleCompleted, PAT_Sample);
 }
 
 //-------------------------------------------------------------------------------------------------
 void AILCALLBACK set3DSampleCompleted( H3DSAMPLE sample3DCompleted )
 {
-	TheAudio->notifyOfAudioCompletion((UnsignedInt) sample3DCompleted, PAT_3DSample);
+	TheAudio->notifyOfAudioCompletion((UnsignedInt)(intptr_t) sample3DCompleted, PAT_3DSample);
 }
 
 //-------------------------------------------------------------------------------------------------
 void AILCALLBACK setStreamCompleted( HSTREAM streamCompleted )
 {
-	TheAudio->notifyOfAudioCompletion((UnsignedInt) streamCompleted, PAT_Stream);
+	TheAudio->notifyOfAudioCompletion((UnsignedInt)(intptr_t) streamCompleted, PAT_Stream);
 }
 
 //-------------------------------------------------------------------------------------------------
