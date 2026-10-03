@@ -160,6 +160,7 @@ static void resetStates()
 	g_device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 	g_device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
 	g_device->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	g_device->SetRenderState(D3DRS_SPECULARENABLE, FALSE);
 	g_device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 	g_device->SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
 	g_device->SetRenderState(D3DRS_ZFUNC, D3DCMP_LESSEQUAL);
@@ -676,6 +677,173 @@ int main(int argc, char** argv)
 		ramp->Release();
 	}
 
+	// Scene 8: texture stage operations compared with the Direct3D 8 formulas, one grid cell per case.
+	int failures8 = 0;
+	{
+		struct Color4 { float r, g, b, a; };
+		auto fromDword = [](DWORD c) { return Color4{ ((c >> 16) & 255) / 255.0f, ((c >> 8) & 255) / 255.0f, (c & 255) / 255.0f, (c >> 24) / 255.0f }; };
+		const DWORD texColor = 0xA0C04020, diffColor = 0x60408090, specColor = 0x00205030, tfColor = 0xC0306080;
+		const Color4 T = fromDword(texColor), D = fromDword(diffColor), S = fromDword(specColor), F = fromDword(tfColor);
+
+		IDirect3DTexture8* solid = nullptr;
+		check(g_device->CreateTexture(4, 4, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &solid), "solid");
+		D3DLOCKED_RECT lr;
+		check(solid->LockRect(0, &lr, nullptr, 0), "solid lock");
+		for (int y = 0; y < 4; ++y)
+			for (int x = 0; x < 4; ++x)
+				((DWORD*)((uint8_t*)lr.pBits + y * lr.Pitch))[x] = texColor;
+		solid->UnlockRect(0);
+
+		auto arg = [&](DWORD a, const Color4& current, const Color4& temp) {
+			Color4 v;
+			switch (a & D3DTA_SELECTMASK)
+			{
+			case D3DTA_DIFFUSE: v = D; break;
+			case D3DTA_CURRENT: v = current; break;
+			case D3DTA_TEXTURE: v = T; break;
+			case D3DTA_TFACTOR: v = F; break;
+			case D3DTA_SPECULAR: v = S; break;
+			default: v = temp; break;
+			}
+			if (a & D3DTA_COMPLEMENT)
+				v = { 1 - v.r, 1 - v.g, 1 - v.b, 1 - v.a };
+			if (a & D3DTA_ALPHAREPLICATE)
+				v = { v.a, v.a, v.a, v.a };
+			return v;
+		};
+		auto clamp01 = [](float x) { return x < 0 ? 0.0f : (x > 1 ? 1.0f : x); };
+		// Applies an operation to one channel; a0 is the third argument, alphas are the blend factors.
+		auto op = [&](DWORD o, float a1, float a2, float a0, const Color4& current, Color4 arg1Full) {
+			switch (o)
+			{
+			case D3DTOP_SELECTARG1: return a1;
+			case D3DTOP_SELECTARG2: return a2;
+			case D3DTOP_MODULATE: return a1 * a2;
+			case D3DTOP_MODULATE2X: return clamp01(a1 * a2 * 2);
+			case D3DTOP_MODULATE4X: return clamp01(a1 * a2 * 4);
+			case D3DTOP_ADD: return clamp01(a1 + a2);
+			case D3DTOP_ADDSIGNED: return clamp01(a1 + a2 - 0.5f);
+			case D3DTOP_ADDSIGNED2X: return clamp01((a1 + a2 - 0.5f) * 2);
+			case D3DTOP_SUBTRACT: return clamp01(a1 - a2);
+			case D3DTOP_ADDSMOOTH: return clamp01(a1 + a2 - a1 * a2);
+			case D3DTOP_BLENDDIFFUSEALPHA: return a1 * D.a + a2 * (1 - D.a);
+			case D3DTOP_BLENDTEXTUREALPHA: return a1 * T.a + a2 * (1 - T.a);
+			case D3DTOP_BLENDFACTORALPHA: return a1 * F.a + a2 * (1 - F.a);
+			case D3DTOP_BLENDTEXTUREALPHAPM: return clamp01(a1 + a2 * (1 - T.a));
+			case D3DTOP_BLENDCURRENTALPHA: return a1 * current.a + a2 * (1 - current.a);
+			case D3DTOP_MODULATEALPHA_ADDCOLOR: return clamp01(a1 + arg1Full.a * a2);
+			case D3DTOP_MODULATECOLOR_ADDALPHA: return clamp01(a1 * a2 + arg1Full.a);
+			case D3DTOP_MODULATEINVALPHA_ADDCOLOR: return clamp01((1 - arg1Full.a) * a2 + a1);
+			case D3DTOP_MODULATEINVCOLOR_ADDALPHA: return clamp01((1 - a1) * a2 + arg1Full.a);
+			case D3DTOP_MULTIPLYADD: return clamp01(a1 * a2 + a0); // as hardware does it, see Wine's ffp code
+			case D3DTOP_LERP: return a0 * a1 + (1 - a0) * a2;
+			}
+			return 0.0f;
+		};
+
+		struct Case { DWORD colorOp, c1, c2, c0, alphaOp, a1, a2; };
+		std::vector<Case> cases;
+		const DWORD colorOps[] = { D3DTOP_SELECTARG1, D3DTOP_SELECTARG2, D3DTOP_MODULATE, D3DTOP_MODULATE2X, D3DTOP_MODULATE4X,
+			D3DTOP_ADD, D3DTOP_ADDSIGNED, D3DTOP_ADDSIGNED2X, D3DTOP_SUBTRACT, D3DTOP_ADDSMOOTH, D3DTOP_BLENDDIFFUSEALPHA,
+			D3DTOP_BLENDTEXTUREALPHA, D3DTOP_BLENDFACTORALPHA, D3DTOP_BLENDTEXTUREALPHAPM, D3DTOP_BLENDCURRENTALPHA,
+			D3DTOP_MODULATEALPHA_ADDCOLOR, D3DTOP_MODULATECOLOR_ADDALPHA, D3DTOP_MODULATEINVALPHA_ADDCOLOR,
+			D3DTOP_MODULATEINVCOLOR_ADDALPHA, D3DTOP_MULTIPLYADD, D3DTOP_LERP };
+		for (DWORD o : colorOps)
+			cases.push_back({ o, D3DTA_TEXTURE, D3DTA_DIFFUSE, D3DTA_TFACTOR, D3DTOP_MODULATE, D3DTA_TEXTURE, D3DTA_DIFFUSE });
+		// Argument sources and modifiers.
+		cases.push_back({ D3DTOP_MODULATE, D3DTA_TEXTURE | D3DTA_COMPLEMENT, D3DTA_SPECULAR, D3DTA_TFACTOR, D3DTOP_SELECTARG1, D3DTA_TFACTOR, D3DTA_DIFFUSE });
+		cases.push_back({ D3DTOP_MODULATE, D3DTA_TEXTURE | D3DTA_ALPHAREPLICATE, D3DTA_TFACTOR, D3DTA_TFACTOR, D3DTOP_SELECTARG2, D3DTA_TFACTOR, D3DTA_TEXTURE | D3DTA_COMPLEMENT });
+		cases.push_back({ D3DTOP_ADD, D3DTA_DIFFUSE | D3DTA_ALPHAREPLICATE | D3DTA_COMPLEMENT, D3DTA_SPECULAR, D3DTA_TFACTOR, D3DTOP_ADD, D3DTA_DIFFUSE, D3DTA_TFACTOR });
+		cases.push_back({ D3DTOP_SUBTRACT, D3DTA_TFACTOR, D3DTA_TEXTURE, D3DTA_TFACTOR, D3DTOP_SUBTRACT, D3DTA_TFACTOR, D3DTA_DIFFUSE });
+		cases.push_back({ D3DTOP_LERP, D3DTA_SPECULAR, D3DTA_TEXTURE, D3DTA_DIFFUSE | D3DTA_ALPHAREPLICATE, D3DTOP_LERP, D3DTA_TFACTOR, D3DTA_TEXTURE });
+		cases.push_back({ D3DTOP_DOTPRODUCT3, D3DTA_TEXTURE, D3DTA_TFACTOR, D3DTA_TFACTOR, D3DTOP_SELECTARG1, D3DTA_TEXTURE, D3DTA_DIFFUSE });
+		cases.push_back({ D3DTOP_DOTPRODUCT3, D3DTA_TEXTURE | D3DTA_COMPLEMENT, D3DTA_DIFFUSE, D3DTA_TFACTOR, D3DTOP_SELECTARG1, D3DTA_TEXTURE, D3DTA_DIFFUSE });
+
+		const int cell = 40, cols = W / cell;
+		resetStates();
+		g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0);
+		g_device->BeginScene();
+		g_device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+		g_device->SetRenderState(D3DRS_TEXTUREFACTOR, tfColor);
+		g_device->SetTexture(0, solid);
+		struct SpecVertex { float x, y, z, rhw; DWORD diffuse, specular; float u, v; };
+		std::vector<Color4> expected;
+		for (size_t i = 0; i < cases.size(); ++i)
+		{
+			const Case& c = cases[i];
+			g_device->SetTextureStageState(0, D3DTSS_COLOROP, c.colorOp);
+			g_device->SetTextureStageState(0, D3DTSS_COLORARG1, c.c1);
+			g_device->SetTextureStageState(0, D3DTSS_COLORARG2, c.c2);
+			g_device->SetTextureStageState(0, D3DTSS_COLORARG0, c.c0);
+			g_device->SetTextureStageState(0, D3DTSS_ALPHAOP, c.alphaOp);
+			g_device->SetTextureStageState(0, D3DTSS_ALPHAARG1, c.a1);
+			g_device->SetTextureStageState(0, D3DTSS_ALPHAARG2, c.a2);
+			g_device->SetTextureStageState(0, D3DTSS_ALPHAARG0, c.c0);
+			// Stage 1 writes alpha into the color so it is visible: result = current alpha replicated where requested.
+			float x = (float)((i % cols) * cell), y = (float)((i / cols) * cell);
+			SpecVertex v[4] = {
+				{ x, y, 0.5f, 1.0f, diffColor, specColor, 0.5f, 0.5f },
+				{ x + cell, y, 0.5f, 1.0f, diffColor, specColor, 0.5f, 0.5f },
+				{ x, y + cell, 0.5f, 1.0f, diffColor, specColor, 0.5f, 0.5f },
+				{ x + cell, y + cell, 0.5f, 1.0f, diffColor, specColor, 0.5f, 0.5f },
+			};
+			g_device->SetVertexShader(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1);
+			g_device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(SpecVertex));
+
+			// Reference: the first stage's current color is the diffuse color.
+			Color4 current = D, temp = { 0, 0, 0, 0 };
+			Color4 A1 = arg(c.c1, current, temp), A2 = arg(c.c2, current, temp), A0 = arg(c.c0, current, temp);
+			Color4 out;
+			out.r = op(c.colorOp, A1.r, A2.r, A0.r, current, A1);
+			out.g = op(c.colorOp, A1.g, A2.g, A0.g, current, A1);
+			out.b = op(c.colorOp, A1.b, A2.b, A0.b, current, A1);
+			Color4 B1 = arg(c.a1, current, temp), B2 = arg(c.a2, current, temp);
+			out.a = op(c.alphaOp, B1.a, B2.a, A0.a, current, B1);
+			if (c.colorOp == D3DTOP_DOTPRODUCT3)
+			{
+				float d = clamp01(4 * ((A1.r - 0.5f) * (A2.r - 0.5f) + (A1.g - 0.5f) * (A2.g - 0.5f) + (A1.b - 0.5f) * (A2.b - 0.5f)));
+				out.r = out.g = out.b = d;
+			}
+			if (c.colorOp == D3DTOP_MODULATEALPHA_ADDCOLOR || c.colorOp == D3DTOP_MODULATEINVALPHA_ADDCOLOR)
+			{
+				// These use the alpha of argument 1 for all channels.
+				out.r = clamp01(c.colorOp == D3DTOP_MODULATEALPHA_ADDCOLOR ? A1.r + A1.a * A2.r : A1.r + (1 - A1.a) * A2.r);
+				out.g = clamp01(c.colorOp == D3DTOP_MODULATEALPHA_ADDCOLOR ? A1.g + A1.a * A2.g : A1.g + (1 - A1.a) * A2.g);
+				out.b = clamp01(c.colorOp == D3DTOP_MODULATEALPHA_ADDCOLOR ? A1.b + A1.a * A2.b : A1.b + (1 - A1.a) * A2.b);
+			}
+			expected.push_back(out);
+		}
+		g_device->EndScene();
+		saveFrame(out + "/scene8_texops.png");
+
+		IDirect3DSurface8* back = nullptr;
+		check(g_device->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &back), "GetBackBuffer");
+		IDirect3DSurface8* image = nullptr;
+		check(g_device->CreateImageSurface(W, H, D3DFMT_A8R8G8B8, &image), "CreateImageSurface");
+		check(g_device->CopyRects(back, nullptr, 0, image, nullptr), "CopyRects");
+		check(image->LockRect(&lr, nullptr, D3DLOCK_READONLY), "LockRect");
+		for (size_t i = 0; i < cases.size(); ++i)
+		{
+			int px = (int)(i % cols) * cell + cell / 2, py = (int)(i / cols) * cell + cell / 2;
+			const uint8_t* pix = (const uint8_t*)lr.pBits + py * lr.Pitch + px * 4;
+			int got[3] = { pix[2], pix[1], pix[0] };
+			int want[3] = { (int)lroundf(expected[i].r * 255), (int)lroundf(expected[i].g * 255), (int)lroundf(expected[i].b * 255) };
+			if (abs(got[0] - want[0]) > 2 || abs(got[1] - want[1]) > 2 || abs(got[2] - want[2]) > 2)
+			{
+				printf("scene8 case %zu (color op %u): got %d %d %d, expected %d %d %d\n", i, (unsigned)cases[i].colorOp, got[0], got[1],
+					got[2], want[0], want[1], want[2]);
+				++failures8;
+			}
+		}
+		image->UnlockRect();
+		image->Release();
+		back->Release();
+		printf("scene8: %zu of %zu texture stage cases match\n", cases.size() - failures8, cases.size());
+		g_device->Present(nullptr, nullptr, nullptr, nullptr);
+		g_device->SetTexture(0, nullptr);
+		solid->Release();
+	}
+
 	checker->Release();
 	checker565->Release();
 	checker4444->Release();
@@ -684,5 +852,5 @@ int main(int argc, char** argv)
 	g_device->Release();
 	d3d->Release();
 	printf("done\n");
-	return failures7 ? 1 : 0;
+	return failures7 || failures8 ? 1 : 0;
 }
