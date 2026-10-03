@@ -145,6 +145,11 @@ typedef INT* LPINT;
 typedef unsigned int UINT;
 typedef UINT* PUINT;
 typedef float FLOAT;
+#if defined(__OBJC__)
+// Objective-C defines BOOL as bool; keep the Win32 BOOL an int so interfaces
+// shared with C++ code have identical signatures.
+#define BOOL WINBOOL
+#endif
 typedef int BOOL;
 typedef BOOL* PBOOL;
 typedef BOOL* LPBOOL;
@@ -998,6 +1003,8 @@ LONG RegQueryValueEx(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD type, LPBY
 #define RegQueryValueExA RegQueryValueEx
 LONG RegSetValueEx(HKEY key, LPCSTR name, DWORD reserved, DWORD type, const BYTE* data, DWORD dataLen);
 #define RegSetValueExA RegSetValueEx
+LONG RegQueryValueExW(HKEY key, LPCWSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD dataLen);
+LONG RegSetValueExW(HKEY key, LPCWSTR name, DWORD reserved, DWORD type, const BYTE* data, DWORD dataLen);
 LONG RegDeleteValue(HKEY key, LPCSTR name);
 LONG RegDeleteKey(HKEY key, LPCSTR subKey);
 LONG RegEnumKeyEx(HKEY key, DWORD index, LPSTR name, LPDWORD nameLen, LPDWORD reserved, LPSTR cls, LPDWORD clsLen, PFILETIME lastWrite);

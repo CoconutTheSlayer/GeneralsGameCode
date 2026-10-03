@@ -686,3 +686,27 @@ BOOL SHGetPathFromIDList(LPCITEMIDLIST pidl, LPSTR path)
 	strlcpy(path, pidl->path, MAX_PATH);
 	return TRUE;
 }
+
+namespace
+{
+std::string narrow(LPCWSTR s)
+{
+	char buffer[1024];
+	if (s == nullptr)
+		return std::string();
+	WideCharToMultiByte(CP_UTF8, 0, s, -1, buffer, sizeof(buffer), nullptr, nullptr);
+	return buffer;
+}
+} // namespace
+
+// Wide variants: value names are converted; REG_SZ data is stored as wide strings
+// exactly as the caller passes it.
+LONG RegQueryValueExW(HKEY key, LPCWSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD dataLen)
+{
+	return RegQueryValueEx(key, name ? narrow(name).c_str() : nullptr, reserved, type, data, dataLen);
+}
+
+LONG RegSetValueExW(HKEY key, LPCWSTR name, DWORD reserved, DWORD type, const BYTE* data, DWORD dataLen)
+{
+	return RegSetValueEx(key, name ? narrow(name).c_str() : nullptr, reserved, type, data, dataLen);
+}

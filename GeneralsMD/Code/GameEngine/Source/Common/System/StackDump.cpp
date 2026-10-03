@@ -113,6 +113,8 @@ void DumpExceptionInfo( unsigned int u, EXCEPTION_POINTERS* e_info )
 	StackDump(nullptr);
 }
 
+AsciiString g_LastErrorDump;
+
 #elif defined(RTS_DEBUG) || defined(IG_DEBUG_STACKTRACE)
 
 #pragma pack(push, 8)

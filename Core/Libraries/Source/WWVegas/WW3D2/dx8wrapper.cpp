@@ -292,12 +292,17 @@ bool DX8Wrapper::Init(void * hwnd, bool lite)
 	Invalidate_Cached_Render_States();
 
 	if (!lite) {
+#if defined(__APPLE__)
+		// Direct3D 8 is implemented by the statically linked Metal backend.
+		Direct3DCreate8Ptr = Direct3DCreate8;
+#else
 		D3D8Lib = LoadLibrary("D3D8.DLL");
 
 		if (D3D8Lib == nullptr) return false;	// Return false at this point if init failed
 
 		Direct3DCreate8Ptr = (Direct3DCreate8Type) GetProcAddress(D3D8Lib, "Direct3DCreate8");
 		if (Direct3DCreate8Ptr == nullptr) return false;
+#endif
 
 		/*
 		** Create the D3D interface object

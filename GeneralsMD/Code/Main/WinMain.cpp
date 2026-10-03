@@ -965,3 +965,15 @@ GameEngine *CreateGameEngine()
 	return engine;
 
 }
+
+#if defined(__APPLE__)
+#include <win32shim.h>
+
+// macOS entry point: set up the Win32 shim and run the regular WinMain.
+int main(int argc, char** argv)
+{
+	Win32Shim_SetCommandLine(argc, argv);
+	Win32Shim_Initialize();
+	return WinMain(GetModuleHandle(nullptr), nullptr, GetCommandLine(), SW_SHOW);
+}
+#endif
