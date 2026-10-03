@@ -56,6 +56,8 @@ make_app() {
     <true/>
     <key>GCSupportsGameMode</key>
     <true/>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Network games find other players on your local network.</string>
 </dict>
 </plist>
 PLIST
