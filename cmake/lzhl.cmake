@@ -21,3 +21,6 @@ target_sources(liblzhl PRIVATE
 )
 
 target_include_directories(liblzhl PUBLIC ${LZHL_DIR} ${LZHL_DIR}/..)
+
+# The library expects 32 bit integers and defaults to long, which is 64 bit on macOS.
+target_compile_definitions(liblzhl PRIVATE "INT32=int" "UINT32=unsigned int")
