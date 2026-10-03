@@ -244,6 +244,54 @@ void fillFindData(const std::string& fullPath, const char* name, LPWIN32_FIND_DA
 //-----------------------------------------------------------------------------
 // Paths
 //-----------------------------------------------------------------------------
+namespace
+{
+// Game data paths are written with arbitrary case. On case sensitive volumes,
+// find each missing path component case insensitively.
+std::string resolvePathCase(const std::string& path)
+{
+	struct stat st;
+	if (path.empty() || stat(path.c_str(), &st) == 0)
+		return path;
+	std::string result;
+	size_t pos = 0;
+	if (path[0] == '/')
+	{
+		result = "/";
+		pos = 1;
+	}
+	while (pos <= path.size())
+	{
+		size_t next = path.find('/', pos);
+		if (next == std::string::npos)
+			next = path.size();
+		std::string component = path.substr(pos, next - pos);
+		pos = next + 1;
+		if (component.empty())
+			continue;
+		std::string dir = result.empty() ? std::string(".") : result;
+		std::string candidate = (result.empty() || result == "/") ? result + component : result + "/" + component;
+		if (stat(candidate.c_str(), &st) != 0)
+		{
+			if (DIR* d = opendir(dir.c_str()))
+			{
+				while (struct dirent* entry = readdir(d))
+				{
+					if (strcasecmp(entry->d_name, component.c_str()) == 0)
+					{
+						candidate = (result.empty() || result == "/") ? result + entry->d_name : result + "/" + entry->d_name;
+						break;
+					}
+				}
+				closedir(d);
+			}
+		}
+		result = candidate;
+	}
+	return result;
+}
+} // namespace
+
 std::string Win32Shim_TranslatePath(const char* path)
 {
 	if (path == nullptr)
@@ -257,7 +305,7 @@ std::string Win32Shim_TranslatePath(const char* path)
 	// Strip drive letters such as "C:" which have no meaning here.
 	if (out.size() >= 2 && isalpha((unsigned char)out[0]) && out[1] == ':')
 		out.erase(0, 2);
-	return out;
+	return resolvePathCase(out);
 }
 
 //-----------------------------------------------------------------------------

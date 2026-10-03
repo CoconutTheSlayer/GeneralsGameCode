@@ -31,6 +31,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <csignal>
 #include <deque>
 #include <map>
 #include <string>
@@ -764,6 +765,9 @@ void locateInstallation()
 
 void Win32Shim_Initialize()
 {
+	// Writing to a closed socket must return an error like on Windows instead of
+	// terminating the process.
+	signal(SIGPIPE, SIG_IGN);
 	ensureSDL();
 	memset(g_vkState, 0, sizeof(g_vkState));
 }
