@@ -103,10 +103,14 @@ on the current display and scales the image to fit.
 ```bash
 ninja -C build/macos win32shim_test d3d8metal_test miles_test z_ww3d_test
 build/macos/Dependencies/Win32Shim/win32shim_test /tmp/shimtest
-build/macos/Dependencies/D3D8Metal/d3d8metal_test /tmp      # writes scene*.png
+build/macos/Dependencies/D3D8Metal/d3d8metal_test /tmp      # writes scene*.png, fails on mismatches
 build/macos/Dependencies/Miles/miles_test
 build/macos/GeneralsMD/z_ww3d_test /tmp/ww3d.png
 ```
+
+`d3d8metal_test` renders test scenes and compares texture stage operations, blending, alpha test, texture
+addressing, lighting, fog, generated and projected texture coordinates with the Direct3D 8 formulas pixel by
+pixel.
 
 `z_ww3d_test` writes W3D files (textured meshes with TGA and DDS textures, a bone hierarchy with an HLod, raw
 and compressed animations and a skinned mesh) into the working directory and renders them through the asset
