@@ -24,6 +24,7 @@
 #include <d3d8.h>
 #include <d3dx8.h>
 
+#include <algorithm>
 #include <cmath>
 #include <string>
 #include <vector>
@@ -171,6 +172,9 @@ static void resetStates()
 		g_device->SetTextureStageState(i, D3DTSS_COLOROP, D3DTOP_DISABLE);
 		g_device->SetTextureStageState(i, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
 		g_device->SetTextureStageState(i, D3DTSS_TEXCOORDINDEX, i);
+		g_device->SetTextureStageState(i, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_DISABLE);
+		g_device->SetTextureStageState(i, D3DTSS_ADDRESSU, D3DTADDRESS_WRAP);
+		g_device->SetTextureStageState(i, D3DTSS_ADDRESSV, D3DTADDRESS_WRAP);
 	}
 	g_device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG2);
 	g_device->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
@@ -844,6 +848,170 @@ int main(int argc, char** argv)
 		solid->Release();
 	}
 
+	// Scene 9: framebuffer blending, alpha test and texture addressing, one grid cell per case.
+	int failures9 = 0;
+	{
+		struct Expect { int r, g, b; const char* name; };
+		std::vector<Expect> expected;
+		const int cell = 40, cols = W / cell;
+		const DWORD bg = 0xFF4080C0, fg = 0x80C06020;
+		auto cellQuad = [&](int i, DWORD color, float u0, float u1) {
+			float x = (float)((i % cols) * cell), y = (float)((i / cols) * cell);
+			TLVertex v[4] = {
+				{ x, y, 0.5f, 1.0f, color, u0, 0.5f },
+				{ x + cell, y, 0.5f, 1.0f, color, u1, 0.5f },
+				{ x, y + cell, 0.5f, 1.0f, color, u0, 0.5f },
+				{ x + cell, y + cell, 0.5f, 1.0f, color, u1, 0.5f },
+			};
+			g_device->SetVertexShader(TLFVF);
+			g_device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(TLVertex));
+		};
+		const float bgc[3] = { 0x40 / 255.0f, 0x80 / 255.0f, 0xC0 / 255.0f }, fgc[3] = { 0xC0 / 255.0f, 0x60 / 255.0f, 0x20 / 255.0f };
+		const float fa = 0x80 / 255.0f;
+		auto to255 = [](float v) { return (int)lroundf((v < 0 ? 0 : v > 1 ? 1 : v) * 255.0f); };
+
+		resetStates();
+		g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0);
+		g_device->BeginScene();
+		g_device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+
+		// Blending
+		struct BlendCase { DWORD src, dst, op; const char* name; };
+		const BlendCase blends[] = {
+			{ D3DBLEND_SRCALPHA, D3DBLEND_INVSRCALPHA, D3DBLENDOP_ADD, "alpha" },
+			{ D3DBLEND_ONE, D3DBLEND_ONE, D3DBLENDOP_ADD, "additive" },
+			{ D3DBLEND_DESTCOLOR, D3DBLEND_ZERO, D3DBLENDOP_ADD, "multiply" },
+			{ D3DBLEND_ZERO, D3DBLEND_SRCCOLOR, D3DBLENDOP_ADD, "multiply2" },
+			{ D3DBLEND_SRCALPHA, D3DBLEND_ONE, D3DBLENDOP_ADD, "alpha additive" },
+			{ D3DBLEND_INVDESTCOLOR, D3DBLEND_ONE, D3DBLENDOP_ADD, "screen" },
+			{ D3DBLEND_ONE, D3DBLEND_ONE, D3DBLENDOP_REVSUBTRACT, "revsubtract" },
+			{ D3DBLEND_ONE, D3DBLEND_ONE, D3DBLENDOP_SUBTRACT, "subtract" },
+			{ D3DBLEND_ONE, D3DBLEND_ONE, D3DBLENDOP_MIN, "min" },
+			{ D3DBLEND_ONE, D3DBLEND_ONE, D3DBLENDOP_MAX, "max" },
+			{ D3DBLEND_BOTHSRCALPHA, D3DBLEND_ZERO, D3DBLENDOP_ADD, "bothsrcalpha" },
+		};
+		int index = 0;
+		for (const BlendCase& b : blends)
+		{
+			g_device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+			cellQuad(index, bg, 0, 1);
+			g_device->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+			g_device->SetRenderState(D3DRS_SRCBLEND, b.src);
+			g_device->SetRenderState(D3DRS_DESTBLEND, b.dst);
+			g_device->SetRenderState(D3DRS_BLENDOP, b.op);
+			cellQuad(index, fg, 0, 1);
+			int rgb[3];
+			for (int c = 0; c < 3; ++c)
+			{
+				auto factor = [&](DWORD f, bool isSrc) {
+					switch (f)
+					{
+					case D3DBLEND_ZERO: return 0.0f;
+					case D3DBLEND_ONE: return 1.0f;
+					case D3DBLEND_SRCALPHA: return fa;
+					case D3DBLEND_INVSRCALPHA: return 1 - fa;
+					case D3DBLEND_DESTCOLOR: return bgc[c];
+					case D3DBLEND_INVDESTCOLOR: return 1 - bgc[c];
+					case D3DBLEND_SRCCOLOR: return fgc[c];
+					case D3DBLEND_BOTHSRCALPHA: return isSrc ? fa : 1 - fa;
+					}
+					return 0.0f;
+				};
+				float sf = factor(b.src, true), df = b.src == D3DBLEND_BOTHSRCALPHA ? 1 - fa : factor(b.dst, false);
+				float v;
+				switch (b.op)
+				{
+				case D3DBLENDOP_REVSUBTRACT: v = bgc[c] * df - fgc[c] * sf; break;
+				case D3DBLENDOP_SUBTRACT: v = fgc[c] * sf - bgc[c] * df; break;
+				case D3DBLENDOP_MIN: v = std::min(fgc[c], bgc[c]); break;
+				case D3DBLENDOP_MAX: v = std::max(fgc[c], bgc[c]); break;
+				default: v = fgc[c] * sf + bgc[c] * df; break;
+				}
+				rgb[c] = to255(v);
+			}
+			expected.push_back({ rgb[0], rgb[1], rgb[2], b.name });
+			++index;
+		}
+		g_device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+		g_device->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
+
+		// Alpha test with reference 0x80 against alpha 0x80: the quad is drawn when the comparison passes.
+		struct AlphaCase { DWORD func; bool pass; const char* name; };
+		const AlphaCase alphas[] = {
+			{ D3DCMP_GREATER, false, "alpha greater" }, { D3DCMP_GREATEREQUAL, true, "alpha greaterequal" },
+			{ D3DCMP_LESS, false, "alpha less" }, { D3DCMP_EQUAL, true, "alpha equal" },
+			{ D3DCMP_NOTEQUAL, false, "alpha notequal" }, { D3DCMP_NEVER, false, "alpha never" },
+		};
+		for (const AlphaCase& a : alphas)
+		{
+			g_device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+			cellQuad(index, bg, 0, 1);
+			g_device->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
+			g_device->SetRenderState(D3DRS_ALPHAREF, 0x80);
+			g_device->SetRenderState(D3DRS_ALPHAFUNC, a.func);
+			cellQuad(index, fg, 0, 1);
+			const float* c = a.pass ? fgc : bgc;
+			expected.push_back({ to255(c[0]), to255(c[1]), to255(c[2]), a.name });
+			++index;
+		}
+		g_device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+
+		// Texture addressing: a 4x1 texture red, green, blue, white sampled at u = 1.375 in the cell center.
+		IDirect3DTexture8* strip = nullptr;
+		check(g_device->CreateTexture(4, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &strip), "strip");
+		D3DLOCKED_RECT lr;
+		check(strip->LockRect(0, &lr, nullptr, 0), "strip lock");
+		const DWORD stripColors[4] = { 0xFFFF0000, 0xFF00FF00, 0xFF0000FF, 0xFFFFFFFF };
+		memcpy(lr.pBits, stripColors, sizeof(stripColors));
+		strip->UnlockRect(0);
+		modulateStage0(strip);
+		g_device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+		g_device->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_NONE);
+		struct AddressCase { DWORD mode; DWORD expect; const char* name; };
+		const AddressCase addresses[] = {
+			{ D3DTADDRESS_WRAP, 0xFF00FF00, "wrap" }, { D3DTADDRESS_MIRROR, 0xFF0000FF, "mirror" },
+			{ D3DTADDRESS_CLAMP, 0xFFFFFFFF, "clamp" },
+		};
+		for (const AddressCase& a : addresses)
+		{
+			g_device->SetTextureStageState(0, D3DTSS_ADDRESSU, a.mode);
+			g_device->SetTextureStageState(0, D3DTSS_ADDRESSV, a.mode);
+			// u is 1.375 at the cell center.
+			cellQuad(index, 0xFFFFFFFF, 1.375f - 0.05f, 1.375f + 0.05f);
+			expected.push_back({ (int)((a.expect >> 16) & 255), (int)((a.expect >> 8) & 255), (int)(a.expect & 255), a.name });
+			++index;
+		}
+		g_device->SetTextureStageState(0, D3DTSS_ADDRESSU, D3DTADDRESS_WRAP);
+		g_device->SetTextureStageState(0, D3DTSS_ADDRESSV, D3DTADDRESS_WRAP);
+		g_device->SetTexture(0, nullptr);
+		strip->Release();
+		g_device->EndScene();
+		saveFrame(out + "/scene9_blending.png");
+
+		IDirect3DSurface8* back = nullptr;
+		check(g_device->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &back), "GetBackBuffer");
+		IDirect3DSurface8* image = nullptr;
+		check(g_device->CreateImageSurface(W, H, D3DFMT_A8R8G8B8, &image), "CreateImageSurface");
+		check(g_device->CopyRects(back, nullptr, 0, image, nullptr), "CopyRects");
+		check(image->LockRect(&lr, nullptr, D3DLOCK_READONLY), "LockRect");
+		for (size_t i = 0; i < expected.size(); ++i)
+		{
+			int px = (int)(i % cols) * cell + cell / 2, py = (int)(i / cols) * cell + cell / 2;
+			const uint8_t* pix = (const uint8_t*)lr.pBits + py * lr.Pitch + px * 4;
+			const Expect& e = expected[i];
+			if (abs(pix[2] - e.r) > 2 || abs(pix[1] - e.g) > 2 || abs(pix[0] - e.b) > 2)
+			{
+				printf("scene9 %s: got %d %d %d, expected %d %d %d\n", e.name, pix[2], pix[1], pix[0], e.r, e.g, e.b);
+				++failures9;
+			}
+		}
+		image->UnlockRect();
+		image->Release();
+		back->Release();
+		printf("scene9: %zu of %zu blending, alpha test and addressing cases match\n", expected.size() - failures9, expected.size());
+		g_device->Present(nullptr, nullptr, nullptr, nullptr);
+	}
+
 	checker->Release();
 	checker565->Release();
 	checker4444->Release();
@@ -852,5 +1020,5 @@ int main(int argc, char** argv)
 	g_device->Release();
 	d3d->Release();
 	printf("done\n");
-	return failures7 || failures8 ? 1 : 0;
+	return failures7 || failures8 || failures9 ? 1 : 0;
 }
