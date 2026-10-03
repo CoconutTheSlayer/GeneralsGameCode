@@ -28,7 +28,8 @@ scripts/macos/make-app.sh
 
 This produces `build/macos/GeneralsMD/generalszh` (Zero Hour), `build/macos/Generals/generalsv` (Generals) and the
 application bundles `Command and Conquer Generals Zero Hour.app` and `Command and Conquer Generals.app` in
-`build/macos`.
+`build/macos`. The bundles contain SDL3, FFmpeg and the libraries they need, so they can be copied to Macs without
+Homebrew (set `MACOS_APP_NO_BUNDLE_LIBS=1` to skip this).
 
 Other presets:
 
@@ -48,7 +49,8 @@ Collection* or the original discs. Copy both game folders to your Mac, e.g.:
 
 On first start the game looks for the data in this order:
 
-1. The environment variables `GENERALS_ZH_PATH` (Zero Hour folder) and `GENERALS_PATH` (Generals folder)
+1. The environment variables `GENERALS_ZH_PATH` (Zero Hour folder) and `GENERALS_PATH` (Generals folder). These
+   are used even if the folder contains no `.big` archives, for example for loose files.
 2. The folders chosen on a previous run
 3. The current working directory, and a Generals folder next to the Zero Hour folder
 4. If nothing is found, it asks for the folders with a folder picker
@@ -92,6 +94,9 @@ on the current display and scales the image to fit.
   Hour folder and `INI.big` in the Generals folder, or delete `registry.txt` to pick the folders again.
 - Set `GENERALS_NO_MESSAGEBOX=1` to print message boxes to the terminal instead of showing them.
 - Set `GENERALS_AUDIO_DUMP=<file>` to record the mixed audio output as raw 32 bit float stereo samples.
+- Set `D3D8METAL_TRACE=1` to print the fixed function state of every draw call, the textures that are created and
+  the shader compile times.
+- The `macos-releaselog` preset writes the game's debug log, which names missing INI files and failed assertions.
 
 ## Tests
 
@@ -102,6 +107,14 @@ build/macos/Dependencies/D3D8Metal/d3d8metal_test /tmp      # writes scene*.png
 build/macos/Dependencies/Miles/miles_test
 build/macos/GeneralsMD/z_ww3d_test /tmp/ww3d.png
 ```
+
+`z_ww3d_test` writes W3D files (textured meshes with TGA and DDS textures, a bone hierarchy with an HLod, raw
+and compressed animations and a skinned mesh) into the working directory and renders them through the asset
+manager like the game does.
+
+To build the tests or the game with the address and undefined behavior sanitizers, configure a separate build
+directory with `-DRTS_BUILD_OPTION_ASAN=ON` and `-fsanitize=address,undefined` in the compiler flags.
+`RTS_BUILD_OPTION_ASAN` replaces the game's memory manager with the system allocator.
 
 ## How the port works
 

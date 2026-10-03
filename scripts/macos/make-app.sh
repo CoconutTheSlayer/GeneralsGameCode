@@ -6,7 +6,8 @@
 #   build directory   defaults to build/macos
 #   output directory  defaults to the build directory
 #
-# The bundle links against the SDL3 and FFmpeg libraries from Homebrew.
+# SDL3, FFmpeg and the libraries they need are copied into the bundle, so it also runs on Macs
+# without Homebrew. Set MACOS_APP_NO_BUNDLE_LIBS=1 to link against Homebrew instead.
 
 set -euo pipefail
 
@@ -58,6 +59,10 @@ make_app() {
 </dict>
 </plist>
 PLIST
+
+    if [[ "${MACOS_APP_NO_BUNDLE_LIBS:-0}" != "1" ]]; then
+        python3 "$SCRIPT_DIR/bundle-libs.py" "$APP"
+    fi
 
     # Ad-hoc signature so Gatekeeper on Apple Silicon allows running the local build.
     codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
