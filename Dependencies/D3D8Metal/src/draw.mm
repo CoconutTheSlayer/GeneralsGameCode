@@ -475,7 +475,12 @@ id<MTLRenderPipelineState> Device::pipelineFor(const ShaderKey& key, const Verte
 		NSError* error = nil;
 		MTLCompileOptions* options = [MTLCompileOptions new];
 		options.mathMode = MTLMathModeFast;
+		static const bool trace = getenv("D3D8METAL_TRACE") != nullptr;
+		CFAbsoluteTime start = CFAbsoluteTimeGetCurrent();
 		id<MTLLibrary> lib = [m_mtlDevice newLibraryWithSource:[NSString stringWithUTF8String:source.c_str()] options:options error:&error];
+		if (trace)
+			fprintf(stderr, "d3d8metal: compiled shader %016llx in %.1f ms\n", (unsigned long long)shaderHash,
+				(CFAbsoluteTimeGetCurrent() - start) * 1000.0);
 		if (lib == nil)
 		{
 			fprintf(stderr, "d3d8metal: shader compile failed:\n%s\n%s\n", [[error localizedDescription] UTF8String], source.c_str());
