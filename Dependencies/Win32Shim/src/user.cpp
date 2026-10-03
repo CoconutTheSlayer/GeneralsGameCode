@@ -578,14 +578,171 @@ void Win32Shim_SetPresentRect(HWND hwnd, float x, float y, float w, float h)
 	}
 }
 
+namespace
+{
+const char* kZeroHourKey = "SOFTWARE\\Electronic Arts\\EA Games\\Command and Conquer Generals Zero Hour";
+const char* kGeneralsKey = "SOFTWARE\\Electronic Arts\\EA Games\\Generals";
+
+bool fileExistsCaseInsensitive(const std::string& dir, const char* name)
+{
+	std::string pattern = dir + "/" + name;
+	WIN32_FIND_DATA fd;
+	HANDLE h = FindFirstFile(pattern.c_str(), &fd);
+	if (h == INVALID_HANDLE_VALUE)
+		return false;
+	FindClose(h);
+	return true;
+}
+
+bool isZeroHourDir(const std::string& dir)
+{
+	return !dir.empty() && fileExistsCaseInsensitive(dir, "INIZH.big");
+}
+
+bool isGeneralsDir(const std::string& dir)
+{
+	return !dir.empty() && fileExistsCaseInsensitive(dir, "INI.big") && fileExistsCaseInsensitive(dir, "W3D.big");
+}
+
+std::string readInstallPath(const char* key)
+{
+	HKEY h;
+	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, key, 0, KEY_READ, &h) != ERROR_SUCCESS)
+		return std::string();
+	char buffer[MAX_PATH] = {};
+	DWORD size = sizeof(buffer) - 1;
+	DWORD type = 0;
+	std::string result;
+	if (RegQueryValueEx(h, "InstallPath", nullptr, &type, (BYTE*)buffer, &size) == ERROR_SUCCESS && type == REG_SZ)
+		result = buffer;
+	RegCloseKey(h);
+	while (result.size() > 1 && (result.back() == '/' || result.back() == '\\'))
+		result.pop_back();
+	return result;
+}
+
+void writeInstallPath(const char* key, const std::string& path)
+{
+	HKEY h;
+	if (RegCreateKeyEx(HKEY_LOCAL_MACHINE, key, 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &h, nullptr) != ERROR_SUCCESS)
+		return;
+	std::string value = path + "/";
+	RegSetValueEx(h, "InstallPath", 0, REG_SZ, (const BYTE*)value.c_str(), (DWORD)value.size() + 1);
+	RegCloseKey(h);
+}
+
+// Shows a native folder picker and waits for the answer.
+std::string chooseFolder(const char* title)
+{
+	struct Result
+	{
+		bool done = false;
+		std::string path;
+	} result;
+	SDL_DialogFileCallback callback = [](void* userdata, const char* const* filelist, int) {
+		Result* r = static_cast<Result*>(userdata);
+		if (filelist && filelist[0])
+			r->path = filelist[0];
+		r->done = true;
+	};
+	SDL_PropertiesID props = SDL_CreateProperties();
+	SDL_SetStringProperty(props, SDL_PROP_FILE_DIALOG_TITLE_STRING, title);
+	SDL_SetStringProperty(props, SDL_PROP_FILE_DIALOG_ACCEPT_STRING, "Select");
+	SDL_ShowFileDialogWithProperties(SDL_FILEDIALOG_OPENFOLDER, callback, &result, props);
+	while (!result.done)
+	{
+		SDL_PumpEvents();
+		SDL_Delay(10);
+	}
+	SDL_DestroyProperties(props);
+	return result.path;
+}
+
+std::string parentDir(const std::string& dir)
+{
+	size_t slash = dir.find_last_of('/');
+	return slash == std::string::npos || slash == 0 ? std::string("/") : dir.substr(0, slash);
+}
+
+// Locates the game data folders and records them where the game looks for them.
+void locateInstallation()
+{
+	std::string zh;
+	if (const char* env = getenv("GENERALS_ZH_PATH"))
+		zh = env;
+	else if (const char* env = getenv("GENERALS_INSTALL_PATH"))
+		zh = env;
+	if (!isZeroHourDir(zh))
+	{
+		char cwd[PATH_MAX];
+		std::string saved = readInstallPath(kZeroHourKey);
+		if (isZeroHourDir(saved))
+			zh = saved;
+		else if (getcwd(cwd, sizeof(cwd)) && isZeroHourDir(cwd))
+			zh = cwd;
+		else
+		{
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Command & Conquer Generals Zero Hour",
+				"Please select the folder containing your Zero Hour game files (the folder with INIZH.big).", nullptr);
+			zh = chooseFolder("Select the Zero Hour folder");
+		}
+	}
+
+	std::string generals;
+	if (const char* env = getenv("GENERALS_PATH"))
+		generals = env;
+	if (!isGeneralsDir(generals))
+	{
+		std::string saved = readInstallPath(kGeneralsKey);
+		if (isGeneralsDir(saved))
+			generals = saved;
+		else if (isGeneralsDir(zh))
+			generals = zh;
+		else
+		{
+			// Typical layouts keep both games next to each other.
+			std::string parent = parentDir(zh);
+			for (const char* name : { "Command and Conquer Generals", "Command & Conquer Generals", "Generals", "C&C Generals" })
+			{
+				std::string candidate = parent + "/" + name;
+				if (isGeneralsDir(candidate))
+				{
+					generals = candidate;
+					break;
+				}
+			}
+			if (!isGeneralsDir(generals) && isGeneralsDir(parent))
+				generals = parent;
+			if (!isGeneralsDir(generals) && !zh.empty())
+			{
+				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Command & Conquer Generals Zero Hour",
+					"Zero Hour also needs the original Generals game files. Please select the Generals folder (the folder with INI.big and W3D.big).", nullptr);
+				generals = chooseFolder("Select the Generals folder");
+			}
+		}
+	}
+
+	if (!zh.empty())
+	{
+		writeInstallPath(kZeroHourKey, zh);
+		chdir(zh.c_str());
+	}
+	if (!generals.empty())
+		writeInstallPath(kGeneralsKey, generals);
+	fprintf(stderr, "Zero Hour data: %s\nGenerals data: %s\n", zh.empty() ? "(not found)" : zh.c_str(), generals.empty() ? "(not found)" : generals.c_str());
+}
+} // namespace
+
 void Win32Shim_Initialize()
 {
 	ensureSDL();
 	memset(g_vkState, 0, sizeof(g_vkState));
+}
 
-	// The game expects the install directory as the working directory.
-	if (const char* path = getenv("GENERALS_INSTALL_PATH"))
-		chdir(path);
+void Win32Shim_LocateGameData()
+{
+	ensureSDL();
+	locateInstallation();
 }
 
 //-----------------------------------------------------------------------------

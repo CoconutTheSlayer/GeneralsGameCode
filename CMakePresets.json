@@ -191,6 +191,48 @@
             "cacheVariables": {
                 "RTS_BUILD_OPTION_PROFILE": "ON"
             }
+        },
+        {
+            "name": "macos",
+            "displayName": "macOS arm64 Release",
+            "generator": "Ninja",
+            "hidden": false,
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_OSX_ARCHITECTURES": "arm64",
+                "RTS_BUILD_CORE_TOOLS": "OFF",
+                "RTS_BUILD_ZEROHOUR_TOOLS": "OFF",
+                "RTS_BUILD_GENERALS_TOOLS": "OFF",
+                "RTS_BUILD_GENERALS": "OFF",
+                "RTS_BUILD_OPTION_FFMPEG": "ON"
+            }
+        },
+        {
+            "name": "macos-debug",
+            "displayName": "macOS arm64 Debug",
+            "inherits": "macos",
+            "hidden": false,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "RTS_BUILD_OPTION_DEBUG": "ON"
+            }
+        },
+        {
+            "name": "macos-releaselog",
+            "displayName": "macOS arm64 Release Logging",
+            "inherits": "macos",
+            "hidden": false,
+            "cacheVariables": {
+                "RTS_DEBUG_LOGGING": "ON",
+                "RTS_DEBUG_CRASHING": "ON"
+            }
         }
     ],
     "buildPresets": [
@@ -290,6 +332,21 @@
             "configurePreset": "mingw-w64-i686-profile",
             "displayName": "Build MinGW-w64 32-bit (i686) Profile",
             "description": "Build MinGW-w64 32-bit (i686) Profile"
+        },
+        {
+            "name": "macos",
+            "configurePreset": "macos",
+            "displayName": "Build macos"
+        },
+        {
+            "name": "macos-debug",
+            "configurePreset": "macos-debug",
+            "displayName": "Build macos-debug"
+        },
+        {
+            "name": "macos-releaselog",
+            "configurePreset": "macos-releaselog",
+            "displayName": "Build macos-releaselog"
         }
     ],
     "workflowPresets": [
@@ -485,6 +542,45 @@
                 {
                     "type": "build",
                     "name": "mingw-w64-i686-profile"
+                }
+            ]
+        },
+        {
+            "name": "macos",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "macos"
+                },
+                {
+                    "type": "build",
+                    "name": "macos"
+                }
+            ]
+        },
+        {
+            "name": "macos-debug",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "macos-debug"
+                },
+                {
+                    "type": "build",
+                    "name": "macos-debug"
+                }
+            ]
+        },
+        {
+            "name": "macos-releaselog",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "macos-releaselog"
+                },
+                {
+                    "type": "build",
+                    "name": "macos-releaselog"
                 }
             ]
         }

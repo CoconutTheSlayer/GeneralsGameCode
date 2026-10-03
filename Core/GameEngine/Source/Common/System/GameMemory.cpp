@@ -3245,7 +3245,8 @@ void MemoryPoolFactory::debugMemoryReport(Int flags, Int startCheckpoint, Int en
 static int theLinkTester = 0;
 void verifyLinkTester()
 {
-	char* linktest;
+	// volatile keeps optimizing compilers from eliding the new/delete pairs.
+	char* volatile linktest;
 
 	theLinkTester = 0;
 

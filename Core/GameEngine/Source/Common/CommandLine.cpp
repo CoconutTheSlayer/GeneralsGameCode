@@ -1438,7 +1438,15 @@ void CommandLine::parseCommandLineForStartup()
 		TheWritableGlobalData->m_commandLineData.m_parsedArguments);
 
 	if (!rts::WorkingDirectory::hasSetWorkingDirectory())
+	{
+#if defined(__APPLE__)
+		// The executable does not live next to the game data on macOS; the
+		// launcher already changed to the game data directory.
+		rts::WorkingDirectory::setStartupWorkingDirectory();
+#else
 		rts::WorkingDirectory::setExecutableWorkingDirectory();
+#endif
+	}
 }
 
 void CommandLine::parseCommandLineForEngineInit()

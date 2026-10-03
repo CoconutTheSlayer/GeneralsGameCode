@@ -50,11 +50,28 @@ struct RegKey
 	std::string path; // lower case, backslash separated
 };
 
-std::mutex g_regMutex;
-bool g_regLoaded = false;
-// key path -> (value name lower case -> (original name, value))
-std::map<std::string, std::map<std::string, std::pair<std::string, RegValue>>> g_registry;
-std::set<std::string> g_regKeys;
+// The registry can be used before static initialization has finished (the
+// game's operator new initializes its memory manager on the first allocation
+// of any library), so its state is created on first use and never destroyed.
+struct RegistryState
+{
+	std::mutex mutex;
+	bool loaded = false;
+	// key path -> (value name lower case -> (original name, value))
+	std::map<std::string, std::map<std::string, std::pair<std::string, RegValue>>> values;
+	std::set<std::string> keys;
+};
+
+RegistryState& registryState()
+{
+	static RegistryState* state = new RegistryState();
+	return *state;
+}
+
+#define g_regMutex (registryState().mutex)
+#define g_regLoaded (registryState().loaded)
+#define g_registry (registryState().values)
+#define g_regKeys (registryState().keys)
 
 std::string toLower(std::string s)
 {
@@ -253,14 +270,14 @@ HKEY makeKeyHandle(const std::string& path)
 
 std::string Win32Shim_UserDataDirectory()
 {
-	static std::string dir;
-	if (dir.empty())
+	static std::string* dir = nullptr;
+	if (dir == nullptr)
 	{
 		const char* home = getenv("HOME");
-		dir = std::string(home ? home : "/tmp") + "/Library/Application Support/GeneralsZH";
-		mkdir(dir.c_str(), 0755);
+		dir = new std::string(std::string(home ? home : "/tmp") + "/Library/Application Support/GeneralsZH");
+		mkdir(dir->c_str(), 0755);
 	}
-	return dir;
+	return *dir;
 }
 
 LONG RegOpenKeyEx(HKEY key, LPCSTR subKey, DWORD, REGSAM, PHKEY result)

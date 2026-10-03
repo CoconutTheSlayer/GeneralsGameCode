@@ -122,8 +122,21 @@ struct MappingHandle : HandleObject
 
 thread_local DWORD t_lastError = 0;
 
-std::mutex g_mappedViewsMutex;
-std::map<const void*, size_t> g_mappedViews;
+// Created on first use: VirtualAlloc may be called during static initialization.
+struct MappedViews
+{
+	std::mutex mutex;
+	std::map<const void*, size_t> views;
+};
+
+MappedViews& mappedViews()
+{
+	static MappedViews* views = new MappedViews();
+	return *views;
+}
+
+#define g_mappedViewsMutex (mappedViews().mutex)
+#define g_mappedViews (mappedViews().views)
 
 DWORD errnoToWin32(int err)
 {
@@ -1017,8 +1030,20 @@ BOOL SwitchToThread()
 //-----------------------------------------------------------------------------
 namespace
 {
-std::mutex g_namedMutexesLock;
-std::map<std::string, WaitableHandle*> g_namedMutexes;
+struct NamedMutexes
+{
+	std::mutex lock;
+	std::map<std::string, WaitableHandle*> mutexes;
+};
+
+NamedMutexes& namedMutexes()
+{
+	static NamedMutexes* named = new NamedMutexes();
+	return *named;
+}
+
+#define g_namedMutexesLock (namedMutexes().lock)
+#define g_namedMutexes (namedMutexes().mutexes)
 
 // Returns true if the object is signaled and consumes the signal. Caller holds w->mutex.
 bool tryAcquire(WaitableHandle* w)
@@ -1898,7 +1923,12 @@ extern char** __argv;
 
 namespace
 {
-std::string g_commandLine;
+std::string& commandLine()
+{
+	static std::string* line = new std::string();
+	return *line;
+}
+#define g_commandLine (commandLine())
 } // namespace
 
 void Win32Shim_SetCommandLine(int argc, char** argv)

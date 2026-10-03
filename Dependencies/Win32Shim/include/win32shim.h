@@ -23,8 +23,14 @@
 
 struct SDL_Window;
 
-// Initializes SDL and changes to the install directory ($GENERALS_INSTALL_PATH).
+// Initializes SDL.
 void Win32Shim_Initialize();
+
+// Finds the Zero Hour and Generals data folders (environment variables
+// GENERALS_ZH_PATH / GENERALS_PATH, saved settings, the working directory or a
+// folder picker), records them in the emulated registry and changes the working
+// directory to the Zero Hour folder.
+void Win32Shim_LocateGameData();
 
 // Stores argv so GetCommandLine() works.
 void Win32Shim_SetCommandLine(int argc, char** argv);
