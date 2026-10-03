@@ -1225,6 +1225,75 @@ int main(int argc, char** argv)
 		g_device->Present(nullptr, nullptr, nullptr, nullptr);
 	}
 
+	// Scene 11: projected texture coordinates (D3DTTFF_PROJECTED), as used for projected shadows
+	// and decals. The matrix produces (0.25x + 0.25, 0.25y' + 0.25, 0.5) from a depth of 0.25,
+	// which only gives the scene 7 mapping after the division by the third coordinate.
+	int failures11 = 0;
+	{
+		resetStates();
+		g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0);
+		g_device->BeginScene();
+		D3DMATRIX world = identity(), view = identity(), proj = identity();
+		proj._11 = 1.0f;
+		proj._22 = 1.0f / 0.75f;
+		g_device->SetTransform(D3DTS_WORLD, &world);
+		g_device->SetTransform(D3DTS_VIEW, &view);
+		g_device->SetTransform(D3DTS_PROJECTION, &proj);
+		modulateStage0(checker);
+		g_device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+		g_device->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_NONE);
+		g_device->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, D3DTSS_TCI_CAMERASPACEPOSITION);
+		g_device->SetTextureStageState(0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT3 | D3DTTFF_PROJECTED);
+		D3DMATRIX t = {};
+		t._11 = 0.25f;
+		t._22 = -0.25f / 0.75f;
+		t._31 = 1.0f;  // z (0.25) contributes 0.25 to u and v
+		t._32 = 1.0f;
+		t._33 = 2.0f;  // w = 2z = 0.5
+		t._44 = 1.0f;
+		g_device->SetTransform(D3DTS_TEXTURE0, &t);
+		struct PosVertex { float x, y, z; };
+		PosVertex v[4] = { { -1.0f, 0.75f, 0.25f }, { 1.0f, 0.75f, 0.25f }, { -1.0f, -0.75f, 0.25f }, { 1.0f, -0.75f, 0.25f } };
+		g_device->SetVertexShader(D3DFVF_XYZ);
+		g_device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(PosVertex));
+		g_device->EndScene();
+		saveFrame(out + "/scene11_projected.png");
+
+		IDirect3DSurface8* back = nullptr;
+		check(g_device->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &back), "GetBackBuffer");
+		IDirect3DSurface8* image = nullptr;
+		check(g_device->CreateImageSurface(W, H, D3DFMT_A8R8G8B8, &image), "CreateImageSurface");
+		check(g_device->CopyRects(back, nullptr, 0, image, nullptr), "CopyRects");
+		D3DLOCKED_RECT lr;
+		check(image->LockRect(&lr, nullptr, D3DLOCK_READONLY), "LockRect");
+		int checked = 0;
+		for (int py = 0; py < H; py += 7)
+		{
+			for (int px = 0; px < W; px += 7)
+			{
+				float x = ((float)px / W) * 2.0f - 1.0f, y = (1.0f - (float)py / H * 2.0f) * 0.75f;
+				float tu = (0.5f * x + 0.5f) * 64.0f, tv = (-0.5f * y / 0.75f + 0.5f) * 64.0f;
+				if (fabsf(tu - roundf(tu)) < 0.05f || fabsf(tv - roundf(tv)) < 0.05f)
+					continue;
+				bool on = (((int)tu / 8) + ((int)tv / 8)) & 1;
+				int want = on ? 0x40 : 0xFF;
+				const uint8_t* pix = (const uint8_t*)lr.pBits + py * lr.Pitch + px * 4;
+				++checked;
+				if (abs(pix[0] - want) > 2 || abs(pix[1] - want) > 2 || abs(pix[2] - want) > 2)
+				{
+					if (failures11 < 5)
+						printf("scene11 mismatch at %d,%d: got %d, expected %d\n", px, py, pix[1], want);
+					++failures11;
+				}
+			}
+		}
+		image->UnlockRect();
+		image->Release();
+		back->Release();
+		printf("scene11: %d of %d pixels match\n", checked - failures11, checked);
+		g_device->Present(nullptr, nullptr, nullptr, nullptr);
+	}
+
 	checker->Release();
 	checker565->Release();
 	checker4444->Release();
@@ -1233,5 +1302,5 @@ int main(int argc, char** argv)
 	g_device->Release();
 	d3d->Release();
 	printf("done\n");
-	return failures7 || failures8 || failures9 || failures10 ? 1 : 0;
+	return failures7 || failures8 || failures9 || failures10 || failures11 ? 1 : 0;
 }
