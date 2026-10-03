@@ -1294,6 +1294,93 @@ int main(int argc, char** argv)
 		g_device->Present(nullptr, nullptr, nullptr, nullptr);
 	}
 
+	// Scene 12: texture formats. Each format gets two cells, the sampled color and the sampled alpha.
+	int failures12 = 0;
+	{
+		struct FormatCase { D3DFORMAT format; uint32_t texel; int bytes; int r, g, b, a; const char* name; };
+		const FormatCase formats[] = {
+			{ D3DFMT_A8R8G8B8, 0x80FF4020, 4, 255, 64, 32, 128, "A8R8G8B8" },
+			{ D3DFMT_X8R8G8B8, 0x00FF4020, 4, 255, 64, 32, 255, "X8R8G8B8" },
+			{ D3DFMT_R8G8B8, 0xFF4020, 3, 255, 64, 32, 255, "R8G8B8" },
+			{ D3DFMT_R5G6B5, (31u << 11) | (16u << 5) | 4u, 2, 255, 65, 33, 255, "R5G6B5" },
+			{ D3DFMT_X1R5G5B5, (31u << 10) | (8u << 5) | 4u, 2, 255, 66, 33, 255, "X1R5G5B5" },
+			{ D3DFMT_A1R5G5B5, (31u << 10) | (8u << 5) | 4u, 2, 255, 66, 33, 0, "A1R5G5B5" },
+			{ D3DFMT_A4R4G4B4, 0x8F42, 2, 255, 68, 34, 136, "A4R4G4B4" },
+			{ D3DFMT_X4R4G4B4, 0x0F42, 2, 255, 68, 34, 255, "X4R4G4B4" },
+			{ D3DFMT_A8, 0x80, 1, 0, 0, 0, 128, "A8" },
+			{ D3DFMT_L8, 0x80, 1, 128, 128, 128, 255, "L8" },
+			{ D3DFMT_A8L8, 0x8040, 2, 64, 64, 64, 128, "A8L8" },
+			{ D3DFMT_A4L4, 0x84, 1, 68, 68, 68, 136, "A4L4" },
+		};
+		const int cell = 40, cols = W / cell;
+		resetStates();
+		g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0);
+		g_device->BeginScene();
+		g_device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+		int index = 0;
+		for (const FormatCase& f : formats)
+		{
+			IDirect3DTexture8* tex = nullptr;
+			if (FAILED(g_device->CreateTexture(4, 4, 1, 0, f.format, D3DPOOL_MANAGED, &tex)))
+			{
+				printf("scene12 %s: CreateTexture failed\n", f.name);
+				++failures12;
+				index += 2;
+				continue;
+			}
+			D3DLOCKED_RECT lr;
+			check(tex->LockRect(0, &lr, nullptr, 0), "format lock");
+			for (int y = 0; y < 4; ++y)
+				for (int x = 0; x < 4; ++x)
+					memcpy((uint8_t*)lr.pBits + y * lr.Pitch + x * f.bytes, &f.texel, f.bytes);
+			tex->UnlockRect(0);
+			modulateStage0(tex);
+			g_device->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_NONE);
+			for (int part = 0; part < 2; ++part)
+			{
+				g_device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+				g_device->SetTextureStageState(0, D3DTSS_COLORARG1, part == 0 ? D3DTA_TEXTURE : (D3DTA_TEXTURE | D3DTA_ALPHAREPLICATE));
+				float x = (float)((index % cols) * cell), y = (float)((index / cols) * cell);
+				quad(x, y, (float)cell, (float)cell, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+				++index;
+			}
+			g_device->SetTexture(0, nullptr);
+			tex->Release();
+		}
+		g_device->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+		g_device->EndScene();
+		saveFrame(out + "/scene12_formats.png");
+
+		IDirect3DSurface8* back = nullptr;
+		check(g_device->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &back), "GetBackBuffer");
+		IDirect3DSurface8* image = nullptr;
+		check(g_device->CreateImageSurface(W, H, D3DFMT_A8R8G8B8, &image), "CreateImageSurface");
+		check(g_device->CopyRects(back, nullptr, 0, image, nullptr), "CopyRects");
+		D3DLOCKED_RECT lr;
+		check(image->LockRect(&lr, nullptr, D3DLOCK_READONLY), "LockRect");
+		index = 0;
+		for (const FormatCase& f : formats)
+		{
+			for (int part = 0; part < 2; ++part, ++index)
+			{
+				int px = (index % cols) * cell + cell / 2, py = (index / cols) * cell + cell / 2;
+				const uint8_t* pix = (const uint8_t*)lr.pBits + py * lr.Pitch + px * 4;
+				int want[3] = { part == 0 ? f.r : f.a, part == 0 ? f.g : f.a, part == 0 ? f.b : f.a };
+				if (abs(pix[2] - want[0]) > 2 || abs(pix[1] - want[1]) > 2 || abs(pix[0] - want[2]) > 2)
+				{
+					printf("scene12 %s %s: got %d %d %d, expected %d %d %d\n", f.name, part == 0 ? "color" : "alpha", pix[2], pix[1], pix[0],
+						want[0], want[1], want[2]);
+					++failures12;
+				}
+			}
+		}
+		image->UnlockRect();
+		image->Release();
+		back->Release();
+		printf("scene12: %d of %d texture format checks match\n", index - failures12, index);
+		g_device->Present(nullptr, nullptr, nullptr, nullptr);
+	}
+
 	checker->Release();
 	checker565->Release();
 	checker4444->Release();
@@ -1302,5 +1389,5 @@ int main(int argc, char** argv)
 	g_device->Release();
 	d3d->Release();
 	printf("done\n");
-	return failures7 || failures8 || failures9 || failures10 || failures11 ? 1 : 0;
+	return failures7 || failures8 || failures9 || failures10 || failures11 || failures12 ? 1 : 0;
 }
