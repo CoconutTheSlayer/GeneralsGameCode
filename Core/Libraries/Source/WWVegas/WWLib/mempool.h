@@ -281,13 +281,17 @@ T * ObjectPoolClass<T,BLOCK_SIZE>::Allocate_Object_Memory()
 	if ( FreeListHead == nullptr ) {
 
 		// No free objects, allocate another block
+		// TheSuperHackers @bugfix The block header holds the next block pointer. Reserve
+		// a full, suitably aligned slot for it so objects do not overlap the pointer on
+		// 64 bit platforms.
+		const size_t header = (sizeof(void *) + alignof(T) - 1) & ~(alignof(T) - 1);
 		uint32 * tmp_block_head = BlockListHead;
-		BlockListHead = (uint32*)::operator new( sizeof(T) * BLOCK_SIZE + sizeof(uint32 *));
+		BlockListHead = (uint32*)::operator new( sizeof(T) * BLOCK_SIZE + header);
 		// Link this block into the block list
 		*(void **)BlockListHead = tmp_block_head;
 
 		// Link the objects in the block into the free object list
-		FreeListHead = (T*)(BlockListHead + 1);
+		FreeListHead = (T*)((char *)BlockListHead + header);
 		for ( int i = 0; i < BLOCK_SIZE; i++ ) {
 			*(T**)(&(FreeListHead[i])) = &(FreeListHead[i+1]);	// link up the elements
 		}

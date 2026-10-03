@@ -29,6 +29,11 @@
 #include "WW3D2/assetmgr.h"
 #include "WW3D2/rddesc.h"
 #include "WWMath/rect.h"
+#include "WW3D2/scene.h"
+#include "WW3D2/camera.h"
+#include "WW3D2/light.h"
+#include "WW3D2/sphereobj.h"
+#include "WW3D2/boxrobj.h"
 
 #include <vector>
 
@@ -100,10 +105,9 @@ int main(int argc, char** argv)
 
 	Render2DClass r2d;
 	r2d.Set_Coordinate_Range(RectClass(0, 0, (float)W, (float)H));
-	r2d.Add_Quad(RectClass(50, 50, 350, 250), 0xFFCC2020);
-	r2d.Add_Rect(RectClass(400, 50, 750, 250), 4.0f, 0xFFFFFF00, 0x8000FF00);
-	r2d.Add_Line(Vector2(50, 300), Vector2(750, 320), 3.0f, 0xFF20A0FF);
-	r2d.Add_Quad_VGradient(RectClass(50, 350, 750, 420), 0xFF000080, 0xFF00C0C0);
+	r2d.Add_Quad(RectClass(20, 20, 120, 80), 0xFFCC2020);
+	r2d.Add_Rect(RectClass(140, 20, 300, 80), 4.0f, 0xFFFFFF00, 0x8000FF00);
+	r2d.Add_Quad_VGradient(RectClass(20, 520, 780, 580), 0xFF000080, 0xFF00C0C0);
 
 	FontCharsClass* font = new FontCharsClass();
 	font->Initialize_GDI_Font("Arial", 16, true);
@@ -112,9 +116,56 @@ int main(int argc, char** argv)
 	sentence.Set_Location(Vector2(60, 460));
 	sentence.Build_Sentence(L"Command & Conquer Generals: Zero Hour on Metal", nullptr, nullptr);
 
+	// 3D scene: two spheres and a box, lit by a directional light.
+	SimpleSceneClass* scene = new SimpleSceneClass();
+	scene->Set_Ambient_Light(Vector3(0.25f, 0.25f, 0.25f));
+	CameraClass* camera = new CameraClass();
+	Matrix3D camTm(true);
+	camTm.Look_At(Vector3(0.0f, -12.0f, 6.0f), Vector3(0.0f, 0.0f, 0.0f), 0.0f);
+	camera->Set_Transform(camTm);
+	camera->Set_View_Plane(DEG_TO_RADF(60.0f));
+	camera->Set_Clip_Planes(0.5f, 200.0f);
+	camera->Set_Viewport(Vector2(0.0f, 0.0f), Vector2(1.0f, 1.0f));
+
+	LightClass* light = new LightClass(LightClass::DIRECTIONAL);
+	light->Set_Diffuse(Vector3(1.0f, 0.95f, 0.8f));
+	Matrix3D lightTm(true);
+	lightTm.Look_At(Vector3(5, -5, 10), Vector3(0, 0, 0), 0);
+	light->Set_Transform(lightTm);
+	scene->Add_Render_Object(light);
+
+	SphereRenderObjClass* sphere = new SphereRenderObjClass();
+	sphere->Set_Color(Vector3(0.9f, 0.3f, 0.2f));
+	sphere->Set_Extent(Vector3(2.0f, 2.0f, 2.0f));
+	Matrix3D sphereTm(true);
+	sphereTm.Set_Translation(Vector3(-3.0f, 0.0f, 0.0f));
+	sphere->Set_Transform(sphereTm);
+	scene->Add_Render_Object(sphere);
+
+	SphereRenderObjClass* sphere2 = new SphereRenderObjClass();
+	sphere2->Set_Color(Vector3(0.2f, 0.6f, 1.0f));
+	sphere2->Set_Extent(Vector3(1.5f, 1.5f, 1.5f));
+	Matrix3D sphere2Tm(true);
+	sphere2Tm.Set_Translation(Vector3(3.0f, 2.0f, 0.5f));
+	sphere2->Set_Transform(sphere2Tm);
+	scene->Add_Render_Object(sphere2);
+
+	WW3D::Set_Collision_Box_Display_Mask(0xFF);
+	OBBoxRenderObjClass* box = new OBBoxRenderObjClass();
+	box->Set_Collision_Type(0xFF);
+	box->Set_Local_Center_Extent(Vector3(0, 0, 0), Vector3(1.0f, 1.0f, 1.0f));
+	box->Set_Color(Vector3(0.3f, 0.9f, 0.3f));
+	box->Set_Opacity(1.0f);
+	Matrix3D boxTm(true);
+	boxTm.Rotate_Z(0.6f);
+	boxTm.Set_Translation(Vector3(0.0f, -2.0f, -0.5f));
+	box->Set_Transform(boxTm);
+	scene->Add_Render_Object(box);
+
 	for (int frame = 0; frame < 3; ++frame)
 	{
 		WW3D::Begin_Render(true, true, Vector3(0.1f, 0.12f, 0.15f));
+		WW3D::Render(scene, camera);
 		r2d.Render();
 		sentence.Draw_Sentence(0xFFFFFFFF);
 		sentence.Render();
@@ -124,6 +175,12 @@ int main(int argc, char** argv)
 	}
 
 	REF_PTR_RELEASE(font);
+	REF_PTR_RELEASE(box);
+	REF_PTR_RELEASE(sphere);
+	REF_PTR_RELEASE(sphere2);
+	REF_PTR_RELEASE(light);
+	REF_PTR_RELEASE(camera);
+	REF_PTR_RELEASE(scene);
 	WW3D::Shutdown();
 	delete assets;
 	printf("done\n");
