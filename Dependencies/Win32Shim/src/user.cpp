@@ -32,6 +32,7 @@
 #include <SDL3/SDL.h>
 
 #include <csignal>
+#include <sys/stat.h>
 #include <deque>
 #include <map>
 #include <string>
@@ -659,6 +660,23 @@ std::string chooseFolder(const char* title)
 	return result.path;
 }
 
+// A folder named by an environment variable is used even without the archives, for example
+// for loose files, as long as it exists.
+bool envDir(const char* name, std::string& out)
+{
+	const char* env = getenv(name);
+	if (env == nullptr || *env == '\0')
+		return false;
+	struct stat st;
+	if (stat(env, &st) != 0 || !S_ISDIR(st.st_mode))
+	{
+		fprintf(stderr, "%s=%s is not a folder, ignoring it\n", name, env);
+		return false;
+	}
+	out = env;
+	return true;
+}
+
 std::string parentDir(const std::string& dir)
 {
 	size_t slash = dir.find_last_of('/');
@@ -669,9 +687,12 @@ std::string parentDir(const std::string& dir)
 void locateGeneralsInstallation()
 {
 	std::string generals;
-	if (const char* env = getenv("GENERALS_PATH"))
-		generals = env;
-	if (!isGeneralsDir(generals))
+	if (envDir("GENERALS_PATH", generals))
+	{
+		if (!isGeneralsDir(generals))
+			fprintf(stderr, "Warning: INI.big not found in GENERALS_PATH\n");
+	}
+	else
 	{
 		char cwd[PATH_MAX];
 		std::string saved = readInstallPath(kGeneralsKey);
@@ -698,11 +719,12 @@ void locateGeneralsInstallation()
 void locateInstallation()
 {
 	std::string zh;
-	if (const char* env = getenv("GENERALS_ZH_PATH"))
-		zh = env;
-	else if (const char* env = getenv("GENERALS_INSTALL_PATH"))
-		zh = env;
-	if (!isZeroHourDir(zh))
+	if (envDir("GENERALS_ZH_PATH", zh) || envDir("GENERALS_INSTALL_PATH", zh))
+	{
+		if (!isZeroHourDir(zh))
+			fprintf(stderr, "Warning: INIZH.big not found in the Zero Hour folder\n");
+	}
+	else
 	{
 		char cwd[PATH_MAX];
 		std::string saved = readInstallPath(kZeroHourKey);
@@ -719,9 +741,12 @@ void locateInstallation()
 	}
 
 	std::string generals;
-	if (const char* env = getenv("GENERALS_PATH"))
-		generals = env;
-	if (!isGeneralsDir(generals))
+	if (envDir("GENERALS_PATH", generals))
+	{
+		if (!isGeneralsDir(generals))
+			fprintf(stderr, "Warning: INI.big not found in GENERALS_PATH\n");
+	}
+	else
 	{
 		std::string saved = readInstallPath(kGeneralsKey);
 		if (isGeneralsDir(saved))

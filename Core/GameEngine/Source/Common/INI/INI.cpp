@@ -220,6 +220,7 @@ UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadTyp
 	const Bool expectFileFound = (loadFlags & LoadFlags_ExpectFileFound) != 0;
 	if (expectFileFound && filesRead == 0)
 	{
+		DEBUG_LOG(("INI::loadFileDirectory - no files found for '%s'", fileDirName.str()));
 		throw INI_CANT_OPEN_FILE;
 	}
 
@@ -274,6 +275,7 @@ UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer 
 	const Bool expectFileFound = (loadFlags & LoadFlags_ExpectFileFound) != 0;
 	if (expectFileFound && filesRead == 0)
 	{
+		DEBUG_LOG(("INI::loadDirectory - no files found in '%s'", dirName.str()));
 		throw INI_CANT_OPEN_FILE;
 	}
 

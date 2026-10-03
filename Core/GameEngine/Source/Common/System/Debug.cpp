@@ -405,13 +405,13 @@ void DebugInit(int flags)
 		}
 		strlcat(theLogFileName, ".txt", ARRAY_SIZE(theLogFileNamePrev));
 
-		remove(theLogFileNamePrev);
-		if (rename(theLogFileName, theLogFileNamePrev) != 0)
+		DeleteFile(theLogFileNamePrev);
+		if (!MoveFile(theLogFileName, theLogFileNamePrev))
 		{
 #ifdef DEBUG_LOGGING
 			DebugLog("Warning: Could not rename buffer file '%s' to '%s'. Will remove instead", theLogFileName, theLogFileNamePrev);
 #endif
-			if (remove(theLogFileName) != 0)
+			if (!DeleteFile(theLogFileName))
 			{
 #ifdef DEBUG_LOGGING
 				DebugLog("Warning: Failed to remove file '%s'", theLogFileName);
@@ -769,13 +769,13 @@ void ReleaseCrash(const char *reason)
 	strlcpy(curbuf, TheGlobalData->getPath_UserData().str(), ARRAY_SIZE(curbuf));
 	strlcat(curbuf, RELEASECRASH_FILE_NAME, ARRAY_SIZE(curbuf));
 
- 	remove(prevbuf);
-	if (rename(curbuf, prevbuf) != 0)
+ 	DeleteFile(prevbuf);
+	if (!MoveFile(curbuf, prevbuf))
 	{
 #ifdef DEBUG_LOGGING
 		DebugLog("Warning: Could not rename buffer file '%s' to '%s'. Will remove instead", curbuf, prevbuf);
 #endif
-		if (remove(curbuf) != 0)
+		if (!DeleteFile(curbuf))
 		{
 #ifdef DEBUG_LOGGING
 			DebugLog("Warning: Failed to remove file '%s'", curbuf);
@@ -866,13 +866,13 @@ void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 	strlcpy(curbuf, TheGlobalData->getPath_UserData().str(), ARRAY_SIZE(curbuf));
 	strlcat(curbuf, RELEASECRASH_FILE_NAME, ARRAY_SIZE(curbuf));
 
- 	remove(prevbuf);
-	if (rename(curbuf, prevbuf) != 0)
+ 	DeleteFile(prevbuf);
+	if (!MoveFile(curbuf, prevbuf))
 	{
 #ifdef DEBUG_LOGGING
 		DebugLog("Warning: Could not rename buffer file '%s' to '%s'. Will remove instead", curbuf, prevbuf);
 #endif
-		if (remove(curbuf) != 0)
+		if (!DeleteFile(curbuf))
 		{
 #ifdef DEBUG_LOGGING
 			DebugLog("Warning: Failed to remove file '%s'", curbuf);

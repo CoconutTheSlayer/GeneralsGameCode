@@ -3610,7 +3610,7 @@ void* createW3DMemPool(const char *poolName, int allocationSize)
 	LINK_TESTER_INCREMENT();
 	preMainInitMemoryManager();
 	MemoryPool* pool = TheMemoryPoolFactory->createMemoryPool(poolName, allocationSize, 0, 0);
-	DEBUG_ASSERTCRASH(pool && pool->getAllocationSize() == allocationSize, ("bad w3d pool"));
+	DEBUG_ASSERTCRASH(pool && pool->getAllocationSize() == ::roundUpMemBound(allocationSize), ("bad w3d pool"));
 	return pool;
 }
 
@@ -3618,7 +3618,7 @@ void* createW3DMemPool(const char *poolName, int allocationSize)
 void* allocateFromW3DMemPool(void* pool, int allocationSize)
 {
 	DEBUG_ASSERTCRASH(pool, ("pool is null"));
-	DEBUG_ASSERTCRASH(pool && ((MemoryPool*)pool)->getAllocationSize() == allocationSize, ("bad w3d pool size %s",((MemoryPool*)pool)->getPoolName()));
+	DEBUG_ASSERTCRASH(pool && ((MemoryPool*)pool)->getAllocationSize() == ::roundUpMemBound(allocationSize), ("bad w3d pool size %s",((MemoryPool*)pool)->getPoolName()));
 	return ((MemoryPool*)pool)->allocateBlock("allocateFromW3DMemPool");
 }
 
@@ -3626,7 +3626,7 @@ void* allocateFromW3DMemPool(void* pool, int allocationSize)
 void* allocateFromW3DMemPool(void* pool, int allocationSize, const char* msg, int unused)
 {
 	DEBUG_ASSERTCRASH(pool, ("pool is null"));
-	DEBUG_ASSERTCRASH(pool && ((MemoryPool*)pool)->getAllocationSize() == allocationSize, ("bad w3d pool size %s",((MemoryPool*)pool)->getPoolName()));
+	DEBUG_ASSERTCRASH(pool && ((MemoryPool*)pool)->getAllocationSize() == ::roundUpMemBound(allocationSize), ("bad w3d pool size %s",((MemoryPool*)pool)->getPoolName()));
 	return ((MemoryPool*)pool)->allocateBlock(msg);
 }
 
