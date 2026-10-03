@@ -574,6 +574,33 @@ DWORD currentFvf(const DeviceState& s, const std::map<DWORD, VertexShaderObject>
 }
 } // namespace
 
+void Device::traceDraw(const ShaderKey& key, D3DPRIMITIVETYPE type) const
+{
+	const DWORD* rs = m_state.renderStates;
+	const D3DMATERIAL8& m = m_state.material;
+	fprintf(stderr, "d3d8metal: draw type %d fvf 0x%X lighting %d ambient 0x%08X colorvertex %d sources d%d a%d e%d"
+		" material d(%.2f %.2f %.2f %.2f) a(%.2f %.2f %.2f) e(%.2f %.2f %.2f) s(%.2f %.2f %.2f) specular %d\n",
+		(int)type, (unsigned)key.fvf, key.lighting, (unsigned)rs[D3DRS_AMBIENT], key.colorVertex, key.diffuseSource,
+		key.ambientSource, key.emissiveSource, m.Diffuse.r, m.Diffuse.g, m.Diffuse.b, m.Diffuse.a, m.Ambient.r,
+		m.Ambient.g, m.Ambient.b, m.Emissive.r, m.Emissive.g, m.Emissive.b, m.Specular.r, m.Specular.g, m.Specular.b,
+		key.specularEnable);
+	for (int i = 0; i < MAX_LIGHTS; ++i)
+	{
+		if (!key.lightTypes[i])
+			continue;
+		const D3DLIGHT8& l = m_state.lights[i];
+		fprintf(stderr, "d3d8metal:   light %d type %d diffuse(%.2f %.2f %.2f) dir(%.2f %.2f %.2f)\n", i, (int)l.Type,
+			l.Diffuse.r, l.Diffuse.g, l.Diffuse.b, l.Direction.x, l.Direction.y, l.Direction.z);
+	}
+	for (unsigned i = 0; i < key.numStages; ++i)
+	{
+		const StageKey& st = key.stages[i];
+		fprintf(stderr, "d3d8metal:   stage %u color %d(%d,%d) alpha %d(%d,%d) tex %d coord %d gen %d\n", i, st.colorOp,
+			st.colorArg1, st.colorArg2, st.alphaOp, st.alphaArg1, st.alphaArg2, st.textureType, st.texCoordIndex,
+			st.texGen);
+	}
+}
+
 void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 {
 	ok = false;
@@ -684,6 +711,10 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 		if (ctx.layout.stride == 0)
 			ctx.layout.stride = FvfVertexSize(key.fvf);
 	}
+
+	static const bool trace = getenv("D3D8METAL_TRACE") != nullptr;
+	if (trace)
+		traceDraw(ctx.key, type);
 
 	id<MTLRenderPipelineState> pipeline = pipelineFor(ctx.key, ctx.layout, ctx.blend);
 	if (pipeline == nil)

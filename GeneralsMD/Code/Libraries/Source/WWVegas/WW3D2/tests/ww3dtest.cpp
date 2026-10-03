@@ -40,6 +40,152 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
+//-----------------------------------------------------------------------------
+// Writes a textured cube in the W3D mesh format and its TGA texture.
+//-----------------------------------------------------------------------------
+namespace
+{
+struct ChunkWriter
+{
+	std::vector<unsigned char> data;
+	std::vector<size_t> stack;
+
+	void u32(uint32_t v) { for (int i = 0; i < 4; ++i) data.push_back((unsigned char)(v >> (i * 8))); }
+	void f32(float f) { uint32_t v; memcpy(&v, &f, 4); u32(v); }
+	void u8(uint8_t v) { data.push_back(v); }
+	void bytes(const void* p, size_t n) { data.insert(data.end(), (const unsigned char*)p, (const unsigned char*)p + n); }
+	void name(const char* s, size_t len) { char buf[64] = {}; strlcpy(buf, s, sizeof(buf)); bytes(buf, len); }
+	void begin(uint32_t type) { u32(type); stack.push_back(data.size()); u32(0); }
+	void end(bool hasChildren)
+	{
+		size_t at = stack.back();
+		stack.pop_back();
+		uint32_t size = (uint32_t)(data.size() - at - 4);
+		if (hasChildren)
+			size |= 0x80000000u;
+		memcpy(&data[at], &size, 4);
+	}
+};
+
+void writeTestAssets()
+{
+	// 64x64 checker texture (32 bit uncompressed TGA, top-left origin).
+	{
+		FILE* f = fopen("testtex.tga", "wb");
+		unsigned char header[18] = {};
+		header[2] = 2;
+		header[12] = 64;
+		header[14] = 64;
+		header[16] = 32;
+		header[17] = 0x28;
+		fwrite(header, 1, sizeof(header), f);
+		for (int y = 0; y < 64; ++y)
+			for (int x = 0; x < 64; ++x)
+			{
+				bool on = ((x / 8) + (y / 8)) & 1;
+				unsigned char bgra[4] = { (unsigned char)(on ? 40 : 230), (unsigned char)(on ? 160 : 230), (unsigned char)(on ? 230 : 230), 255 };
+				fwrite(bgra, 1, 4, f);
+			}
+		fclose(f);
+	}
+
+	// Cube with 4 vertices per face.
+	static const float faces[6][3] = { { 0, 0, -1 }, { 0, 0, 1 }, { -1, 0, 0 }, { 1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 } };
+	std::vector<float> pos, nrm, uv;
+	std::vector<uint32_t> tris;
+	for (int fi = 0; fi < 6; ++fi)
+	{
+		const float* n = faces[fi];
+		float ux = n[1] != 0 ? 1.0f : -n[2], uy = 0, uz = n[1] != 0 ? 0.0f : n[0];
+		float vx = n[1] * uz - n[2] * uy, vy = n[2] * ux - n[0] * uz, vz = n[0] * uy - n[1] * ux;
+		uint32_t base = (uint32_t)(pos.size() / 3);
+		for (int i = 0; i < 4; ++i)
+		{
+			float su = (i & 1) ? 1.0f : -1.0f, sv = (i & 2) ? -1.0f : 1.0f;
+			pos.insert(pos.end(), { n[0] + ux * su + vx * sv, n[1] + uy * su + vy * sv, n[2] + uz * su + vz * sv });
+			nrm.insert(nrm.end(), { n[0], n[1], n[2] });
+			uv.insert(uv.end(), { (i & 1) ? 1.0f : 0.0f, (i & 2) ? 1.0f : 0.0f });
+		}
+		// Front faces are counter clockwise when seen from outside.
+		tris.insert(tris.end(), { base + 0, base + 2, base + 1, base + 1, base + 2, base + 3 });
+	}
+	uint32_t numVerts = (uint32_t)(pos.size() / 3), numTris = (uint32_t)(tris.size() / 3);
+
+	ChunkWriter w;
+	w.begin(0x00000000); // MESH
+	w.begin(0x0000001F); // MESH_HEADER3
+	w.u32((4 << 16) | 2);
+	w.u32(0);
+	w.name("TESTCUBE", 16);
+	w.name("", 16);
+	w.u32(numTris);
+	w.u32(numVerts);
+	w.u32(0);
+	w.u32(0);
+	w.u32(0);
+	w.u32(0);
+	w.u32(0);
+	w.u32(0x1 | 0x2 | 0x4);
+	w.u32(0x1);
+	w.f32(-1); w.f32(-1); w.f32(-1);
+	w.f32(1); w.f32(1); w.f32(1);
+	w.f32(0); w.f32(0); w.f32(0);
+	w.f32(1.7320508f);
+	w.end(false);
+	w.begin(0x00000002); for (float v : pos) w.f32(v); w.end(false);
+	w.begin(0x00000003); for (float v : nrm) w.f32(v); w.end(false);
+	w.begin(0x00000020); // TRIANGLES
+	for (uint32_t t = 0; t < numTris; ++t)
+	{
+		uint32_t a = tris[t * 3], b = tris[t * 3 + 1], c = tris[t * 3 + 2];
+		w.u32(a); w.u32(b); w.u32(c);
+		w.u32(0);
+		w.f32(nrm[a * 3]); w.f32(nrm[a * 3 + 1]); w.f32(nrm[a * 3 + 2]);
+		w.f32(nrm[a * 3] * pos[a * 3] + nrm[a * 3 + 1] * pos[a * 3 + 1] + nrm[a * 3 + 2] * pos[a * 3 + 2]);
+	}
+	w.end(false);
+	w.begin(0x00000022); for (uint32_t i = 0; i < numVerts; ++i) w.u32(i); w.end(false);
+	w.begin(0x00000028); w.u32(1); w.u32(1); w.u32(1); w.u32(1); w.end(false); // MATERIAL_INFO
+	w.begin(0x0000002A); // VERTEX_MATERIALS
+	w.begin(0x0000002B);
+	w.begin(0x0000002C); w.name("TestMaterial", 13); w.end(false);
+	w.begin(0x0000002D);
+	w.u32(0);
+	w.u8(255); w.u8(255); w.u8(255); w.u8(0); // ambient
+	w.u8(255); w.u8(255); w.u8(255); w.u8(0); // diffuse
+	w.u8(0); w.u8(0); w.u8(0); w.u8(0);       // specular
+	w.u8(0); w.u8(0); w.u8(0); w.u8(0);       // emissive
+	w.f32(1.0f); w.f32(1.0f); w.f32(0.0f);
+	w.end(false);
+	w.end(true);
+	w.end(true);
+	w.begin(0x00000029); // SHADERS
+	{
+		uint8_t shader[16] = { 3, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0 };
+		w.bytes(shader, 16);
+	}
+	w.end(false);
+	w.begin(0x00000030); // TEXTURES
+	w.begin(0x00000031);
+	w.begin(0x00000032); w.name("testtex.tga", 12); w.end(false);
+	w.end(true);
+	w.end(true);
+	w.begin(0x00000038); // MATERIAL_PASS
+	w.begin(0x00000039); w.u32(0); w.end(false);
+	w.begin(0x0000003A); w.u32(0); w.end(false);
+	w.begin(0x00000048); // TEXTURE_STAGE
+	w.begin(0x00000049); w.u32(0); w.end(false);
+	w.begin(0x0000004A); for (float v : uv) w.f32(v); w.end(false);
+	w.end(true);
+	w.end(true);
+	w.end(true);
+
+	FILE* f = fopen("testcube.w3d", "wb");
+	fwrite(w.data.data(), 1, w.data.size(), f);
+	fclose(f);
+}
+} // namespace
+
 static LRESULT TestWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -101,6 +247,7 @@ int main(int argc, char** argv)
 		printf("Set_Render_Device failed\n");
 		return 1;
 	}
+	WW3D::Set_Texture_Bitdepth(32); // as W3DDisplay::init does
 	printf("device: %s\n", WW3D::Get_Render_Device_Desc(0).Get_Device_Name());
 
 	Render2DClass r2d;
@@ -129,8 +276,10 @@ int main(int argc, char** argv)
 
 	LightClass* light = new LightClass(LightClass::DIRECTIONAL);
 	light->Set_Diffuse(Vector3(1.0f, 0.95f, 0.8f));
+	light->Set_Ambient(Vector3(0.0f, 0.0f, 0.0f));
 	Matrix3D lightTm(true);
-	lightTm.Look_At(Vector3(5, -5, 10), Vector3(0, 0, 0), 0);
+	// The negative Z axis of a directional light points towards the light.
+	lightTm.Look_At(Vector3(0, 0, 0), Vector3(5, -5, 10), 0);
 	light->Set_Transform(lightTm);
 	scene->Add_Render_Object(light);
 
@@ -150,6 +299,22 @@ int main(int argc, char** argv)
 	sphere2->Set_Transform(sphere2Tm);
 	scene->Add_Render_Object(sphere2);
 
+	// A W3D mesh loaded through the asset manager, like every game object.
+	writeTestAssets();
+	RenderObjClass* cube = nullptr;
+	if (assets->Load_3D_Assets("testcube.w3d"))
+		cube = assets->Create_Render_Obj("TESTCUBE");
+	printf("w3d mesh: %s\n", cube ? "loaded" : "FAILED");
+	if (cube)
+	{
+		Matrix3D cubeTm(true);
+		cubeTm.Rotate_Z(0.5f);
+		cubeTm.Rotate_X(0.4f);
+		cubeTm.Set_Translation(Vector3(0.5f, 3.5f, 1.5f));
+		cube->Set_Transform(cubeTm);
+		scene->Add_Render_Object(cube);
+	}
+
 	WW3D::Set_Collision_Box_Display_Mask(0xFF);
 	OBBoxRenderObjClass* box = new OBBoxRenderObjClass();
 	box->Set_Collision_Type(0xFF);
@@ -162,20 +327,21 @@ int main(int argc, char** argv)
 	box->Set_Transform(boxTm);
 	scene->Add_Render_Object(box);
 
-	for (int frame = 0; frame < 3; ++frame)
+	for (int frame = 0; frame < 10; ++frame)
 	{
 		WW3D::Begin_Render(true, true, Vector3(0.1f, 0.12f, 0.15f));
 		WW3D::Render(scene, camera);
 		r2d.Render();
 		sentence.Draw_Sentence(0xFFFFFFFF);
 		sentence.Render();
-		if (frame == 2)
+		if (frame == 9)
 			save(out, W, H);
 		WW3D::End_Render(true);
 	}
 
 	REF_PTR_RELEASE(font);
 	REF_PTR_RELEASE(box);
+	REF_PTR_RELEASE(cube);
 	REF_PTR_RELEASE(sphere);
 	REF_PTR_RELEASE(sphere2);
 	REF_PTR_RELEASE(light);

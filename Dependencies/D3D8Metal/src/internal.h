@@ -492,6 +492,7 @@ private:
 	void flush(bool wait);
 	Transient allocTransient(NSUInteger length, NSUInteger alignment = 16);
 	void beginDraw(D3DPRIMITIVETYPE type, bool& ok);
+	void traceDraw(const ShaderKey& key, D3DPRIMITIVETYPE type) const;
 	void drawClearQuad(DWORD flags, D3DCOLOR color, float z, DWORD stencil, const MTLScissorRect& rect);
 	void markTextureUsed(TextureStorage& storage);
 	TextureStorage* stageStorage(DWORD stage) const;

@@ -885,6 +885,10 @@ HRESULT Device::CreateTexture(UINT Width, UINT Height, UINT Levels, DWORD Usage,
 	if (ppTexture == nullptr)
 		return D3DERR_INVALIDCALL;
 	auto storage = createStorage(Width, Height, Levels, 1, Usage, Format, Pool);
+	static const bool trace = getenv("D3D8METAL_TRACE") != nullptr;
+	if (trace)
+		fprintf(stderr, "d3d8metal: CreateTexture %ux%u levels %u usage 0x%X format %d pool %d\n", Width, Height, Levels,
+			(unsigned)Usage, (int)Format, (int)Pool);
 	if (storage == nullptr)
 		return D3DERR_OUTOFVIDEOMEMORY;
 	*ppTexture = new Texture(this, storage);
