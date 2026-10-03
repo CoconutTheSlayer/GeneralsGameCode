@@ -192,6 +192,22 @@ uint64_t fileTimeToU64(const FILETIME* ft)
 	return ((uint64_t)ft->dwHighDateTime << 32) | ft->dwLowDateTime;
 }
 
+// Matches a file name against a DOS style wildcard pattern, case insensitively.
+// "*.*" matches everything and a trailing '.' means "no extension".
+bool matchWildcard(const std::string& pattern, const char* name)
+{
+	if (pattern == "*" || pattern == "*.*")
+		return true;
+	if (!pattern.empty() && pattern.back() == '.' && pattern.find('.') == pattern.size() - 1)
+	{
+		if (strchr(name, '.') != nullptr)
+			return false;
+		std::string base = pattern.substr(0, pattern.size() - 1);
+		return fnmatch(base.c_str(), name, FNM_CASEFOLD) == 0;
+	}
+	return fnmatch(pattern.c_str(), name, FNM_CASEFOLD) == 0;
+}
+
 void fillFindData(const std::string& fullPath, const char* name, LPWIN32_FIND_DATA data)
 {
 	memset(data, 0, sizeof(*data));
@@ -1778,8 +1794,6 @@ HANDLE FindFirstFile(LPCSTR pattern, LPWIN32_FIND_DATA data)
 			directory = "/";
 		mask = path.substr(slash + 1);
 	}
-	if (mask == "*.*")
-		mask = "*";
 
 	DIR* dir = opendir(directory.c_str());
 	if (dir == nullptr)
@@ -1809,7 +1823,7 @@ BOOL FindNextFile(HANDLE find, LPWIN32_FIND_DATA data)
 		return FALSE;
 	while (struct dirent* entry = readdir(f->dir))
 	{
-		if (fnmatch(f->pattern.c_str(), entry->d_name, FNM_CASEFOLD) == 0)
+		if (matchWildcard(f->pattern, entry->d_name))
 		{
 			fillFindData(f->directory + "/" + entry->d_name, entry->d_name, data);
 			return TRUE;
