@@ -195,6 +195,7 @@ struct VertexUniforms
 	float4 fogParams;
 	float4 clipPlanes[6];
 	float4 pointParams;
+	float4 pointScale;
 	Light lights[8];
 };
 
@@ -457,7 +458,16 @@ std::string GenerateShaderSource(const ShaderKey& key)
 	for (int i = 0; i < clipCount; ++i)
 		s << "\tout.clip[" << i << "] = " << ((key.clipPlaneMask & (1 << i)) ? "dot(float4(viewPos, 1.0), u.clipPlanes[" + std::to_string(i) + "])" : std::string("1.0")) << ";\n";
 	if (key.pointList)
-		s << "\tout.pointSize = clamp(" << (hasPSize ? "in.psize" : "u.pointParams.x") << ", max(u.pointParams.y, 1.0), max(u.pointParams.z, 1.0));\n";
+	{
+		s << "\tfloat psize = " << (hasPSize ? "in.psize" : "u.pointParams.x") << ";\n";
+		if (key.pointScale && !rhw)
+		{
+			// D3D: size = viewport height * size * sqrt(1 / (A + B * d + C * d^2))
+			s << "\tfloat pd = length(viewPos);\n";
+			s << "\tpsize = u.pointScale.w * psize * sqrt(1.0 / max(u.pointScale.x + u.pointScale.y * pd + u.pointScale.z * pd * pd, 1e-6));\n";
+		}
+		s << "\tout.pointSize = clamp(psize, max(u.pointParams.y, 1.0), max(u.pointParams.z, 1.0));\n";
+	}
 
 	s << "\treturn out;\n}\n\n";
 
@@ -465,6 +475,8 @@ std::string GenerateShaderSource(const ShaderKey& key)
 	// Fragment shader
 	//-------------------------------------------------------------------------
 	s << "fragment float4 fs_main(FIn in [[stage_in]], constant FragmentUniforms& u [[buffer(0)]]";
+	if (key.pointSprite)
+		s << ", float2 pointCoord [[point_coord]]";
 	for (unsigned i = 0; i < numStages; ++i)
 	{
 		if (key.stages[i].textureType == 2)
@@ -488,7 +500,7 @@ std::string GenerateShaderSource(const ShaderKey& key)
 		s << "\t{\n";
 		// Sample the stage texture.
 		std::string coord;
-		std::string tc = "in.tc" + std::to_string(i);
+		std::string tc = key.pointSprite ? std::string("float4(pointCoord, 0.0, 1.0)") : "in.tc" + std::to_string(i);
 		if (st.textureType == 2)
 			coord = tc + ".xyz";
 		else if (st.projected && st.transformCount >= 2)

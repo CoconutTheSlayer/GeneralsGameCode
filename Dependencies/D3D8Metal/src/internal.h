@@ -488,6 +488,7 @@ private:
 	id<MTLCommandBuffer> commandBuffer();
 	id<MTLRenderCommandEncoder> renderEncoder();
 	void endRenderEncoder();
+	id<MTLTexture> activeDepthTexture();
 	void flush(bool wait);
 	Transient allocTransient(NSUInteger length, NSUInteger alignment = 16);
 	void beginDraw(D3DPRIMITIVETYPE type, bool& ok);
@@ -551,6 +552,7 @@ private:
 	std::unordered_map<uint64_t, id<MTLFunction>> m_fragmentFunctions;
 	std::unordered_map<uint64_t, id<MTLDepthStencilState>> m_depthStates;
 	std::unordered_map<uint64_t, id<MTLSamplerState>> m_samplers;
+	std::unordered_map<uint64_t, id<MTLTexture>> m_scratchDepth;
 	id<MTLRenderPipelineState> m_presentPipeline = nil;
 	id<MTLRenderPipelineState> m_clearPipelines[16] {};
 	id<MTLDepthStencilState> m_clearDepthStates[4] {};

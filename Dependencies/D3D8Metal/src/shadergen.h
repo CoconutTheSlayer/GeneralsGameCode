@@ -87,7 +87,8 @@ struct ShaderKey
 	uint8_t clipPlaneMask;
 	uint8_t pointList;
 	uint8_t lightTypes[8];  // D3DLIGHTTYPE, 0 when disabled
-	uint8_t pad[2];
+	uint8_t pointSprite;    // texture coordinates come from the point sprite
+	uint8_t pointScale;     // point size attenuates with distance
 	StageKey stages[8];
 
 	uint64_t hash() const;
@@ -139,6 +140,7 @@ struct VertexUniforms
 	float fogParams[4];     // start, end, density, unused
 	float clipPlanes[6][4]; // view space
 	float pointParams[4];   // size, min, max, unused
+	float pointScale[4];    // A, B, C, viewport height
 	LightUniform lights[8];
 };
 

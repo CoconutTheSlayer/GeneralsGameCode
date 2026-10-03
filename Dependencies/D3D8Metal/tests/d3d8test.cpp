@@ -517,6 +517,38 @@ int main(int argc, char** argv)
 		ReleaseDC(hwnd, screen);
 	}
 
+	// Scene 6: point sprites with distance scaling (used for snow).
+	{
+		resetStates();
+		g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF102030, 1.0f, 0);
+		g_device->BeginScene();
+		setCamera();
+		D3DMATRIX world = identity();
+		g_device->SetTransform(D3DTS_WORLD, &world);
+		modulateStage0(checker);
+		g_device->SetRenderState(D3DRS_POINTSPRITEENABLE, TRUE);
+		g_device->SetRenderState(D3DRS_POINTSCALEENABLE, TRUE);
+		float size = 0.6f, mn = 1.0f, mx = 64.0f, a = 0.0f, b = 0.0f, c = 1.0f;
+		g_device->SetRenderState(D3DRS_POINTSIZE, *(DWORD*)&size);
+		g_device->SetRenderState(D3DRS_POINTSIZE_MIN, *(DWORD*)&mn);
+		g_device->SetRenderState(D3DRS_POINTSIZE_MAX, *(DWORD*)&mx);
+		g_device->SetRenderState(D3DRS_POINTSCALE_A, *(DWORD*)&a);
+		g_device->SetRenderState(D3DRS_POINTSCALE_B, *(DWORD*)&b);
+		g_device->SetRenderState(D3DRS_POINTSCALE_C, *(DWORD*)&c);
+		struct PointVertex { float x, y, z; DWORD color; };
+		std::vector<PointVertex> pts;
+		for (int z = 0; z < 5; ++z)
+			for (int x = -3; x <= 3; ++x)
+				pts.push_back({ x * 1.2f, 0.0f, z * 2.0f, 0xFFFFFFFF });
+		g_device->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE);
+		g_device->DrawPrimitiveUP(D3DPT_POINTLIST, (UINT)pts.size(), pts.data(), sizeof(PointVertex));
+		g_device->SetRenderState(D3DRS_POINTSPRITEENABLE, FALSE);
+		g_device->SetRenderState(D3DRS_POINTSCALEENABLE, FALSE);
+		g_device->EndScene();
+		saveFrame(out + "/scene6_pointsprites.png");
+		g_device->Present(nullptr, nullptr, nullptr, nullptr);
+	}
+
 	checker->Release();
 	checker565->Release();
 	checker4444->Release();

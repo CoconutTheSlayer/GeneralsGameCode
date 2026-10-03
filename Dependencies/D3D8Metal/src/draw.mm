@@ -211,6 +211,27 @@ struct DrawContext
 //-----------------------------------------------------------------------------
 // Render passes
 //-----------------------------------------------------------------------------
+id<MTLTexture> Device::activeDepthTexture()
+{
+	if (m_depthStencil == nullptr || m_depthStencil->m_storage->texture == nil)
+		return nil;
+	unsigned w = m_renderTarget->width(), h = m_renderTarget->height();
+	if (m_depthStencil->width() == w && m_depthStencil->height() == h)
+		return m_depthStencil->m_storage->texture;
+	// D3D allows a depth buffer larger than the render target, Metal requires
+	// matching sizes. Use a depth buffer of the render target size instead.
+	uint64_t key = ((uint64_t)w << 32) | h;
+	auto it = m_scratchDepth.find(key);
+	if (it != m_scratchDepth.end())
+		return it->second;
+	MTLTextureDescriptor* td = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8 width:w height:h mipmapped:NO];
+	td.usage = MTLTextureUsageRenderTarget;
+	td.storageMode = MTLStorageModePrivate;
+	id<MTLTexture> depth = [m_mtlDevice newTextureWithDescriptor:td];
+	m_scratchDepth[key] = depth;
+	return depth;
+}
+
 id<MTLRenderCommandEncoder> Device::renderEncoder()
 {
 	if (m_encoder)
@@ -230,9 +251,8 @@ id<MTLRenderCommandEncoder> Device::renderEncoder()
 	else
 		pass.colorAttachments[0].loadAction = MTLLoadActionLoad;
 
-	if (m_depthStencil && m_depthStencil->width() == m_renderTarget->width() && m_depthStencil->height() == m_renderTarget->height())
+	if (id<MTLTexture> depth = activeDepthTexture())
 	{
-		id<MTLTexture> depth = m_depthStencil->m_storage->texture;
 		pass.depthAttachment.texture = depth;
 		pass.stencilAttachment.texture = depth;
 		pass.depthAttachment.storeAction = MTLStoreActionStore;
@@ -263,7 +283,7 @@ id<MTLRenderCommandEncoder> Device::renderEncoder()
 void Device::drawClearQuad(DWORD flags, D3DCOLOR color, float z, DWORD stencil, const MTLScissorRect& rect)
 {
 	id<MTLRenderCommandEncoder> enc = renderEncoder();
-	bool hasDepth = m_depthStencil && m_depthStencil->width() == m_renderTarget->width() && m_depthStencil->height() == m_renderTarget->height();
+	bool hasDepth = activeDepthTexture() != nil;
 	int pipe = ((flags & D3DCLEAR_TARGET) ? 1 : 0) | (hasDepth ? 2 : 0);
 	int ds = hasDepth ? (((flags & D3DCLEAR_ZBUFFER) ? 1 : 0) | ((flags & D3DCLEAR_STENCIL) ? 2 : 0)) : 0;
 	struct
@@ -595,6 +615,8 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 		key.flatShade = rs[D3DRS_SHADEMODE] == D3DSHADE_FLAT ? 1 : 0;
 		key.clipPlaneMask = rhw ? 0 : (uint8_t)(rs[D3DRS_CLIPPLANEENABLE] & 0x3F);
 		key.pointList = type == D3DPT_POINTLIST ? 1 : 0;
+		key.pointSprite = (key.pointList && rs[D3DRS_POINTSPRITEENABLE]) ? 1 : 0;
+		key.pointScale = (key.pointList && rs[D3DRS_POINTSCALEENABLE]) ? 1 : 0;
 		unsigned numStages = 0;
 		for (unsigned i = 0; i < MAX_STAGES; ++i)
 		{
@@ -655,7 +677,7 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 		if (rtFormat == D3DFMT_X8R8G8B8 || rtFormat == D3DFMT_R5G6B5 || rtFormat == D3DFMT_X1R5G5B5)
 			mask &= ~MTLColorWriteMaskAlpha;
 		blend.writeMask = mask;
-		blend.hasDepth = (m_depthStencil && m_depthStencil->width() == m_renderTarget->width() && m_depthStencil->height() == m_renderTarget->height()) ? 1 : 0;
+		blend.hasDepth = activeDepthTexture() != nil ? 1 : 0;
 
 		ctx.layout.fvf = key.fvf;
 		ctx.layout.stride = m_state.streams[0].stride;
@@ -748,6 +770,10 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 	vu.pointParams[0] = bitsFloat(rs[D3DRS_POINTSIZE]);
 	vu.pointParams[1] = bitsFloat(rs[D3DRS_POINTSIZE_MIN]);
 	vu.pointParams[2] = bitsFloat(rs[D3DRS_POINTSIZE_MAX]);
+	vu.pointScale[0] = bitsFloat(rs[D3DRS_POINTSCALE_A]);
+	vu.pointScale[1] = bitsFloat(rs[D3DRS_POINTSCALE_B]);
+	vu.pointScale[2] = bitsFloat(rs[D3DRS_POINTSCALE_C]);
+	vu.pointScale[3] = (float)std::max<DWORD>(vp.Height, 1);
 	if (ctx.key.lighting)
 	{
 		for (int i = 0; i < MAX_LIGHTS; ++i)
