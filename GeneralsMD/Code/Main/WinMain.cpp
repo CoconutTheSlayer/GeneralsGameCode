@@ -974,7 +974,7 @@ int main(int argc, char** argv)
 {
 	Win32Shim_SetCommandLine(argc, argv);
 	Win32Shim_Initialize();
-	Win32Shim_LocateGameData();
+	Win32Shim_LocateGameData(true);
 	return WinMain(GetModuleHandle(nullptr), nullptr, GetCommandLine(), SW_SHOW);
 }
 #endif

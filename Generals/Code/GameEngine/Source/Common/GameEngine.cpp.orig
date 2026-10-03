@@ -171,9 +171,7 @@ void initSubsystem(
 
 //-------------------------------------------------------------------------------------------------
 extern HINSTANCE ApplicationHInstance;  ///< our application instance
-#if !defined(__APPLE__)
 extern CComModule _Module;
-#endif
 
 //-------------------------------------------------------------------------------------------------
 static void updateTGAtoDDS();
@@ -255,9 +253,7 @@ GameEngine::GameEngine()
 	m_quitting = FALSE;
 	m_isActive = FALSE;
 
-#if !defined(__APPLE__)
 	_Module.Init(nullptr, ApplicationHInstance, nullptr);
-#endif
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -299,9 +295,7 @@ GameEngine::~GameEngine()
 
 	Drawable::killStaticImages();
 
-#if !defined(__APPLE__)
 	_Module.Term();
-#endif
 
 #ifdef PERF_TIMERS
 	PerfGather::termPerfDump();

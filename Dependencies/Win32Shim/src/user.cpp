@@ -664,6 +664,35 @@ std::string parentDir(const std::string& dir)
 	return slash == std::string::npos || slash == 0 ? std::string("/") : dir.substr(0, slash);
 }
 
+// Locates the original Generals data for the base game executable.
+void locateGeneralsInstallation()
+{
+	std::string generals;
+	if (const char* env = getenv("GENERALS_PATH"))
+		generals = env;
+	if (!isGeneralsDir(generals))
+	{
+		char cwd[PATH_MAX];
+		std::string saved = readInstallPath(kGeneralsKey);
+		if (isGeneralsDir(saved))
+			generals = saved;
+		else if (getcwd(cwd, sizeof(cwd)) && isGeneralsDir(cwd))
+			generals = cwd;
+		else
+		{
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Command & Conquer Generals",
+				"Please select the folder containing your Generals game files (the folder with INI.big and W3D.big).", nullptr);
+			generals = chooseFolder("Select the Generals folder");
+		}
+	}
+	if (!generals.empty())
+	{
+		writeInstallPath(kGeneralsKey, generals);
+		chdir(generals.c_str());
+	}
+	fprintf(stderr, "Generals data: %s\n", generals.empty() ? "(not found)" : generals.c_str());
+}
+
 // Locates the game data folders and records them where the game looks for them.
 void locateInstallation()
 {
@@ -739,10 +768,13 @@ void Win32Shim_Initialize()
 	memset(g_vkState, 0, sizeof(g_vkState));
 }
 
-void Win32Shim_LocateGameData()
+void Win32Shim_LocateGameData(bool zeroHour)
 {
 	ensureSDL();
-	locateInstallation();
+	if (zeroHour)
+		locateInstallation();
+	else
+		locateGeneralsInstallation();
 }
 
 //-----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Packages the native macOS build of Zero Hour as an application bundle.
+# Packages the native macOS builds of Zero Hour and Generals as application bundles.
 #
 # Usage: scripts/macos/make-app.sh [build directory] [output directory]
 #   build directory   defaults to build/macos
@@ -14,37 +14,31 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_DIR="${1:-$PROJECT_DIR/build/macos}"
 OUT_DIR="${2:-$BUILD_DIR}"
-BINARY="$BUILD_DIR/GeneralsMD/generalszh"
-APP="$OUT_DIR/Command and Conquer Generals Zero Hour.app"
+make_app() {
+    local BINARY="$1" APP="$2" EXE="$3" ICON_SRC="$4" BUNDLE_NAME="$5" DISPLAY_NAME="$6" BUNDLE_ID="$7"
 
-if [[ ! -x "$BINARY" ]]; then
-    echo "error: $BINARY not found; build first with: cmake --workflow --preset macos" >&2
-    exit 1
-fi
+    rm -rf "$APP"
+    mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+    cp "$BINARY" "$APP/Contents/MacOS/$EXE"
 
-rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BINARY" "$APP/Contents/MacOS/generalszh"
+    local ICON_NAME=""
+    if [[ -f "$ICON_SRC" ]] && sips -s format icns "$ICON_SRC" --out "$APP/Contents/Resources/AppIcon.icns" >/dev/null 2>&1; then
+        ICON_NAME="AppIcon"
+    fi
 
-ICON_SRC="$PROJECT_DIR/GeneralsMD/Code/Main/Generals.ico"
-ICON_NAME=""
-if [[ -f "$ICON_SRC" ]] && sips -s format icns "$ICON_SRC" --out "$APP/Contents/Resources/Generals.icns" >/dev/null 2>&1; then
-    ICON_NAME="Generals"
-fi
-
-cat > "$APP/Contents/Info.plist" <<PLIST
+    cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Zero Hour</string>
+    <string>${BUNDLE_NAME}</string>
     <key>CFBundleDisplayName</key>
-    <string>Command &amp; Conquer Generals Zero Hour</string>
+    <string>${DISPLAY_NAME}</string>
     <key>CFBundleIdentifier</key>
-    <string>com.thesuperhackers.generalszh</string>
+    <string>${BUNDLE_ID}</string>
     <key>CFBundleExecutable</key>
-    <string>generalszh</string>
+    <string>${EXE}</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -65,7 +59,23 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-# Ad-hoc signature so Gatekeeper on Apple Silicon allows running the local build.
-codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
+    # Ad-hoc signature so Gatekeeper on Apple Silicon allows running the local build.
+    codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
+    echo "Created $APP"
+}
 
-echo "Created $APP"
+CREATED=0
+if [[ -x "$BUILD_DIR/GeneralsMD/generalszh" ]]; then
+    make_app "$BUILD_DIR/GeneralsMD/generalszh" "$OUT_DIR/Command and Conquer Generals Zero Hour.app" generalszh \
+        "$PROJECT_DIR/GeneralsMD/Code/Main/Generals.ico" "Zero Hour" "Command &amp; Conquer Generals Zero Hour" com.thesuperhackers.generalszh
+    CREATED=1
+fi
+if [[ -x "$BUILD_DIR/Generals/generalsv" ]]; then
+    make_app "$BUILD_DIR/Generals/generalsv" "$OUT_DIR/Command and Conquer Generals.app" generalsv \
+        "$PROJECT_DIR/Generals/Code/Main/Generals.ico" "Generals" "Command &amp; Conquer Generals" com.thesuperhackers.generals
+    CREATED=1
+fi
+if [[ $CREATED -eq 0 ]]; then
+    echo "error: no game executables in $BUILD_DIR; build first with: cmake --workflow --preset macos" >&2
+    exit 1
+fi

@@ -46,8 +46,15 @@
 #include "W3DDevice/GameClient/W3DGameFont.h"
 #include "W3DDevice/GameClient/W3DDisplayStringManager.h"
 #include "VideoDevice/Bink/BinkVideoPlayer.h"
+#ifdef RTS_HAS_FFMPEG
+#include "VideoDevice/FFmpeg/FFmpegVideoPlayer.h"
+#endif
+#if defined(__APPLE__)
+#include "MacDevice/GameClient/MacKeyboard.h"
+#else
 #include "Win32Device/GameClient/Win32DIKeyboard.h"
 #include "Win32Device/GameClient/Win32DIMouse.h"
+#endif
 #include "Win32Device/GameClient/Win32Mouse.h"
 #include "W3DDevice/GameClient/W3DMouse.h"
 
@@ -107,7 +114,11 @@ protected:
   /// Manager for display strings
 	virtual DisplayStringManager *createDisplayStringManager() override { return NEW W3DDisplayStringManager; }
 
+#ifdef RTS_HAS_FFMPEG
+	virtual VideoPlayerInterface *createVideoPlayer() override { return NEW FFmpegVideoPlayer; }
+#else
 	virtual VideoPlayerInterface *createVideoPlayer() override { return NEW BinkVideoPlayer; }
+#endif
 	/// factory for creating the TerrainVisual
 	virtual TerrainVisual *createTerrainVisual() override { return NEW W3DTerrainVisual; }
 
@@ -115,7 +126,11 @@ protected:
 
 };
 
+#if defined(__APPLE__)
+inline Keyboard *W3DGameClient::createKeyboard() { return NEW MacKeyboard; }
+#else
 inline Keyboard *W3DGameClient::createKeyboard() { return NEW DirectInputKeyboard; }
+#endif
 inline Mouse *W3DGameClient::createMouse()
 {
 	//return new DirectInputMouse;

@@ -7,21 +7,31 @@ else()
     set_target_properties(g_generals PROPERTIES OUTPUT_NAME "generalsv${RTS_BUILD_OUTPUT_SUFFIX}")
 endif()
 
+if(APPLE)
+    target_link_libraries(g_generals PRIVATE
+        d3d8lib
+        deps_miles
+        g_gameengine
+        g_gameenginedevice
+        gi_always
+    )
+else()
 target_link_libraries(g_generals PRIVATE
-    comctl32
-    d3d8
-    d3dx8
-    dinput8
-    dxguid
-    deps_bink
-    deps_miles
-    g_gameengine
-    g_gameenginedevice
-    gi_always
-    imm32
-    vfw32
-    winmm
-)
+        comctl32
+        d3d8
+        d3dx8
+        dinput8
+        dxguid
+        deps_bink
+        deps_miles
+        g_gameengine
+        g_gameenginedevice
+        gi_always
+        imm32
+        vfw32
+        winmm
+    )
+endif()
 
 # TODO Originally referred to build host and user, replace with git info perhaps?
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/GeneratedVersion.h

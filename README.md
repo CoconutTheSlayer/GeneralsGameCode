@@ -73,6 +73,14 @@ cmake --preset win32
 cmake --build build/win32 --config Release
 ```
 
+**macOS (native, Apple Silicon)**
+```bash
+brew install cmake ninja sdl3 ffmpeg
+cmake --workflow --preset macos
+scripts/macos/make-app.sh
+```
+See [MACOS.md](MACOS.md) for game data setup and details.
+
 **Linux (via Docker)**
 ```bash
 ./scripts/docker-build.sh              # Build using Docker
