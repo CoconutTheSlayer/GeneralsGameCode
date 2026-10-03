@@ -1012,6 +1012,219 @@ int main(int argc, char** argv)
 		g_device->Present(nullptr, nullptr, nullptr, nullptr);
 	}
 
+	// Scene 10: fixed function lighting compared with the Direct3D 8 lighting equations.
+	int failures10 = 0;
+	{
+		struct V3 { float x, y, z; };
+		auto dot3 = [](V3 a, V3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; };
+		auto norm3 = [&](V3 a) { float l = sqrtf(dot3(a, a)); return V3{ a.x / l, a.y / l, a.z / l }; };
+		auto sub3 = [](V3 a, V3 b) { return V3{ a.x - b.x, a.y - b.y, a.z - b.z }; };
+		auto clamp01 = [](float v) { return v < 0 ? 0.0f : (v > 1 ? 1.0f : v); };
+
+		struct LightCase
+		{
+			const char* name;
+			D3DLIGHT8 lights[2];
+			int numLights;
+			D3DMATERIAL8 material;
+			DWORD globalAmbient;
+			DWORD vertexColor;
+			DWORD diffuseSource, ambientSource, emissiveSource;
+			V3 normal;
+			bool specular;
+		};
+		auto colorValue = [](float r, float g, float b, float a = 1.0f) { D3DCOLORVALUE c = { r, g, b, a }; return c; };
+		auto directional = [&](V3 dir, D3DCOLORVALUE diffuse) {
+			D3DLIGHT8 l = {};
+			l.Type = D3DLIGHT_DIRECTIONAL;
+			l.Diffuse = diffuse;
+			l.Direction = { dir.x, dir.y, dir.z };
+			l.Range = 1000.0f;
+			return l;
+		};
+		auto point = [&](V3 pos, D3DCOLORVALUE diffuse, float range, float a0, float a1, float a2) {
+			D3DLIGHT8 l = {};
+			l.Type = D3DLIGHT_POINT;
+			l.Diffuse = diffuse;
+			l.Position = { pos.x, pos.y, pos.z };
+			l.Range = range;
+			l.Attenuation0 = a0;
+			l.Attenuation1 = a1;
+			l.Attenuation2 = a2;
+			return l;
+		};
+		D3DMATERIAL8 mat = {};
+		mat.Diffuse = colorValue(0.8f, 0.6f, 0.4f);
+		mat.Ambient = colorValue(0.5f, 0.5f, 0.5f);
+		mat.Specular = colorValue(0.0f, 0.0f, 0.0f);
+		mat.Emissive = colorValue(0.0f, 0.0f, 0.0f);
+		mat.Power = 1.0f;
+		const V3 toward = { 0, 0, -1 }; // normal facing the camera
+
+		std::vector<LightCase> cases;
+		cases.push_back({ "directional", { directional({ 0, 0, 1 }, colorValue(1, 1, 1)) }, 1, mat, 0xFF202020, 0xFFFFFFFF, D3DMCS_MATERIAL, D3DMCS_MATERIAL, D3DMCS_MATERIAL, toward, false });
+		cases.push_back({ "directional angled", { directional({ 0.6f, 0, 0.8f }, colorValue(1, 0.5f, 0.25f)) }, 1, mat, 0xFF000000, 0xFFFFFFFF, D3DMCS_MATERIAL, D3DMCS_MATERIAL, D3DMCS_MATERIAL, toward, false });
+		cases.push_back({ "facing away", { directional({ 0, 0, -1 }, colorValue(1, 1, 1)) }, 1, mat, 0xFF404040, 0xFFFFFFFF, D3DMCS_MATERIAL, D3DMCS_MATERIAL, D3DMCS_MATERIAL, toward, false });
+		cases.push_back({ "vertex diffuse", { directional({ 0, 0, 1 }, colorValue(0.75f, 0.75f, 0.75f)) }, 1, mat, 0xFF202020, 0xFF30A0F0, D3DMCS_COLOR1, D3DMCS_MATERIAL, D3DMCS_MATERIAL, toward, false });
+		cases.push_back({ "vertex ambient", { directional({ 0, 0, -1 }, colorValue(1, 1, 1)) }, 1, mat, 0xFF808080, 0xFF30A0F0, D3DMCS_MATERIAL, D3DMCS_COLOR1, D3DMCS_MATERIAL, toward, false });
+		cases.push_back({ "vertex emissive", { directional({ 0, 0, 1 }, colorValue(0.25f, 0.25f, 0.25f)) }, 1, mat, 0xFF000000, 0xFF30A0F0, D3DMCS_MATERIAL, D3DMCS_MATERIAL, D3DMCS_COLOR1, toward, false });
+		cases.push_back({ "two lights", { directional({ 0, 0, 1 }, colorValue(0.5f, 0, 0)), directional({ -0.6f, 0, 0.8f }, colorValue(0, 0.75f, 0.5f)) }, 2, mat, 0xFF000000, 0xFFFFFFFF, D3DMCS_MATERIAL, D3DMCS_MATERIAL, D3DMCS_MATERIAL, toward, false });
+		cases.push_back({ "unnormalized normal", { directional({ 0.6f, 0, 0.8f }, colorValue(1, 1, 1)) }, 1, mat, 0xFF000000, 0xFFFFFFFF, D3DMCS_MATERIAL, D3DMCS_MATERIAL, D3DMCS_MATERIAL, { 0, 0, -3.0f }, false });
+		// Point lights are placed relative to the quad in drawCase.
+		cases.push_back({ "point", { point({ 0, 0, -1.0f }, colorValue(1, 1, 1), 10.0f, 0.5f, 0.5f, 0.0f) }, 1, mat, 0xFF000000, 0xFFFFFFFF, D3DMCS_MATERIAL, D3DMCS_MATERIAL, D3DMCS_MATERIAL, toward, false });
+		cases.push_back({ "point quadratic", { point({ 0.5f, 0, -0.5f }, colorValue(1, 0.8f, 0.6f), 10.0f, 0.25f, 0.0f, 1.0f) }, 1, mat, 0xFF000000, 0xFFFFFFFF, D3DMCS_MATERIAL, D3DMCS_MATERIAL, D3DMCS_MATERIAL, toward, false });
+		cases.push_back({ "point out of range", { point({ 0, 0, -1.0f }, colorValue(1, 1, 1), 0.5f, 1.0f, 0.0f, 0.0f) }, 1, mat, 0xFF101010, 0xFFFFFFFF, D3DMCS_MATERIAL, D3DMCS_MATERIAL, D3DMCS_MATERIAL, toward, false });
+		{
+			D3DMATERIAL8 shiny = mat;
+			shiny.Specular = colorValue(1.0f, 1.0f, 1.0f);
+			shiny.Power = 8.0f;
+			D3DLIGHT8 l = directional(norm3({ 0.3f, 0, 1.0f }), colorValue(0.5f, 0.5f, 0.5f));
+			l.Specular = colorValue(1.0f, 0.5f, 0.25f);
+			cases.push_back({ "specular", { l }, 1, shiny, 0xFF000000, 0xFFFFFFFF, D3DMCS_MATERIAL, D3DMCS_MATERIAL, D3DMCS_MATERIAL, toward, true });
+		}
+
+		D3DMATRIX world = identity(), view = identity(), proj = identity();
+		proj._11 = 1.0f;
+		proj._22 = 1.0f / 0.75f;
+		const int cell = 40, cols = W / cell;
+		resetStates();
+		g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0);
+		g_device->BeginScene();
+		g_device->SetTransform(D3DTS_VIEW, &view);
+		g_device->SetTransform(D3DTS_PROJECTION, &proj);
+		g_device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+		g_device->SetRenderState(D3DRS_LIGHTING, TRUE);
+		g_device->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
+		g_device->SetRenderState(D3DRS_LOCALVIEWER, FALSE);
+		g_device->SetRenderState(D3DRS_COLORVERTEX, TRUE);
+
+		struct Expected { int r, g, b; };
+		std::vector<Expected> expected;
+		for (size_t i = 0; i < cases.size(); ++i)
+		{
+			const LightCase& c = cases[i];
+			// Cell center in view space.
+			float sx = (float)((i % cols) * cell + cell / 2), sy = (float)((i / cols) * cell + cell / 2);
+			V3 center = { sx / W * 2.0f - 1.0f, (1.0f - sy / H * 2.0f) * 0.75f, 0.5f };
+			for (int l = 0; l < 2; ++l)
+			{
+				D3DLIGHT8 light = c.lights[l];
+				if (l < c.numLights && light.Type != D3DLIGHT_DIRECTIONAL)
+				{
+					light.Position.x += center.x;
+					light.Position.y += center.y;
+					light.Position.z += center.z;
+				}
+				if (l < c.numLights)
+					g_device->SetLight(l, &light);
+				g_device->LightEnable(l, l < c.numLights);
+			}
+			g_device->SetMaterial(&c.material);
+			g_device->SetRenderState(D3DRS_AMBIENT, c.globalAmbient);
+			g_device->SetRenderState(D3DRS_DIFFUSEMATERIALSOURCE, c.diffuseSource);
+			g_device->SetRenderState(D3DRS_AMBIENTMATERIALSOURCE, c.ambientSource);
+			g_device->SetRenderState(D3DRS_EMISSIVEMATERIALSOURCE, c.emissiveSource);
+			g_device->SetRenderState(D3DRS_SPECULARMATERIALSOURCE, D3DMCS_MATERIAL);
+			g_device->SetRenderState(D3DRS_SPECULARENABLE, c.specular);
+
+			// A quad of 4x4 pixels around the cell center.
+			struct NVertex { float x, y, z, nx, ny, nz; DWORD color; };
+			float hx = 2.0f / W * 2.0f, hy = 2.0f / H * 2.0f * 0.75f;
+			NVertex v[4] = {
+				{ center.x - hx, center.y + hy, center.z, c.normal.x, c.normal.y, c.normal.z, c.vertexColor },
+				{ center.x + hx, center.y + hy, center.z, c.normal.x, c.normal.y, c.normal.z, c.vertexColor },
+				{ center.x - hx, center.y - hy, center.z, c.normal.x, c.normal.y, c.normal.z, c.vertexColor },
+				{ center.x + hx, center.y - hy, center.z, c.normal.x, c.normal.y, c.normal.z, c.vertexColor },
+			};
+			g_device->SetTransform(D3DTS_WORLD, &world);
+			g_device->SetVertexShader(D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_DIFFUSE);
+			g_device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(NVertex));
+
+			// Reference lighting at the center.
+			auto vc = [&](int shift) { return ((c.vertexColor >> shift) & 255) / 255.0f; };
+			float vcol[3] = { vc(16), vc(8), vc(0) };
+			float ga[3] = { ((c.globalAmbient >> 16) & 255) / 255.0f, ((c.globalAmbient >> 8) & 255) / 255.0f, (c.globalAmbient & 255) / 255.0f };
+			const float md[3] = { c.material.Diffuse.r, c.material.Diffuse.g, c.material.Diffuse.b };
+			const float ma[3] = { c.material.Ambient.r, c.material.Ambient.g, c.material.Ambient.b };
+			const float me[3] = { c.material.Emissive.r, c.material.Emissive.g, c.material.Emissive.b };
+			const float ms[3] = { c.material.Specular.r, c.material.Specular.g, c.material.Specular.b };
+			V3 n = norm3(c.normal);
+			float diffuseSum[3] = {}, ambientSum[3] = {}, specularSum[3] = {};
+			for (int l = 0; l < c.numLights; ++l)
+			{
+				D3DLIGHT8 light = c.lights[l];
+				V3 L;
+				float atten = 1.0f;
+				if (light.Type == D3DLIGHT_DIRECTIONAL)
+					L = norm3({ -light.Direction.x, -light.Direction.y, -light.Direction.z });
+				else
+				{
+					V3 lp = { light.Position.x + center.x, light.Position.y + center.y, light.Position.z + center.z };
+					V3 d = sub3(lp, center);
+					float dist = sqrtf(dot3(d, d));
+					L = norm3(d);
+					atten = dist > light.Range ? 0.0f : 1.0f / (light.Attenuation0 + light.Attenuation1 * dist + light.Attenuation2 * dist * dist);
+				}
+				float ndl = std::max(dot3(n, L), 0.0f);
+				const float ld[3] = { light.Diffuse.r, light.Diffuse.g, light.Diffuse.b };
+				const float la[3] = { light.Ambient.r, light.Ambient.g, light.Ambient.b };
+				const float ls[3] = { light.Specular.r, light.Specular.g, light.Specular.b };
+				V3 h = norm3({ L.x, L.y, L.z - 1.0f });
+				float spec = ndl > 0 ? powf(std::max(dot3(n, h), 0.0f), c.material.Power) : 0.0f;
+				for (int k = 0; k < 3; ++k)
+				{
+					diffuseSum[k] += atten * ld[k] * ndl;
+					ambientSum[k] += atten * la[k];
+					specularSum[k] += atten * ls[k] * spec;
+				}
+			}
+			Expected e;
+			int rgb[3];
+			for (int k = 0; k < 3; ++k)
+			{
+				float d = c.diffuseSource == D3DMCS_COLOR1 ? vcol[k] : md[k];
+				float a = c.ambientSource == D3DMCS_COLOR1 ? vcol[k] : ma[k];
+				float em = c.emissiveSource == D3DMCS_COLOR1 ? vcol[k] : me[k];
+				float color = clamp01(em + a * (ga[k] + ambientSum[k]) + d * diffuseSum[k]);
+				if (c.specular)
+					color = clamp01(color + clamp01(ms[k] * specularSum[k]));
+				rgb[k] = (int)lroundf(color * 255.0f);
+			}
+			e = { rgb[0], rgb[1], rgb[2] };
+			expected.push_back(e);
+		}
+		g_device->EndScene();
+		saveFrame(out + "/scene10_lighting.png");
+		g_device->SetRenderState(D3DRS_LIGHTING, FALSE);
+		g_device->SetRenderState(D3DRS_SPECULARENABLE, FALSE);
+		g_device->LightEnable(0, FALSE);
+		g_device->LightEnable(1, FALSE);
+
+		IDirect3DSurface8* back = nullptr;
+		check(g_device->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &back), "GetBackBuffer");
+		IDirect3DSurface8* image = nullptr;
+		check(g_device->CreateImageSurface(W, H, D3DFMT_A8R8G8B8, &image), "CreateImageSurface");
+		check(g_device->CopyRects(back, nullptr, 0, image, nullptr), "CopyRects");
+		D3DLOCKED_RECT lr;
+		check(image->LockRect(&lr, nullptr, D3DLOCK_READONLY), "LockRect");
+		for (size_t i = 0; i < cases.size(); ++i)
+		{
+			int px = (int)(i % cols) * cell + cell / 2, py = (int)(i / cols) * cell + cell / 2;
+			const uint8_t* pix = (const uint8_t*)lr.pBits + py * lr.Pitch + px * 4;
+			const Expected& e = expected[i];
+			if (abs(pix[2] - e.r) > 3 || abs(pix[1] - e.g) > 3 || abs(pix[0] - e.b) > 3)
+			{
+				printf("scene10 %s: got %d %d %d, expected %d %d %d\n", cases[i].name, pix[2], pix[1], pix[0], e.r, e.g, e.b);
+				++failures10;
+			}
+		}
+		image->UnlockRect();
+		image->Release();
+		back->Release();
+		printf("scene10: %zu of %zu lighting cases match\n", cases.size() - failures10, cases.size());
+		g_device->Present(nullptr, nullptr, nullptr, nullptr);
+	}
+
 	checker->Release();
 	checker565->Release();
 	checker4444->Release();
@@ -1020,5 +1233,5 @@ int main(int argc, char** argv)
 	g_device->Release();
 	d3d->Release();
 	printf("done\n");
-	return failures7 || failures8 || failures9 ? 1 : 0;
+	return failures7 || failures8 || failures9 || failures10 ? 1 : 0;
 }
