@@ -141,10 +141,18 @@ unsigned ImageSize(D3DFORMAT format, unsigned width, unsigned height)
 	return RowPitch(format, width) * RowCount(format, height);
 }
 
-GpuFormat GpuFormatFor(D3DFORMAT format)
+GpuFormat GpuFormatFor(D3DFORMAT format, bool allowNative16)
 {
 	switch (format)
 	{
+	case D3DFMT_R5G6B5:
+		return allowNative16 ? GpuFormat::B5G6R5 : GpuFormat::BGRA8;
+	case D3DFMT_A1R5G5B5:
+	case D3DFMT_X1R5G5B5:
+		return allowNative16 ? GpuFormat::BGR5A1 : GpuFormat::BGRA8;
+	case D3DFMT_A4R4G4B4:
+	case D3DFMT_X4R4G4B4:
+		return allowNative16 ? GpuFormat::ABGR4 : GpuFormat::BGRA8;
 	case D3DFMT_DXT1:
 		return GpuFormat::BC1;
 	case D3DFMT_DXT2:

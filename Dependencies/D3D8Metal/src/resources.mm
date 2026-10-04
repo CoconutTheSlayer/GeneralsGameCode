@@ -303,6 +303,7 @@ VertexBuffer::VertexBuffer(Device* device, unsigned length, DWORD usage, DWORD f
 	m_storage.length = length;
 	m_storage.usage = usage;
 	m_storage.buffer = device->acquireBuffer(length);
+	memset([m_storage.buffer contents], 0, length);
 }
 
 VertexBuffer::~VertexBuffer()
@@ -334,6 +335,7 @@ IndexBuffer::IndexBuffer(Device* device, unsigned length, DWORD usage, D3DFORMAT
 	m_storage.length = length;
 	m_storage.usage = usage;
 	m_storage.buffer = device->acquireBuffer(length);
+	memset([m_storage.buffer contents], 0, length);
 }
 
 IndexBuffer::~IndexBuffer()

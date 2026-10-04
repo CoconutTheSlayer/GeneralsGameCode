@@ -23,17 +23,25 @@
 namespace d3d8metal
 {
 
-uint64_t ShaderKey::hash() const
+uint64_t HashWords(const void* data, size_t size)
 {
-	// FNV-1a over the raw bytes; keys are always zero initialized.
-	const uint8_t* p = reinterpret_cast<const uint8_t*>(this);
+	const uint8_t* p = static_cast<const uint8_t*>(data);
 	uint64_t h = 1469598103934665603ULL;
-	for (size_t i = 0; i < sizeof(*this); ++i)
+	for (size_t i = 0; i < size; i += 8)
 	{
-		h ^= p[i];
-		h *= 1099511628211ULL;
+		uint64_t w;
+		memcpy(&w, p + i, 8);
+		h = (h ^ w) * 0x9E3779B97F4A7C15ULL;
+		h ^= h >> 29;
 	}
 	return h;
+}
+
+uint64_t ShaderKey::hash() const
+{
+	// Keys are always zero initialized, so padding hashes consistently.
+	static_assert(sizeof(ShaderKey) % 8 == 0, "ShaderKey is hashed in 8 byte words");
+	return HashWords(this, sizeof(*this));
 }
 
 unsigned FvfTexCoordSize(DWORD fvf, unsigned index)

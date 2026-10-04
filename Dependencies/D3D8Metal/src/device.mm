@@ -30,6 +30,7 @@
 #include <SDL3/SDL_metal.h>
 
 #include <cmath>
+#include <functional>
 
 namespace d3d8metal
 {
@@ -96,6 +97,7 @@ Device::Device(Direct3D* d3d, HWND window, DWORD behaviorFlags, D3DPRESENT_PARAM
 {
 	m_d3d->AddRef();
 	m_mtlDevice = d3d->m_mtlDevice;
+	m_native16 = [m_mtlDevice supportsFamily:MTLGPUFamilyApple1];
 	m_frameSemaphore = dispatch_semaphore_create(3);
 	for (int i = 0; i < 256; ++i)
 	{
@@ -118,6 +120,8 @@ Device::~Device()
 		m_depthStencil->Release();
 	if (m_metalView)
 		SDL_Metal_DestroyView((SDL_MetalView)m_metalView);
+	if (m_pipelineCacheFile)
+		fclose(m_pipelineCacheFile);
 	if (g_currentDevice == this)
 		g_currentDevice = nullptr;
 	m_d3d->Release();
@@ -218,6 +222,7 @@ bool Device::initialize()
 	if (!createSwapChainResources())
 		return false;
 	resetState();
+	loadPipelineCache();
 	g_currentDevice = this;
 	return true;
 }
@@ -415,24 +420,36 @@ id<MTLCommandBuffer> Device::commandBuffer()
 		m_commandBuffer = [m_queue commandBuffer];
 		// Recycle buffers whose GPU use has completed.
 		uint64_t done = m_completedSerial.load();
-		auto recycle = [done](std::vector<std::pair<uint64_t, id<MTLBuffer>>>& list, std::vector<id<MTLBuffer>>* reuse) {
+		auto recycle = [done](std::vector<std::pair<uint64_t, id<MTLBuffer>>>& list, const std::function<void(id<MTLBuffer>)>& reuse) {
 			size_t keep = 0;
 			for (size_t i = 0; i < list.size(); ++i)
 			{
 				if (list[i].first <= done)
-				{
-					if (reuse)
-						reuse->push_back(list[i].second);
-				}
+					reuse(list[i].second);
 				else
 					list[keep++] = list[i];
 			}
 			list.resize(keep);
 		};
-		recycle(m_retiredTransient, &m_transientBuffers);
-		recycle(m_retiredBuffers, nullptr);
+		recycle(m_retiredTransient, [this](id<MTLBuffer> b) { m_transientBuffers.push_back(b); });
+		recycle(m_retiredBuffers, [this](id<MTLBuffer> b) { releaseBuffer(b); });
 	}
 	return m_commandBuffer;
+}
+
+id<MTLBlitCommandEncoder> Device::uploadEncoder()
+{
+	if (m_uploadCommandBuffer == nil)
+	{
+		commandBuffer(); // the upload shares the serial of the command buffer it precedes
+		m_uploadCommandBuffer = [m_queue commandBuffer];
+		// Take the queue position ahead of the command buffer being recorded, which is
+		// enqueued when it is committed.
+		[m_uploadCommandBuffer enqueue];
+	}
+	if (m_uploadBlit == nil)
+		m_uploadBlit = [m_uploadCommandBuffer blitCommandEncoder];
+	return m_uploadBlit;
 }
 
 void Device::endRenderEncoder()
@@ -455,14 +472,31 @@ void Device::flush(bool wait)
 		m_transientCurrent = nil;
 		m_transientOffset = 0;
 	}
+	// A serial completes when its command buffer and the uploads ahead of it have.
 	uint64_t serial = m_currentSerial;
 	std::atomic<uint64_t>* completed = &m_completedSerial;
-	[m_commandBuffer addCompletedHandler:^(id<MTLCommandBuffer>) {
+	std::atomic<int>* pending = new std::atomic<int>(m_uploadCommandBuffer ? 2 : 1);
+	void (^done)(id<MTLCommandBuffer>) = ^(id<MTLCommandBuffer>) {
+		if (pending->fetch_sub(1) != 1)
+			return;
+		delete pending;
 		uint64_t current = completed->load();
 		while (current < serial && !completed->compare_exchange_weak(current, serial))
 		{
 		}
-	}];
+	};
+	if (m_uploadCommandBuffer)
+	{
+		if (m_uploadBlit)
+		{
+			[m_uploadBlit endEncoding];
+			m_uploadBlit = nil;
+		}
+		[m_uploadCommandBuffer addCompletedHandler:done];
+		[m_uploadCommandBuffer commit];
+		m_uploadCommandBuffer = nil;
+	}
+	[m_commandBuffer addCompletedHandler:done];
 	[m_commandBuffer commit];
 	if (wait)
 		[m_commandBuffer waitUntilCompleted];
@@ -502,18 +536,49 @@ Device::Transient Device::allocTransient(NSUInteger length, NSUInteger alignment
 	return t;
 }
 
+namespace
+{
+// Buffer lengths are rounded so buffers of similar sizes can be reused for each other.
+NSUInteger bufferBucket(NSUInteger length)
+{
+	return (std::max<NSUInteger>(length, 16) + 255) & ~(NSUInteger)255;
+}
+// Upper bound for the memory kept in idle buffers.
+const NSUInteger kMaxFreeBufferBytes = 128u * 1024u * 1024u;
+} // namespace
+
 id<MTLBuffer> Device::acquireBuffer(unsigned length)
 {
-	return [m_mtlDevice newBufferWithLength:std::max(length, 16u) options:MTLResourceStorageModeShared];
+	NSUInteger size = bufferBucket(length);
+	auto it = m_freeBuffers.find(size);
+	if (it != m_freeBuffers.end() && !it->second.empty())
+	{
+		id<MTLBuffer> buffer = it->second.back();
+		it->second.pop_back();
+		m_freeBufferBytes -= size;
+		return buffer;
+	}
+	return [m_mtlDevice newBufferWithLength:size options:MTLResourceStorageModeShared];
+}
+
+void Device::releaseBuffer(id<MTLBuffer> buffer)
+{
+	NSUInteger size = [buffer length];
+	if (m_freeBufferBytes + size > kMaxFreeBufferBytes)
+		return;
+	m_freeBuffers[size].push_back(buffer);
+	m_freeBufferBytes += size;
 }
 
 void Device::retireBuffer(id<MTLBuffer> buffer, uint64_t serial)
 {
 	if (buffer == nil)
 		return;
-	// Keep the buffer alive until the GPU no longer references it.
+	// Keep the buffer away from reuse until the GPU no longer references it.
 	if (serial != 0)
 		m_retiredBuffers.push_back({ serial, buffer });
+	else
+		releaseBuffer(buffer);
 }
 
 //-----------------------------------------------------------------------------
@@ -543,9 +608,14 @@ std::shared_ptr<TextureStorage> Device::createStorage(unsigned width, unsigned h
 	if (pool == D3DPOOL_SYSTEMMEM || pool == D3DPOOL_SCRATCH)
 		return storage; // CPU only
 
+	storage->gpuFormat = GpuFormatFor(format, m_native16 && !storage->renderTarget && !storage->depthStencil);
 	MTLPixelFormat pf;
-	switch (GpuFormatFor(format))
+	bool opaque16 = format == D3DFMT_X1R5G5B5 || format == D3DFMT_X4R4G4B4;
+	switch (storage->gpuFormat)
 	{
+	case GpuFormat::B5G6R5: pf = MTLPixelFormatB5G6R5Unorm; break;
+	case GpuFormat::BGR5A1: pf = MTLPixelFormatBGR5A1Unorm; break;
+	case GpuFormat::ABGR4: pf = MTLPixelFormatABGR4Unorm; break;
 	case GpuFormat::BC1: pf = MTLPixelFormatBC1_RGBA; break;
 	case GpuFormat::BC2: pf = MTLPixelFormatBC2_RGBA; break;
 	case GpuFormat::BC3: pf = MTLPixelFormatBC3_RGBA; break;
@@ -563,6 +633,14 @@ std::shared_ptr<TextureStorage> Device::createStorage(unsigned width, unsigned h
 	td.storageMode = MTLStorageModePrivate;
 	if (storage->renderTarget || storage->depthStencil)
 		td.usage |= MTLTextureUsageRenderTarget;
+	if (storage->gpuFormat == GpuFormat::ABGR4)
+	{
+		// ABGR4 samples the nibbles of A4R4G4B4 (A R G B from high to low) as R G B A.
+		td.swizzle = MTLTextureSwizzleChannelsMake(MTLTextureSwizzleGreen, MTLTextureSwizzleBlue, MTLTextureSwizzleAlpha,
+			opaque16 ? MTLTextureSwizzleOne : MTLTextureSwizzleRed);
+	}
+	else if (opaque16)
+		td.swizzle = MTLTextureSwizzleChannelsMake(MTLTextureSwizzleRed, MTLTextureSwizzleGreen, MTLTextureSwizzleBlue, MTLTextureSwizzleOne);
 	storage->texture = [m_mtlDevice newTextureWithDescriptor:td];
 	if (storage->texture == nil)
 		return nullptr;
@@ -591,6 +669,7 @@ void Device::uploadTexture(TextureStorage& storage, unsigned face, unsigned leve
 	std::vector<uint8_t>& shadow = storage.shadow(face, level);
 	unsigned srcPitch = RowPitch(storage.format, w);
 	bool compressed = IsCompressedFormat(storage.format);
+	bool native16 = storage.gpuFormat == GpuFormat::B5G6R5 || storage.gpuFormat == GpuFormat::BGR5A1 || storage.gpuFormat == GpuFormat::ABGR4;
 	if (compressed)
 	{
 		// Block align the region.
@@ -611,13 +690,24 @@ void Device::uploadTexture(TextureStorage& storage, unsigned face, unsigned leve
 	}
 	else
 	{
-		dstPitch = rw * 4;
+		dstPitch = rw * (native16 ? 2 : 4);
 		dstRows = rh;
 	}
 
-	endRenderEncoder();
+	// A texture the command buffer being recorded has used must be updated in order with
+	// its draws, which ends the current render pass. Other textures are updated by the
+	// upload command buffer that runs ahead of it.
+	bool inOrder = storage.lastUsedSerial == m_currentSerial;
+	if (inOrder)
+		endRenderEncoder();
 	Transient staging = allocTransient((NSUInteger)dstPitch * dstRows, 16);
-	if (compressed)
+	if (native16)
+	{
+		const uint8_t* src = shadow.data() + (size_t)rect.top * srcPitch + (size_t)rect.left * 2;
+		for (unsigned row = 0; row < rh; ++row)
+			memcpy((uint8_t*)staging.cpu + (size_t)row * dstPitch, src + (size_t)row * srcPitch, dstPitch);
+	}
+	else if (compressed)
 	{
 		unsigned blockBytes = storage.format == D3DFMT_DXT1 ? 8 : 16;
 		for (unsigned row = 0; row < dstRows; ++row)
@@ -632,7 +722,7 @@ void Device::uploadTexture(TextureStorage& storage, unsigned face, unsigned leve
 		ConvertToBGRA8(storage.format, src, srcPitch, (uint8_t*)staging.cpu, dstPitch, rw, rh);
 	}
 
-	id<MTLBlitCommandEncoder> blit = [commandBuffer() blitCommandEncoder];
+	id<MTLBlitCommandEncoder> blit = inOrder ? [commandBuffer() blitCommandEncoder] : uploadEncoder();
 	[blit copyFromBuffer:staging.buffer
 			  sourceOffset:staging.offset
 		 sourceBytesPerRow:dstPitch
@@ -642,7 +732,8 @@ void Device::uploadTexture(TextureStorage& storage, unsigned face, unsigned leve
 		  destinationSlice:face
 		  destinationLevel:level
 		 destinationOrigin:MTLOriginMake((NSUInteger)rect.left, (NSUInteger)rect.top, 0)];
-	[blit endEncoding];
+	if (inOrder)
+		[blit endEncoding];
 }
 
 void Device::readbackTexture(TextureStorage& storage, unsigned face, unsigned level)
@@ -652,7 +743,10 @@ void Device::readbackTexture(TextureStorage& storage, unsigned face, unsigned le
 	unsigned w = storage.levelWidth(level);
 	unsigned h = storage.levelHeight(level);
 	endRenderEncoder();
-	id<MTLBuffer> buffer = [m_mtlDevice newBufferWithLength:(NSUInteger)w * h * 4 options:MTLResourceStorageModeShared];
+	NSUInteger bytes = (NSUInteger)w * h * 4;
+	if (m_readbackBuffer == nil || [m_readbackBuffer length] < bytes)
+		m_readbackBuffer = [m_mtlDevice newBufferWithLength:bytes options:MTLResourceStorageModeShared];
+	id<MTLBuffer> buffer = m_readbackBuffer;
 	id<MTLBlitCommandEncoder> blit = [commandBuffer() blitCommandEncoder];
 	[blit copyFromTexture:storage.texture
 				 sourceSlice:face

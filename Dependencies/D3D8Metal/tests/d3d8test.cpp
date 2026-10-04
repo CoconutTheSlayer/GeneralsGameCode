@@ -1460,6 +1460,105 @@ int main(int argc, char** argv)
 		g_device->Present(nullptr, nullptr, nullptr, nullptr);
 	}
 
+	// Scene 13: resources updated in the middle of a frame. A texture or buffer changed after a
+	// draw used it must not affect that draw; one changed before its first use in the frame
+	// must show the new contents.
+	int failures13 = 0;
+	{
+		auto fillTexture = [](IDirect3DTexture8* tex, DWORD color) {
+			D3DLOCKED_RECT lr;
+			check(tex->LockRect(0, &lr, nullptr, 0), "scene13 lock");
+			for (int y = 0; y < 4; ++y)
+				for (int x = 0; x < 4; ++x)
+					((DWORD*)((uint8_t*)lr.pBits + y * lr.Pitch))[x] = color;
+			tex->UnlockRect(0);
+		};
+		IDirect3DTexture8* used = nullptr;
+		IDirect3DTexture8* unused = nullptr;
+		check(g_device->CreateTexture(4, 4, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &used), "scene13 tex");
+		check(g_device->CreateTexture(4, 4, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &unused), "scene13 tex");
+		fillTexture(used, 0xFFFF0000);
+		fillTexture(unused, 0xFF0000FF);
+		IDirect3DVertexBuffer8* vb = nullptr;
+		check(g_device->CreateVertexBuffer(4 * sizeof(TLVertex), D3DUSAGE_WRITEONLY, TLFVF, D3DPOOL_MANAGED, &vb), "scene13 vb");
+		auto fillQuad = [&](float x, DWORD color, DWORD flags) {
+			BYTE* data = nullptr;
+			check(vb->Lock(0, 0, &data, flags), "scene13 vb lock");
+			TLVertex v[4] = {
+				{ x, 0, 0.5f, 1.0f, color, 0, 0 },
+				{ x + 40, 0, 0.5f, 1.0f, color, 1, 0 },
+				{ x, 40, 0.5f, 1.0f, color, 0, 1 },
+				{ x + 40, 40, 0.5f, 1.0f, color, 1, 1 },
+			};
+			memcpy(data, v, sizeof(v));
+			vb->Unlock();
+		};
+		auto drawBuffer = [&]() {
+			g_device->SetVertexShader(TLFVF);
+			g_device->SetStreamSource(0, vb, sizeof(TLVertex));
+			g_device->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+		};
+
+		resetStates();
+		g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1.0f, 0);
+		g_device->BeginScene();
+		g_device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+		modulateStage0(used);
+		g_device->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_NONE);
+		quad(0, 0, 40, 40, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+		fillTexture(used, 0xFF00FF00);
+		quad(40, 0, 40, 40, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+		fillTexture(unused, 0xFFFFFF00);
+		modulateStage0(unused);
+		quad(80, 0, 40, 40, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+		g_device->SetTexture(0, nullptr);
+		resetStates();
+		g_device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+		fillQuad(120, 0xFF00FFFF, 0);
+		drawBuffer();
+		fillQuad(160, 0xFFFF00FF, 0);
+		drawBuffer();
+		fillQuad(200, 0xFF808080, D3DLOCK_DISCARD);
+		drawBuffer();
+		g_device->SetStreamSource(0, nullptr, 0);
+		g_device->EndScene();
+		saveFrame(out + "/scene13_updates.png");
+
+		IDirect3DSurface8* back = nullptr;
+		check(g_device->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &back), "GetBackBuffer");
+		IDirect3DSurface8* image = nullptr;
+		check(g_device->CreateImageSurface(W, H, D3DFMT_A8R8G8B8, &image), "CreateImageSurface");
+		check(g_device->CopyRects(back, nullptr, 0, image, nullptr), "CopyRects");
+		D3DLOCKED_RECT lr;
+		check(image->LockRect(&lr, nullptr, D3DLOCK_READONLY), "LockRect");
+		const struct { const char* name; DWORD color; } cells[] = {
+			{ "texture before update", 0xFF0000 },
+			{ "texture after update", 0x00FF00 },
+			{ "texture updated before use", 0xFFFF00 },
+			{ "buffer before update", 0x00FFFF },
+			{ "buffer after update", 0xFF00FF },
+			{ "buffer after discard", 0x808080 },
+		};
+		for (int i = 0; i < 6; ++i)
+		{
+			const uint8_t* pix = (const uint8_t*)lr.pBits + 20 * lr.Pitch + (i * 40 + 20) * 4;
+			DWORD got = ((DWORD)pix[2] << 16) | ((DWORD)pix[1] << 8) | pix[0];
+			if (got != cells[i].color)
+			{
+				printf("scene13 %s: got %06X, expected %06X\n", cells[i].name, (unsigned)got, (unsigned)cells[i].color);
+				++failures13;
+			}
+		}
+		image->UnlockRect();
+		image->Release();
+		back->Release();
+		printf("scene13: %d of 6 mid-frame update checks match\n", 6 - failures13);
+		g_device->Present(nullptr, nullptr, nullptr, nullptr);
+		vb->Release();
+		used->Release();
+		unused->Release();
+	}
+
 	checker->Release();
 	checker565->Release();
 	checker4444->Release();
@@ -1468,5 +1567,5 @@ int main(int argc, char** argv)
 	g_device->Release();
 	d3d->Release();
 	printf("done\n");
-	return failures7 || failures8 || failures9 || failures10 || failures11 || failures12 ? 1 : 0;
+	return failures7 || failures8 || failures9 || failures10 || failures11 || failures12 || failures13 ? 1 : 0;
 }

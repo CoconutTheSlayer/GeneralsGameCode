@@ -29,6 +29,9 @@ namespace d3d8metal
 enum class GpuFormat
 {
 	BGRA8,
+	B5G6R5,  // D3DFMT_R5G6B5
+	BGR5A1,  // D3DFMT_A1R5G5B5, D3DFMT_X1R5G5B5
+	ABGR4,   // D3DFMT_A4R4G4B4, D3DFMT_X4R4G4B4
 	BC1,
 	BC2,
 	BC3,
@@ -52,7 +55,9 @@ unsigned RowCount(D3DFORMAT format, unsigned height);
 // Size in bytes of a width x height image.
 unsigned ImageSize(D3DFORMAT format, unsigned width, unsigned height);
 
-GpuFormat GpuFormatFor(D3DFORMAT format);
+// GPU layout for a texture format. 16 bit formats map to native packed formats when
+// allowNative16 is set (sampled textures); render targets always use BGRA8.
+GpuFormat GpuFormatFor(D3DFORMAT format, bool allowNative16 = false);
 
 // Converts a rectangle of pixels between the D3D format and BGRA8 (B,G,R,A bytes).
 // Coordinates are in pixels; for compressed formats use the Decode function instead.

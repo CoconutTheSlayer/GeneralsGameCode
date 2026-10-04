@@ -22,6 +22,7 @@
 
 #include <d3d8.h>
 #include <stdint.h>
+#include <string.h>
 #include <string>
 
 namespace d3d8metal
@@ -92,6 +93,7 @@ struct ShaderKey
 	StageKey stages[8];
 
 	uint64_t hash() const;
+	bool operator==(const ShaderKey& o) const { return memcmp(this, &o, sizeof(*this)) == 0; }
 };
 
 struct VertexLayout
@@ -153,6 +155,9 @@ struct FragmentUniforms
 	float bumpEnv[8][4];  // m00, m01, m10, m11
 	float bumpLum[8][4];  // scale, offset
 };
+
+// Hash of a block of memory whose size is a multiple of 8 bytes.
+uint64_t HashWords(const void* data, size_t size);
 
 // Returns MSL source with entry points "vs_main" and "fs_main" for the key.
 std::string GenerateShaderSource(const ShaderKey& key);

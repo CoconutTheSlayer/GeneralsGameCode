@@ -109,6 +109,8 @@ struct TextureStorage
 
 	id<MTLTexture> texture = nil;
 	D3DFORMAT format = D3DFMT_UNKNOWN;
+	// Layout of the GPU texture; 16 bit formats are stored natively.
+	GpuFormat gpuFormat = GpuFormat::BGRA8;
 	unsigned width = 0;
 	unsigned height = 0;
 	unsigned levels = 1;
@@ -338,6 +340,50 @@ struct DeviceState
 	float psConstants[8][4] {};
 };
 
+// Everything a render pipeline state is built from.
+struct PipelineKey
+{
+	ShaderKey shader;
+	VertexLayout layout;
+	BlendKey blend;
+
+	bool operator==(const PipelineKey& o) const { return memcmp(this, &o, sizeof(*this)) == 0; }
+};
+
+struct ShaderKeyHash
+{
+	size_t operator()(const ShaderKey& k) const { return (size_t)k.hash(); }
+};
+
+struct PipelineKeyHash
+{
+	size_t operator()(const PipelineKey& k) const;
+};
+
+// Metal encoder state last set on the current render encoder, so draws only send changes.
+struct EncoderState
+{
+	id<MTLRenderPipelineState> pipeline;
+	id<MTLDepthStencilState> depthStencil;
+	DWORD stencilRef;
+	MTLViewport viewport;
+	MTLScissorRect scissor;
+	int cullMode;
+	int winding;
+	int fillMode;
+	float depthBias;
+	id<MTLBuffer> vertexBuffer;
+	NSUInteger vertexOffset;
+	id<MTLTexture> textures[MAX_STAGES];
+	id<MTLSamplerState> samplers[MAX_STAGES];
+	bool vertexUniformsValid;
+	bool fragmentUniformsValid;
+	VertexUniforms vertexUniforms;
+	FragmentUniforms fragmentUniforms;
+
+	void reset();
+};
+
 struct VertexShaderObject
 {
 	std::vector<DWORD> declaration;
@@ -471,7 +517,7 @@ public:
 	void uploadTexture(TextureStorage& storage, unsigned face, unsigned level, const RECT& rect);
 	// Copies GPU content of a texture level into its CPU shadow (render targets).
 	void readbackTexture(TextureStorage& storage, unsigned face, unsigned level);
-	// Returns a fresh MTLBuffer for renaming, recycling retired ones.
+	// Returns an MTLBuffer of at least length bytes, recycling retired ones. Contents are undefined.
 	id<MTLBuffer> acquireBuffer(unsigned length);
 	void retireBuffer(id<MTLBuffer> buffer, uint64_t serial);
 
@@ -489,12 +535,15 @@ private:
 	bool createSwapChainResources();
 	void applyPresentationParameters();
 	id<MTLCommandBuffer> commandBuffer();
+	id<MTLBlitCommandEncoder> uploadEncoder();
+	void releaseBuffer(id<MTLBuffer> buffer);
 	id<MTLRenderCommandEncoder> renderEncoder();
 	void endRenderEncoder();
 	id<MTLTexture> activeDepthTexture();
 	void flush(bool wait);
 	Transient allocTransient(NSUInteger length, NSUInteger alignment = 16);
 	void beginDraw(D3DPRIMITIVETYPE type, bool& ok);
+	void bindVertexBuffer(id<MTLBuffer> buffer, NSUInteger offset);
 	void traceDraw(const ShaderKey& key, D3DPRIMITIVETYPE type) const;
 	void writeScreenshotIfRequested();
 	bool traceEnabled() const
@@ -507,7 +556,11 @@ private:
 	void markTextureUsed(TextureStorage& storage);
 	TextureStorage* stageStorage(DWORD stage) const;
 	id<MTLSamplerState> samplerFor(DWORD stage);
-	id<MTLRenderPipelineState> pipelineFor(const ShaderKey& key, const VertexLayout& layout, const BlendKey& blend);
+	id<MTLRenderPipelineState> pipelineFor(const PipelineKey& key);
+	id<MTLRenderPipelineState> buildPipeline(const PipelineKey& key, id<MTLFunction> vfn, id<MTLFunction> ffn) const;
+	bool compileShader(const ShaderKey& key, id<MTLFunction> __strong& vfn, id<MTLFunction> __strong& ffn) const;
+	void loadPipelineCache();
+	void recordPipeline(const PipelineKey& key);
 	id<MTLDepthStencilState> depthStencilFor();
 	void presentToDrawable();
 	void updateLetterbox();
@@ -524,6 +577,11 @@ private:
 	id<MTLCommandQueue> m_queue = nil;
 	id<MTLCommandBuffer> m_commandBuffer = nil;
 	id<MTLRenderCommandEncoder> m_encoder = nil;
+	EncoderState m_encoderState;
+	// Texture uploads for textures the current command buffer has not used yet. Committed
+	// ahead of it, so uploads do not split its render passes.
+	id<MTLCommandBuffer> m_uploadCommandBuffer = nil;
+	id<MTLBlitCommandEncoder> m_uploadBlit = nil;
 	dispatch_semaphore_t m_frameSemaphore;
 	uint64_t m_currentSerial = 1;
 	std::atomic<uint64_t> m_completedSerial { 0 };
@@ -534,6 +592,10 @@ private:
 	NSUInteger m_transientOffset = 0;
 	std::vector<std::pair<uint64_t, id<MTLBuffer>>> m_retiredTransient;
 	std::vector<std::pair<uint64_t, id<MTLBuffer>>> m_retiredBuffers;
+	// Vertex and index buffers ready for reuse, by length.
+	std::unordered_map<NSUInteger, std::vector<id<MTLBuffer>>> m_freeBuffers;
+	NSUInteger m_freeBufferBytes = 0;
+	id<MTLBuffer> m_readbackBuffer = nil;
 
 	Surface* m_backBuffer = nullptr;
 	Surface* m_depthBuffer = nullptr;
@@ -558,9 +620,13 @@ private:
 	D3DGAMMARAMP m_gammaRamp {};
 
 	// Caches
-	std::unordered_map<uint64_t, id<MTLRenderPipelineState>> m_pipelines;
-	std::unordered_map<uint64_t, id<MTLFunction>> m_vertexFunctions;
-	std::unordered_map<uint64_t, id<MTLFunction>> m_fragmentFunctions;
+	std::unordered_map<PipelineKey, id<MTLRenderPipelineState>, PipelineKeyHash> m_pipelines;
+	std::unordered_map<ShaderKey, std::pair<id<MTLFunction>, id<MTLFunction>>, ShaderKeyHash> m_functions;
+	// Most recent pipeline lookup; consecutive draws usually share it.
+	PipelineKey m_lastPipelineKey {};
+	id<MTLRenderPipelineState> m_lastPipeline = nil;
+	// Pipelines used in earlier runs are listed here and built at startup.
+	FILE* m_pipelineCacheFile = nullptr;
 	std::unordered_map<uint64_t, id<MTLDepthStencilState>> m_depthStates;
 	std::unordered_map<uint64_t, id<MTLSamplerState>> m_samplers;
 	std::unordered_map<uint64_t, id<MTLTexture>> m_scratchDepth;
@@ -575,6 +641,8 @@ private:
 	MTLViewport m_presentViewport {};
 
 	bool m_cursorVisible = true;
+	// Packed 16 bit texture formats are available (Apple GPUs).
+	bool m_native16 = false;
 };
 
 Device* CurrentDevice();

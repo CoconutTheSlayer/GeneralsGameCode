@@ -200,13 +200,35 @@ MTLPrimitiveType primitiveType(D3DPRIMITIVETYPE type)
 	}
 }
 
-struct DrawContext
-{
-	ShaderKey key;
-	VertexLayout layout;
-	BlendKey blend;
-};
 } // namespace
+
+size_t PipelineKeyHash::operator()(const PipelineKey& k) const
+{
+	static_assert(sizeof(PipelineKey) % 8 == 0, "PipelineKey is hashed in 8 byte words");
+	return (size_t)HashWords(&k, sizeof(k));
+}
+
+void EncoderState::reset()
+{
+	pipeline = nil;
+	depthStencil = nil;
+	stencilRef = ~0u;
+	viewport = MTLViewport { -1, -1, -1, -1, -1, -1 };
+	scissor = MTLScissorRect { 0, 0, 0, 0 };
+	cullMode = -1;
+	winding = -1;
+	fillMode = -1;
+	depthBias = NAN;
+	vertexBuffer = nil;
+	vertexOffset = 0;
+	for (int i = 0; i < MAX_STAGES; ++i)
+	{
+		textures[i] = nil;
+		samplers[i] = nil;
+	}
+	vertexUniformsValid = false;
+	fragmentUniformsValid = false;
+}
 
 //-----------------------------------------------------------------------------
 // Render passes
@@ -275,6 +297,7 @@ id<MTLRenderCommandEncoder> Device::renderEncoder()
 	m_pendingClearFlags = 0;
 
 	m_encoder = [commandBuffer() renderCommandEncoderWithDescriptor:pass];
+	m_encoderState.reset();
 	rt.shadowStale = true;
 	markTextureUsed(rt);
 	return m_encoder;
@@ -305,6 +328,8 @@ void Device::drawClearQuad(DWORD flags, D3DCOLOR color, float z, DWORD stencil, 
 	[enc setVertexBytes:&u length:sizeof(u) atIndex:0];
 	[enc setFragmentBytes:&u length:sizeof(u) atIndex:0];
 	[enc drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+	// The clear replaced state and uniforms the next draw may otherwise skip setting.
+	m_encoderState.reset();
 }
 
 HRESULT Device::Clear(DWORD Count, CONST D3DRECT* pRects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil)
@@ -445,53 +470,34 @@ id<MTLDepthStencilState> Device::depthStencilFor()
 	return state;
 }
 
-id<MTLRenderPipelineState> Device::pipelineFor(const ShaderKey& key, const VertexLayout& layout, const BlendKey& blend)
+bool Device::compileShader(const ShaderKey& key, id<MTLFunction> __strong& vfn, id<MTLFunction> __strong& ffn) const
 {
-	uint64_t shaderHash = key.hash();
-	uint64_t h = shaderHash;
-	auto mix = [&h](uint64_t v) {
-		h ^= v + 0x9E3779B97F4A7C15ULL + (h << 6) + (h >> 2);
-	};
-	mix(layout.fvf);
-	mix(layout.stride);
-	uint64_t b;
-	memcpy(&b, &blend, sizeof(b));
-	mix(b);
-
-	auto it = m_pipelines.find(h);
-	if (it != m_pipelines.end())
-		return it->second;
-
-	id<MTLFunction> vfn = nil, ffn = nil;
-	auto vit = m_vertexFunctions.find(shaderHash);
-	if (vit != m_vertexFunctions.end())
+	std::string source = GenerateShaderSource(key);
+	NSError* error = nil;
+	MTLCompileOptions* options = [MTLCompileOptions new];
+	options.mathMode = MTLMathModeFast;
+	const bool trace = traceEnabled();
+	CFAbsoluteTime start = CFAbsoluteTimeGetCurrent();
+	id<MTLLibrary> lib = [m_mtlDevice newLibraryWithSource:[NSString stringWithUTF8String:source.c_str()] options:options error:&error];
+	if (trace)
+		fprintf(stderr, "d3d8metal: compiled shader %016llx in %.1f ms\n", (unsigned long long)key.hash(),
+			(CFAbsoluteTimeGetCurrent() - start) * 1000.0);
+	if (lib == nil)
 	{
-		vfn = vit->second;
-		ffn = m_fragmentFunctions[shaderHash];
+		fprintf(stderr, "d3d8metal: shader compile failed:\n%s\n%s\n", [[error localizedDescription] UTF8String], source.c_str());
+		vfn = nil;
+		ffn = nil;
+		return false;
 	}
-	else
-	{
-		std::string source = GenerateShaderSource(key);
-		NSError* error = nil;
-		MTLCompileOptions* options = [MTLCompileOptions new];
-		options.mathMode = MTLMathModeFast;
-		const bool trace = traceEnabled();
-		CFAbsoluteTime start = CFAbsoluteTimeGetCurrent();
-		id<MTLLibrary> lib = [m_mtlDevice newLibraryWithSource:[NSString stringWithUTF8String:source.c_str()] options:options error:&error];
-		if (trace)
-			fprintf(stderr, "d3d8metal: compiled shader %016llx in %.1f ms\n", (unsigned long long)shaderHash,
-				(CFAbsoluteTimeGetCurrent() - start) * 1000.0);
-		if (lib == nil)
-		{
-			fprintf(stderr, "d3d8metal: shader compile failed:\n%s\n%s\n", [[error localizedDescription] UTF8String], source.c_str());
-			m_pipelines[h] = nil;
-			return nil;
-		}
-		vfn = [lib newFunctionWithName:@"vs_main"];
-		ffn = [lib newFunctionWithName:@"fs_main"];
-		m_vertexFunctions[shaderHash] = vfn;
-		m_fragmentFunctions[shaderHash] = ffn;
-	}
+	vfn = [lib newFunctionWithName:@"vs_main"];
+	ffn = [lib newFunctionWithName:@"fs_main"];
+	return vfn != nil && ffn != nil;
+}
+
+id<MTLRenderPipelineState> Device::buildPipeline(const PipelineKey& key, id<MTLFunction> vfn, id<MTLFunction> ffn) const
+{
+	const VertexLayout& layout = key.layout;
+	const BlendKey& blend = key.blend;
 
 	// Vertex descriptor from the FVF.
 	MTLVertexDescriptor* vd = [MTLVertexDescriptor vertexDescriptor];
@@ -555,14 +561,174 @@ id<MTLRenderPipelineState> Device::pipelineFor(const ShaderKey& key, const Verte
 		pd.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 		pd.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 	}
-	pd.inputPrimitiveTopology = key.pointList ? MTLPrimitiveTopologyClassPoint : MTLPrimitiveTopologyClassUnspecified;
+	pd.inputPrimitiveTopology = key.shader.pointList ? MTLPrimitiveTopologyClassPoint : MTLPrimitiveTopologyClassUnspecified;
 
 	NSError* error = nil;
 	id<MTLRenderPipelineState> pipeline = [m_mtlDevice newRenderPipelineStateWithDescriptor:pd error:&error];
 	if (pipeline == nil)
 		fprintf(stderr, "d3d8metal: pipeline creation failed: %s\n", [[error localizedDescription] UTF8String]);
-	m_pipelines[h] = pipeline;
 	return pipeline;
+}
+
+id<MTLRenderPipelineState> Device::pipelineFor(const PipelineKey& key)
+{
+	if (m_lastPipeline != nil && key == m_lastPipelineKey)
+		return m_lastPipeline;
+
+	id<MTLRenderPipelineState> pipeline = nil;
+	auto it = m_pipelines.find(key);
+	if (it != m_pipelines.end())
+		pipeline = it->second;
+	else
+	{
+		auto fit = m_functions.find(key.shader);
+		if (fit == m_functions.end())
+		{
+			id<MTLFunction> vfn = nil, ffn = nil;
+			compileShader(key.shader, vfn, ffn);
+			fit = m_functions.emplace(key.shader, std::make_pair(vfn, ffn)).first;
+		}
+		if (fit->second.first != nil)
+			pipeline = buildPipeline(key, fit->second.first, fit->second.second);
+		m_pipelines[key] = pipeline;
+		if (pipeline != nil)
+			recordPipeline(key);
+	}
+	m_lastPipelineKey = key;
+	m_lastPipeline = pipeline;
+	return pipeline;
+}
+
+//-----------------------------------------------------------------------------
+// Pipeline cache: the keys of all pipelines built are appended to a file, and the
+// pipelines listed there are built in parallel when the device is created, so
+// shader compilation does not stall the first frames that need them.
+//-----------------------------------------------------------------------------
+namespace
+{
+struct PipelineCacheHeader
+{
+	char magic[4];
+	uint32_t version;
+	uint32_t keySize;
+};
+
+// Bump when generated shaders change in a way that makes old keys useless.
+const uint32_t kPipelineCacheVersion = 1;
+
+PipelineCacheHeader currentCacheHeader()
+{
+	PipelineCacheHeader h;
+	memcpy(h.magic, "D8PC", 4);
+	h.version = kPipelineCacheVersion;
+	h.keySize = sizeof(PipelineKey);
+	return h;
+}
+
+// D3D8METAL_PIPELINE_CACHE=<file> overrides the location; an empty value disables the cache.
+std::string pipelineCachePath()
+{
+	if (const char* env = getenv("D3D8METAL_PIPELINE_CACHE"))
+		return env;
+	NSArray<NSString*>* dirs = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+	if (dirs.count == 0)
+		return std::string();
+	NSString* name = [[NSBundle mainBundle] bundleIdentifier];
+	if (name == nil)
+		name = [[[NSProcessInfo processInfo] processName] stringByAppendingString:@".d3d8metal"];
+	NSString* dir = [dirs[0] stringByAppendingPathComponent:name];
+	[[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
+	return [[dir stringByAppendingPathComponent:@"pipelines.bin"] UTF8String];
+}
+} // namespace
+
+void Device::loadPipelineCache()
+{
+	std::string path = pipelineCachePath();
+	if (path.empty())
+		return;
+
+	const PipelineCacheHeader expected = currentCacheHeader();
+	std::vector<PipelineKey> keys;
+	bool valid = false;
+	if (FILE* f = fopen(path.c_str(), "rb"))
+	{
+		PipelineCacheHeader h;
+		if (fread(&h, sizeof(h), 1, f) == 1 && memcmp(&h, &expected, sizeof(h)) == 0)
+		{
+			valid = true;
+			PipelineKey key;
+			while (fread(&key, sizeof(key), 1, f) == 1)
+				keys.push_back(key);
+		}
+		fclose(f);
+	}
+
+	if (!keys.empty())
+	{
+		CFAbsoluteTime start = CFAbsoluteTimeGetCurrent();
+		std::vector<ShaderKey> shaders;
+		{
+			std::unordered_map<ShaderKey, size_t, ShaderKeyHash> seen;
+			for (const PipelineKey& k : keys)
+			{
+				if (seen.emplace(k.shader, shaders.size()).second)
+					shaders.push_back(k.shader);
+			}
+		}
+		// Metal compiles in parallel safely; results are stored per index and merged after.
+		std::vector<id<MTLFunction>> vfns(shaders.size()), ffns(shaders.size());
+		{
+			id<MTLFunction> __strong* v = vfns.data();
+			id<MTLFunction> __strong* f = ffns.data();
+			const ShaderKey* sk = shaders.data();
+			dispatch_apply(shaders.size(), DISPATCH_APPLY_AUTO, ^(size_t i) {
+				id<MTLFunction> vfn = nil, ffn = nil;
+				if (compileShader(sk[i], vfn, ffn))
+				{
+					v[i] = vfn;
+					f[i] = ffn;
+				}
+			});
+		}
+		for (size_t i = 0; i < shaders.size(); ++i)
+			m_functions.emplace(shaders[i], std::make_pair(vfns[i], ffns[i]));
+
+		std::vector<id<MTLRenderPipelineState>> pipelines(keys.size());
+		{
+			id<MTLRenderPipelineState> __strong* out = pipelines.data();
+			const PipelineKey* pk = keys.data();
+			const auto* functions = &m_functions;
+			dispatch_apply(keys.size(), DISPATCH_APPLY_AUTO, ^(size_t i) {
+				auto it = functions->find(pk[i].shader);
+				if (it != functions->end() && it->second.first != nil)
+					out[i] = buildPipeline(pk[i], it->second.first, it->second.second);
+			});
+		}
+		size_t built = 0;
+		for (size_t i = 0; i < keys.size(); ++i)
+		{
+			if (pipelines[i] != nil && m_pipelines.emplace(keys[i], pipelines[i]).second)
+				++built;
+		}
+		fprintf(stderr, "d3d8metal: built %zu cached pipelines (%zu shaders) in %.0f ms\n", built, shaders.size(),
+			(CFAbsoluteTimeGetCurrent() - start) * 1000.0);
+	}
+
+	m_pipelineCacheFile = fopen(path.c_str(), valid ? "ab" : "wb");
+	if (m_pipelineCacheFile && !valid)
+	{
+		fwrite(&expected, sizeof(expected), 1, m_pipelineCacheFile);
+		fflush(m_pipelineCacheFile);
+	}
+}
+
+void Device::recordPipeline(const PipelineKey& key)
+{
+	if (m_pipelineCacheFile == nullptr)
+		return;
+	fwrite(&key, sizeof(key), 1, m_pipelineCacheFile);
+	fflush(m_pipelineCacheFile);
 }
 
 //-----------------------------------------------------------------------------
@@ -619,10 +785,10 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 	if (fvf == 0 || (fvf & D3DFVF_POSITION_MASK) == 0)
 		return;
 	const DWORD* rs = m_state.renderStates;
-	DrawContext ctx;
+	PipelineKey ctx;
 	memset(&ctx, 0, sizeof(ctx));
 	{
-		ShaderKey& key = ctx.key;
+		ShaderKey& key = ctx.shader;
 		key.fvf = fvf & ~D3DFVF_LASTBETA_UBYTE4;
 		bool rhw = (fvf & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW;
 		key.lighting = (!rhw && rs[D3DRS_LIGHTING]) ? 1 : 0;
@@ -724,45 +890,83 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 	}
 
 	if (traceEnabled())
-		traceDraw(ctx.key, type);
+		traceDraw(ctx.shader, type);
 
-	id<MTLRenderPipelineState> pipeline = pipelineFor(ctx.key, ctx.layout, ctx.blend);
+	id<MTLRenderPipelineState> pipeline = pipelineFor(ctx);
 	if (pipeline == nil)
 		return;
 
+	// Encoder state is only sent when it differs from what the encoder already has.
 	id<MTLRenderCommandEncoder> enc = renderEncoder();
-	[enc setRenderPipelineState:pipeline];
-	[enc setDepthStencilState:depthStencilFor()];
-	[enc setStencilReferenceValue:rs[D3DRS_STENCILREF] & 0xFF];
+	EncoderState& es = m_encoderState;
+	if (es.pipeline != pipeline)
+	{
+		[enc setRenderPipelineState:pipeline];
+		es.pipeline = pipeline;
+	}
+	id<MTLDepthStencilState> depthState = depthStencilFor();
+	if (es.depthStencil != depthState)
+	{
+		[enc setDepthStencilState:depthState];
+		es.depthStencil = depthState;
+	}
+	DWORD stencilRef = rs[D3DRS_STENCILREF] & 0xFF;
+	if (es.stencilRef != stencilRef)
+	{
+		[enc setStencilReferenceValue:stencilRef];
+		es.stencilRef = stencilRef;
+	}
 
 	// Rasterizer state
 	const D3DVIEWPORT8& vp = m_state.viewport;
 	unsigned rtW = m_renderTarget->width(), rtH = m_renderTarget->height();
-	MTLViewport viewport = { (double)vp.X, (double)vp.Y, (double)std::max<DWORD>(vp.Width, 1), (double)std::max<DWORD>(vp.Height, 1), (double)vp.MinZ, (double)vp.MaxZ };
-	[enc setViewport:viewport];
 	NSUInteger sx = std::min<NSUInteger>(vp.X, rtW), sy = std::min<NSUInteger>(vp.Y, rtH);
 	NSUInteger sw = std::min<NSUInteger>(vp.Width, rtW - sx), sh = std::min<NSUInteger>(vp.Height, rtH - sy);
 	if (sw == 0 || sh == 0)
 		return;
-	[enc setScissorRect:(MTLScissorRect) { sx, sy, sw, sh }];
+	MTLViewport viewport = { (double)vp.X, (double)vp.Y, (double)std::max<DWORD>(vp.Width, 1), (double)std::max<DWORD>(vp.Height, 1), (double)vp.MinZ, (double)vp.MaxZ };
+	if (memcmp(&es.viewport, &viewport, sizeof(viewport)) != 0)
+	{
+		[enc setViewport:viewport];
+		es.viewport = viewport;
+	}
+	MTLScissorRect scissor = { sx, sy, sw, sh };
+	if (memcmp(&es.scissor, &scissor, sizeof(scissor)) != 0)
+	{
+		[enc setScissorRect:scissor];
+		es.scissor = scissor;
+	}
 
+	MTLCullMode cull = MTLCullModeBack;
+	MTLWinding winding = (MTLWinding)es.winding;
 	switch (rs[D3DRS_CULLMODE])
 	{
-	case D3DCULL_NONE:
-		[enc setCullMode:MTLCullModeNone];
-		break;
-	case D3DCULL_CW:
-		[enc setFrontFacingWinding:MTLWindingCounterClockwise];
-		[enc setCullMode:MTLCullModeBack];
-		break;
-	default:
-		[enc setFrontFacingWinding:MTLWindingClockwise];
-		[enc setCullMode:MTLCullModeBack];
-		break;
+	case D3DCULL_NONE: cull = MTLCullModeNone; break;
+	case D3DCULL_CW: winding = MTLWindingCounterClockwise; break;
+	default: winding = MTLWindingClockwise; break;
 	}
-	[enc setTriangleFillMode:rs[D3DRS_FILLMODE] == D3DFILL_WIREFRAME ? MTLTriangleFillModeLines : MTLTriangleFillModeFill];
+	if (es.winding != (int)winding)
+	{
+		[enc setFrontFacingWinding:winding];
+		es.winding = (int)winding;
+	}
+	if (es.cullMode != (int)cull)
+	{
+		[enc setCullMode:cull];
+		es.cullMode = (int)cull;
+	}
+	MTLTriangleFillMode fill = rs[D3DRS_FILLMODE] == D3DFILL_WIREFRAME ? MTLTriangleFillModeLines : MTLTriangleFillModeFill;
+	if (es.fillMode != (int)fill)
+	{
+		[enc setTriangleFillMode:fill];
+		es.fillMode = (int)fill;
+	}
 	float zbias = (float)rs[D3DRS_ZBIAS];
-	[enc setDepthBias:-zbias * 16.0f slopeScale:-zbias * 0.25f clamp:0.0f];
+	if (!(es.depthBias == zbias))
+	{
+		[enc setDepthBias:-zbias * 16.0f slopeScale:-zbias * 0.25f clamp:0.0f];
+		es.depthBias = zbias;
+	}
 
 	// Uniforms
 	VertexUniforms vu;
@@ -778,7 +982,7 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 	memcpy(vu.worldViewProj, &wvp, 64);
 	memcpy(vu.worldView, &wv, 64);
 	memcpy(vu.normalMatrix, &nrm, 64);
-	for (unsigned i = 0; i < ctx.key.numStages; ++i)
+	for (unsigned i = 0; i < ctx.shader.numStages; ++i)
 		memcpy(vu.texMatrix[i], &m_state.transforms[D3DTS_TEXTURE0 + i], 64);
 	vu.viewport[0] = (float)vp.X;
 	vu.viewport[1] = (float)vp.Y;
@@ -797,7 +1001,7 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 	vu.fogParams[0] = bitsFloat(rs[D3DRS_FOGSTART]);
 	vu.fogParams[1] = bitsFloat(rs[D3DRS_FOGEND]);
 	vu.fogParams[2] = bitsFloat(rs[D3DRS_FOGDENSITY]);
-	if (ctx.key.clipPlaneMask)
+	if (ctx.shader.clipPlaneMask)
 	{
 		D3DMATRIX viewInv;
 		invert(view, viewInv);
@@ -815,7 +1019,7 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 	vu.pointScale[1] = bitsFloat(rs[D3DRS_POINTSCALE_B]);
 	vu.pointScale[2] = bitsFloat(rs[D3DRS_POINTSCALE_C]);
 	vu.pointScale[3] = (float)std::max<DWORD>(vp.Height, 1);
-	if (ctx.key.lighting)
+	if (ctx.shader.lighting)
 	{
 		for (int i = 0; i < MAX_LIGHTS; ++i)
 		{
@@ -855,7 +1059,12 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 			lu.spot[2] = cosf(l.Phi * 0.5f);
 		}
 	}
-	[enc setVertexBytes:&vu length:sizeof(vu) atIndex:BUFFER_UNIFORMS];
+	if (!es.vertexUniformsValid || memcmp(&es.vertexUniforms, &vu, sizeof(vu)) != 0)
+	{
+		[enc setVertexBytes:&vu length:sizeof(vu) atIndex:BUFFER_UNIFORMS];
+		es.vertexUniforms = vu;
+		es.vertexUniformsValid = true;
+	}
 
 	FragmentUniforms fu;
 	memset(&fu, 0, sizeof(fu));
@@ -863,7 +1072,7 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 	colorToFloat4(rs[D3DRS_FOGCOLOR], fu.fogColor);
 	memcpy(fu.fogParams, vu.fogParams, sizeof(fu.fogParams));
 	fu.alphaRef[0] = (rs[D3DRS_ALPHAREF] & 0xFF) / 255.0f;
-	for (unsigned i = 0; i < ctx.key.numStages; ++i)
+	for (unsigned i = 0; i < ctx.shader.numStages; ++i)
 	{
 		const DWORD* ts = m_state.stageStates[i];
 		fu.bumpEnv[i][0] = bitsFloat(ts[D3DTSS_BUMPENVMAT00]);
@@ -873,10 +1082,15 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 		fu.bumpLum[i][0] = bitsFloat(ts[D3DTSS_BUMPENVLSCALE]);
 		fu.bumpLum[i][1] = bitsFloat(ts[D3DTSS_BUMPENVLOFFSET]);
 	}
-	[enc setFragmentBytes:&fu length:sizeof(fu) atIndex:BUFFER_UNIFORMS];
+	if (!es.fragmentUniformsValid || memcmp(&es.fragmentUniforms, &fu, sizeof(fu)) != 0)
+	{
+		[enc setFragmentBytes:&fu length:sizeof(fu) atIndex:BUFFER_UNIFORMS];
+		es.fragmentUniforms = fu;
+		es.fragmentUniformsValid = true;
+	}
 
 	// Textures
-	for (unsigned i = 0; i < ctx.key.numStages; ++i)
+	for (unsigned i = 0; i < ctx.shader.numStages; ++i)
 	{
 		TextureStorage* st = stageStorage(i);
 		id<MTLTexture> tex = nil;
@@ -888,9 +1102,18 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 				tex = nil; // feedback loops are undefined in D3D; avoid them here
 		}
 		if (tex == nil)
-			tex = ctx.key.stages[i].textureType == 2 ? m_whiteCube : m_whiteTexture;
-		[enc setFragmentTexture:tex atIndex:i];
-		[enc setFragmentSamplerState:samplerFor(i) atIndex:i];
+			tex = ctx.shader.stages[i].textureType == 2 ? m_whiteCube : m_whiteTexture;
+		if (es.textures[i] != tex)
+		{
+			[enc setFragmentTexture:tex atIndex:i];
+			es.textures[i] = tex;
+		}
+		id<MTLSamplerState> sampler = samplerFor(i);
+		if (es.samplers[i] != sampler)
+		{
+			[enc setFragmentSamplerState:sampler atIndex:i];
+			es.samplers[i] = sampler;
+		}
 	}
 	ok = true;
 }
@@ -898,6 +1121,20 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 //-----------------------------------------------------------------------------
 // Draw calls
 //-----------------------------------------------------------------------------
+void Device::bindVertexBuffer(id<MTLBuffer> buffer, NSUInteger offset)
+{
+	EncoderState& es = m_encoderState;
+	if (es.vertexBuffer == buffer)
+	{
+		if (es.vertexOffset != offset)
+			[m_encoder setVertexBufferOffset:offset atIndex:BUFFER_STREAM0];
+	}
+	else
+		[m_encoder setVertexBuffer:buffer offset:offset atIndex:BUFFER_STREAM0];
+	es.vertexBuffer = buffer;
+	es.vertexOffset = offset;
+}
+
 HRESULT Device::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
 {
 	VertexBuffer* vb = m_state.streams[0].buffer;
@@ -908,7 +1145,7 @@ HRESULT Device::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, 
 	if (!ok)
 		return D3D_OK;
 	id<MTLRenderCommandEncoder> enc = m_encoder;
-	[enc setVertexBuffer:vb->m_storage.buffer offset:0 atIndex:BUFFER_STREAM0];
+	bindVertexBuffer(vb->m_storage.buffer, 0);
 	vb->m_storage.lastUsedSerial = m_currentSerial;
 
 	unsigned count = vertexCountFor(PrimitiveType, PrimitiveCount);
@@ -940,7 +1177,7 @@ HRESULT Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT, UINT,
 	if (!ok)
 		return D3D_OK;
 	id<MTLRenderCommandEncoder> enc = m_encoder;
-	[enc setVertexBuffer:vb->m_storage.buffer offset:0 atIndex:BUFFER_STREAM0];
+	bindVertexBuffer(vb->m_storage.buffer, 0);
 	vb->m_storage.lastUsedSerial = m_currentSerial;
 	ib->m_storage.lastUsedSerial = m_currentSerial;
 
@@ -997,7 +1234,7 @@ HRESULT Device::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCo
 	if (!ok)
 		return D3D_OK;
 	id<MTLRenderCommandEncoder> enc = m_encoder;
-	[enc setVertexBuffer:vtx.buffer offset:vtx.offset atIndex:BUFFER_STREAM0];
+	bindVertexBuffer(vtx.buffer, vtx.offset);
 	if (PrimitiveType == D3DPT_TRIANGLEFAN)
 	{
 		Transient idx = allocTransient(PrimitiveCount * 3 * 4, 4);
@@ -1057,7 +1294,7 @@ HRESULT Device::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinV
 	if (!ok)
 		return D3D_OK;
 	id<MTLRenderCommandEncoder> enc = m_encoder;
-	[enc setVertexBuffer:vtx.buffer offset:vtx.offset atIndex:BUFFER_STREAM0];
+	bindVertexBuffer(vtx.buffer, vtx.offset);
 	[enc drawIndexedPrimitives:PrimitiveType == D3DPT_TRIANGLEFAN ? MTLPrimitiveTypeTriangle : primitiveType(PrimitiveType) indexCount:count indexType:indexType
 				   indexBuffer:idx.buffer indexBufferOffset:idx.offset];
 	return D3D_OK;

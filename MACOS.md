@@ -105,6 +105,9 @@ on the current display and scales the image to fit.
 - Set `GENERALS_AUDIO_DUMP=<file>` to record the mixed audio output as raw 32 bit float stereo samples.
 - Set `D3D8METAL_TRACE=1` to print the fixed function state of every draw call, the textures that are created and
   the shader compile times.
+- The renderer lists every pipeline it builds in `~/Library/Caches/<bundle id>/pipelines.bin` and builds those
+  pipelines at startup, so shader compilation does not stall the game the first time a unit or effect appears.
+  Delete the file to start over, or set `D3D8METAL_PIPELINE_CACHE` to another file (empty to disable it).
 - The `macos-releaselog` preset writes the game's debug log, which names missing INI files and failed assertions.
 
 ## Tests
@@ -119,7 +122,8 @@ build/macos/GeneralsMD/z_ww3d_test /tmp/ww3d.png
 
 `d3d8metal_test` renders test scenes and compares texture stage operations, blending, alpha test, texture
 addressing, lighting, fog, generated and projected texture coordinates with the Direct3D 8 formulas pixel by
-pixel.
+pixel, and checks that textures and buffers changed in the middle of a frame keep earlier draws intact.
+`d3d8metal_test <dir> --bench` measures the CPU time of draw calls.
 
 `z_ww3d_test` writes W3D files (textured meshes with TGA and DDS textures, a bone hierarchy with an HLod, raw
 and compressed animations and a skinned mesh) into the working directory and renders them through the asset
