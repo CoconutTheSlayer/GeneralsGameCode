@@ -475,7 +475,7 @@ id<MTLRenderPipelineState> Device::pipelineFor(const ShaderKey& key, const Verte
 		NSError* error = nil;
 		MTLCompileOptions* options = [MTLCompileOptions new];
 		options.mathMode = MTLMathModeFast;
-		static const bool trace = getenv("D3D8METAL_TRACE") != nullptr;
+		const bool trace = traceEnabled();
 		CFAbsoluteTime start = CFAbsoluteTimeGetCurrent();
 		id<MTLLibrary> lib = [m_mtlDevice newLibraryWithSource:[NSString stringWithUTF8String:source.c_str()] options:options error:&error];
 		if (trace)
@@ -600,9 +600,15 @@ void Device::traceDraw(const ShaderKey& key, D3DPRIMITIVETYPE type) const
 	for (unsigned i = 0; i < key.numStages; ++i)
 	{
 		const StageKey& st = key.stages[i];
-		fprintf(stderr, "d3d8metal:   stage %u color %d(%d,%d) alpha %d(%d,%d) tex %d coord %d gen %d\n", i, st.colorOp,
-			st.colorArg1, st.colorArg2, st.alphaOp, st.alphaArg1, st.alphaArg2, st.textureType, st.texCoordIndex,
-			st.texGen);
+		const DWORD* ts = m_state.stageStates[i];
+		TextureStorage* tex = stageStorage(i);
+		fprintf(stderr, "d3d8metal:   stage %u color %d(%d,%d) alpha %d(%d,%d) tex %d coord %d gen %d ttff 0x%X addr %d/%d filter %d/%d/%d",
+			i, st.colorOp, st.colorArg1, st.colorArg2, st.alphaOp, st.alphaArg1, st.alphaArg2, st.textureType, st.texCoordIndex,
+			st.texGen, (unsigned)ts[D3DTSS_TEXTURETRANSFORMFLAGS], (int)ts[D3DTSS_ADDRESSU], (int)ts[D3DTSS_ADDRESSV],
+			(int)ts[D3DTSS_MINFILTER], (int)ts[D3DTSS_MAGFILTER], (int)ts[D3DTSS_MIPFILTER]);
+		if (tex)
+			fprintf(stderr, " texture %ux%u format %d levels %u", tex->width, tex->height, (int)tex->format, tex->levels);
+		fprintf(stderr, "\n");
 	}
 }
 
@@ -650,7 +656,7 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 		key.pointSprite = (key.pointList && rs[D3DRS_POINTSPRITEENABLE]) ? 1 : 0;
 		key.pointScale = (key.pointList && rs[D3DRS_POINTSCALEENABLE]) ? 1 : 0;
 		unsigned numStages = 0;
-		for (unsigned i = 0; i < MAX_STAGES; ++i)
+		for (unsigned i = 0; i < EMULATED_STAGES; ++i)
 		{
 			const DWORD* ts = m_state.stageStates[i];
 			if (ts[D3DTSS_COLOROP] == D3DTOP_DISABLE)
@@ -717,8 +723,7 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 			ctx.layout.stride = FvfVertexSize(key.fvf);
 	}
 
-	static const bool trace = getenv("D3D8METAL_TRACE") != nullptr;
-	if (trace)
+	if (traceEnabled())
 		traceDraw(ctx.key, type);
 
 	id<MTLRenderPipelineState> pipeline = pipelineFor(ctx.key, ctx.layout, ctx.blend);

@@ -19,6 +19,9 @@
 // IDirect3DDevice8: device setup, presentation, resources and state.
 // Drawing is implemented in draw.mm.
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_STATIC
+#include <stb_image_write.h>
 #include "internal.h"
 
 #include <win32shim.h>
@@ -723,6 +726,39 @@ void Device::presentToDrawable()
 	[commandBuffer() presentDrawable:drawable];
 }
 
+// D3D8METAL_SCREENSHOT=<prefix> writes <prefix>_<frame>.png every D3D8METAL_SCREENSHOT_EVERY
+// (default 300) presented frames, for debugging without screen recording permission.
+void Device::writeScreenshotIfRequested()
+{
+	static const char* prefix = getenv("D3D8METAL_SCREENSHOT");
+	if (prefix == nullptr)
+		return;
+	static const int every = getenv("D3D8METAL_SCREENSHOT_EVERY") ? std::max(1, atoi(getenv("D3D8METAL_SCREENSHOT_EVERY"))) : 300;
+	static int frame = 0;
+	if (++frame % every != 0)
+		return;
+	TextureStorage& storage = *m_backBuffer->m_storage;
+	readbackTexture(storage, 0, 0);
+	unsigned w = storage.levelWidth(0), h = storage.levelHeight(0);
+	const std::vector<uint8_t>& shadow = storage.shadow(0, 0);
+	unsigned pitch = RowPitch(storage.format, w);
+	std::vector<uint8_t> rgba((size_t)w * h * 4);
+	for (unsigned y = 0; y < h; ++y)
+		for (unsigned x = 0; x < w; ++x)
+		{
+			const uint8_t* src = shadow.data() + y * pitch + x * 4;
+			uint8_t* dst = rgba.data() + ((size_t)y * w + x) * 4;
+			dst[0] = src[2];
+			dst[1] = src[1];
+			dst[2] = src[0];
+			dst[3] = 255;
+		}
+	char path[1024];
+	snprintf(path, sizeof(path), "%s_%d.png", prefix, frame);
+	stbi_write_png(path, (int)w, (int)h, 4, rgba.data(), (int)w * 4);
+	fprintf(stderr, "d3d8metal: wrote %s\n", path);
+}
+
 HRESULT Device::Present(CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*)
 {
 	endRenderEncoder();
@@ -731,6 +767,14 @@ HRESULT Device::Present(CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*)
 	{
 		renderEncoder();
 		endRenderEncoder();
+	}
+	writeScreenshotIfRequested();
+	// Touching /tmp/d3d8metal_trace traces the draws of the next frame.
+	m_traceFrame = access("/tmp/d3d8metal_trace", F_OK) == 0;
+	if (m_traceFrame)
+	{
+		unlink("/tmp/d3d8metal_trace");
+		fprintf(stderr, "d3d8metal: ===== tracing one frame =====\n");
 	}
 	dispatch_semaphore_wait(m_frameSemaphore, DISPATCH_TIME_FOREVER);
 	presentToDrawable();
@@ -885,8 +929,7 @@ HRESULT Device::CreateTexture(UINT Width, UINT Height, UINT Levels, DWORD Usage,
 	if (ppTexture == nullptr)
 		return D3DERR_INVALIDCALL;
 	auto storage = createStorage(Width, Height, Levels, 1, Usage, Format, Pool);
-	static const bool trace = getenv("D3D8METAL_TRACE") != nullptr;
-	if (trace)
+	if (traceEnabled())
 		fprintf(stderr, "d3d8metal: CreateTexture %ux%u levels %u usage 0x%X format %d pool %d\n", Width, Height, Levels,
 			(unsigned)Usage, (int)Format, (int)Pool);
 	if (storage == nullptr)

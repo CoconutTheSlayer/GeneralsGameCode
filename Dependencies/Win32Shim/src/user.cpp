@@ -40,6 +40,12 @@
 
 namespace
 {
+bool alwaysActive()
+{
+	static const bool value = getenv("GENERALS_ALWAYS_ACTIVE") != nullptr;
+	return value;
+}
+
 
 struct WindowClass
 {
@@ -400,6 +406,9 @@ void translateEvent(const SDL_Event& e)
 		// Release all keys so nothing stays stuck while inactive.
 		for (int vk = 0; vk < 256; ++vk)
 			g_vkState[vk] &= ~0x80;
+		// GENERALS_ALWAYS_ACTIVE=1 keeps the game running and rendering in the background, for testing.
+		if (alwaysActive())
+			break;
 		postMessage(hwnd, WM_KILLFOCUS, 0, 0);
 		postMessage(hwnd, WM_ACTIVATE, WA_INACTIVE, 0);
 		postMessage(hwnd, WM_ACTIVATEAPP, FALSE, 0);
@@ -979,6 +988,11 @@ HWND CreateWindowEx(DWORD exStyle, LPCSTR className, LPCSTR windowName, DWORD st
 
 	if (style & WS_VISIBLE)
 		ShowWindow(hwnd, SW_SHOW);
+	if (alwaysActive())
+	{
+		postMessage(hwnd, WM_ACTIVATEAPP, TRUE, 0);
+		postMessage(hwnd, WM_ACTIVATE, WA_ACTIVE, 0);
+	}
 	return hwnd;
 }
 

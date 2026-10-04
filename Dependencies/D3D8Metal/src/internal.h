@@ -308,6 +308,9 @@ void FillCaps(D3DCAPS8* caps);
 // Device state
 //-----------------------------------------------------------------------------
 enum { MAX_STAGES = 8, MAX_LIGHTS = 8, MAX_STREAMS = 4, MAX_CLIP_PLANES = 6 };
+// Texture stages the emulated GeForce2 class card has. Like the hardware, stages past these are
+// ignored, so states the game leaves behind in higher stages have no effect.
+enum { EMULATED_STAGES = 2 };
 
 struct StreamSource
 {
@@ -493,6 +496,13 @@ private:
 	Transient allocTransient(NSUInteger length, NSUInteger alignment = 16);
 	void beginDraw(D3DPRIMITIVETYPE type, bool& ok);
 	void traceDraw(const ShaderKey& key, D3DPRIMITIVETYPE type) const;
+	void writeScreenshotIfRequested();
+	bool traceEnabled() const
+	{
+		static const bool always = getenv("D3D8METAL_TRACE") != nullptr;
+		return always || m_traceFrame;
+	}
+	bool m_traceFrame = false;
 	void drawClearQuad(DWORD flags, D3DCOLOR color, float z, DWORD stencil, const MTLScissorRect& rect);
 	void markTextureUsed(TextureStorage& storage);
 	TextureStorage* stageStorage(DWORD stage) const;
