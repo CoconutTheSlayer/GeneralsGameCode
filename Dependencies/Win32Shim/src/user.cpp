@@ -83,6 +83,8 @@ bool g_quitPosted = false;
 int g_quitCode = 0;
 int g_cursorShowCount = 0;
 BYTE g_vkState[256];
+// DirectInput scan codes the game has seen go down and not up yet.
+bool g_dikDown[256];
 bool g_sdlInitialized = false;
 
 Window* toWindow(HWND hwnd)
@@ -404,7 +406,34 @@ void translateEvent(const SDL_Event& e)
 		break;
 
 	case SDL_EVENT_WINDOW_FOCUS_LOST:
-		// Release all keys so nothing stays stuck while inactive.
+	{
+		// Release all keys and mouse buttons so nothing stays stuck while inactive: the window gets no
+		// key or button up for what was held when switching away (Cmd+Tab), and the game would keep
+		// scrolling the camera or dragging a selection.
+		for (int dik = 0; dik < 256; ++dik)
+		{
+			if (g_dikDown[dik])
+			{
+				g_keyEvents.push_back(KeyEvent { (unsigned char)dik, false, GetTickCount() });
+				g_dikDown[dik] = false;
+			}
+		}
+		{
+			float mx, my;
+			SDL_GetMouseState(&mx, &my);
+			int x, y;
+			toLogical(w, mx, my, &x, &y);
+			const struct { int vk; UINT msg; } buttons[] = {
+				{ VK_LBUTTON, WM_LBUTTONUP }, { VK_RBUTTON, WM_RBUTTONUP }, { VK_MBUTTON, WM_MBUTTONUP } };
+			for (const auto& b : buttons)
+			{
+				if (g_vkState[b.vk] & 0x80)
+				{
+					g_vkState[b.vk] &= ~0x80;
+					postMessage(hwnd, b.msg, mouseKeyFlags(), makePointParam(x, y));
+				}
+			}
+		}
 		for (int vk = 0; vk < 256; ++vk)
 			g_vkState[vk] &= ~0x80;
 		// GENERALS_ALWAYS_ACTIVE=1 keeps the game running and rendering in the background, for testing.
@@ -414,6 +443,7 @@ void translateEvent(const SDL_Event& e)
 		postMessage(hwnd, WM_ACTIVATE, WA_INACTIVE, 0);
 		postMessage(hwnd, WM_ACTIVATEAPP, FALSE, 0);
 		break;
+	}
 
 	case SDL_EVENT_WINDOW_MINIMIZED:
 		postMessage(hwnd, WM_SIZE, SIZE_MINIMIZED, 0);
@@ -429,7 +459,10 @@ void translateEvent(const SDL_Event& e)
 		bool down = e.type == SDL_EVENT_KEY_DOWN;
 		unsigned char dik = scancodeToDik(e.key.scancode);
 		if (dik != 0 && !e.key.repeat)
+		{
 			g_keyEvents.push_back(KeyEvent { dik, down, GetTickCount() });
+			g_dikDown[dik] = down;
+		}
 
 		int vk = scancodeToVk(e.key.scancode);
 		setVkState(vk, down);
