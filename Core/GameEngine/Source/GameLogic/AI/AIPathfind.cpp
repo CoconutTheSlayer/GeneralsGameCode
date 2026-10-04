@@ -114,10 +114,12 @@ static Int frameToShowObstacles;
 constexpr const UnsignedInt ZONE_UPDATE_FREQUENCY = 300;
 constexpr const UnsignedInt MAX_CELL_COUNT = 500;
 constexpr const UnsignedInt MAX_ADJUSTMENT_CELL_COUNT = 400;
-constexpr const UnsignedInt MAX_SAFE_PATH_CELL_COUNT = 2000;
+// TheSuperHackers @tweak The original budgets were sized for 2003 machines. Large AI armies waited
+// for paths, so they are raised. They are constants, so all players of a match still agree.
+constexpr const UnsignedInt MAX_SAFE_PATH_CELL_COUNT = 4000;
 
-constexpr const UnsignedInt PATHFIND_CELLS_PER_FRAME = 5000; // Number of cells we will search pathfinding per frame.
-constexpr const UnsignedInt CELL_INFOS_TO_ALLOCATE = 30000;
+constexpr const UnsignedInt PATHFIND_CELLS_PER_FRAME = 25000; // Number of cells we will search pathfinding per frame.
+constexpr const UnsignedInt CELL_INFOS_TO_ALLOCATE = 60000;
 
 //-----------------------------------------------------------------------------------
 PathNode::PathNode() :

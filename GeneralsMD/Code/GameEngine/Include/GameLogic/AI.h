@@ -227,6 +227,14 @@ public:
 	// Retaliate params. [8/25/2003]
 	Real	m_maxRetaliateDistance; // If attacker is > this distance, don't retaliate. [8/25/2003]
 	Real	m_retaliateFriendsRadius; // If we have friends within this radius, get them to help retaliate. [8/25/2003]
+	Real	m_skirmishSpeedEasy;		///< How fast easy skirmish AIs build and rebuild compared to normal ones.
+	Real	m_skirmishSpeedNormal;	///< Build speed of normal skirmish AIs, 1 is the original game.
+	Real	m_skirmishSpeedHard;		///< How fast hard skirmish AIs build and rebuild compared to normal ones.
+	Int		m_skirmishExtraGatherersHard;	///< Extra resource gatherers per supply center for hard skirmish AIs.
+	Int		m_skirmishDozersEasy;		///< Dozers an easy skirmish AI uses when it has buildings to build.
+	Int		m_skirmishDozersNormal;	///< Dozers a normal skirmish AI uses when it has buildings to build.
+	Int		m_skirmishDozersHard;		///< Dozers a hard skirmish AI uses when it has buildings to build.
+	Bool	m_skirmishAIRetaliates; ///< Skirmish AI units also get nearby friends to help when attacked, like human units.
 
 
 	AISideInfo *m_sideInfo;

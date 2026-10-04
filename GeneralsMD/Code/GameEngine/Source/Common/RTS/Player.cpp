@@ -340,6 +340,7 @@ Player::Player( Int playerIndex )
 	for (i = 0; i < MAX_PLAYER_COUNT; ++i)
 	{
 		m_attackedBy[i] = false;
+		m_attackedByFrame[i] = 0;
 	}
 	m_attackedFrame = 0;
 
@@ -986,6 +987,7 @@ void Player::initFromDict(const Dict* d)
 	for ( i = 0; i < MAX_PLAYER_COUNT; ++i ) // For now, it has been decided to just fix this one.  Dear god me must reset.
 	{
 		m_attackedBy[i] = false;
+		m_attackedByFrame[i] = 0;
 	}
 
 	Int c = d->getInt(TheKey_playerColor, &exists);
@@ -3937,6 +3939,7 @@ void Player::setAttackedBy( Int playerNdx )
 	DEBUG_ASSERTCRASH(playerNdx >= 0, ("Player::setAttackedBy Player index is %d", playerNdx));
 	m_attackedBy[playerNdx] = true;
 	m_attackedFrame = TheGameLogic->getFrame();
+	m_attackedByFrame[playerNdx] = TheGameLogic->getFrame();
 
 }
 

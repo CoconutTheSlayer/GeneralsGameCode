@@ -1396,6 +1396,12 @@ StateReturnType AIIdleState::update()
 	doInitIdleState();
 
 	UnsignedInt timeToSleep = IDLE_COUNTDOWN_DELAY + m_initialSleepOffset;
+	// Idle skirmish AI units look for targets twice as often, so they react quicker.
+	{
+		const Player *owner = getMachineOwner()->getControllingPlayer();
+		if (owner && const_cast<Player *>(owner)->isSkirmishAIPlayer())
+			timeToSleep = IDLE_COUNTDOWN_DELAY/2 + m_initialSleepOffset/2;
+	}
 	UnsignedInt oldSleepOffset = m_initialSleepOffset;
 	m_initialSleepOffset = 0;
 

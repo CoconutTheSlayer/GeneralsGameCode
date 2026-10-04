@@ -61,6 +61,7 @@
 #include "GameLogic/Module/SupplyTruckAIUpdate.h"
 #include "GameLogic/Module/SupplyWarehouseDockUpdate.h"
 #include "GameLogic/PartitionManager.h"
+#include "GameLogic/Weapon.h"
 
 
 #define SUPPLY_CENTER_CLOSE_DIST (20*PATHFIND_CELL_SIZE_F)
@@ -207,6 +208,10 @@ void AIPlayer::checkForSupplyCenter( BuildListInfo *info, Object *bldg )
 				}
 				if (difficulty == DIFFICULTY_HARD) {
 					desiredGatherers = resInfo->m_hard;
+					// The shipped data uses the same number for every difficulty.
+					if (isSkirmishAI()) {
+						desiredGatherers += TheAI->getAiData()->m_skirmishExtraGatherersHard;
+					}
 				}
 			}
 			resInfo = resInfo->m_next;
@@ -1216,8 +1221,9 @@ Bool AIPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *power, Coord
 	xCount = REAL_TO_INT_CEIL(bounds.width()/weaponRadius)+1;
 	yCount = REAL_TO_INT_CEIL(bounds.height()/weaponRadius)+1;
 
-	if (xCount>10) xCount = 10;
-	if (yCount>10) yCount = 10;
+	// A finer search than the original 10 by 10 grid, which modern machines evaluate easily.
+	if (xCount>20) xCount = 20;
+	if (yCount>20) yCount = 20;
 
 	Int cash = -1;
 	Coord3D pos;
@@ -1399,6 +1405,16 @@ Int AIPlayer::getPlayerSuperweaponValue(Coord3D *center, Int playerNdx, Real rad
 							value = value * 5.0f; //Superweapons are prime targets for sneak attacks.
 						else
 							value = value / 10; // Superweapons cannot be killed by any superweapon, so we don't want to target them as highly. jba.
+					}
+					if (includeMilitaryUnits)
+					{
+						// Damaged targets are more likely to be destroyed, so they are worth more.
+						const BodyModuleInterface *body = pObj->getBodyModule();
+						if (body && body->getMaxHealth() > 0.0f)
+						{
+							const Real health = body->getHealth() / body->getMaxHealth();
+							value *= 1.5f - 0.5f * clamp(0.0f, health, 1.0f);
+						}
 					}
 					if( applyNegValue )
 					{
@@ -1737,20 +1753,58 @@ Bool AIPlayer::selectTeamToBuild()
 		}
 	}
 
-	// pick a random team from the hi-priority set
-	Int which = GameLogicRandomValue( 0, count-1 );
-
 	TeamPrototype *teamProto = nullptr;
-	Int i = 0;
-	for (t = candidateList.begin(); t != candidateList.end(); ++t)
+	if (isSkirmishAI() && count > 1)
 	{
-		if (i == which)
+		// Skirmish AIs weigh the choice towards teams that counter the enemy: when the enemy
+		// relies on aircraft, teams with anti air units are picked more often.
+		Real airRatio = 0.0f;
+		Player *enemy = getAiEnemy();
+		if (enemy)
 		{
-			teamProto = (*t);
-			break;
+			const Int air = enemy->countObjects(MAKE_KINDOF_MASK(KINDOF_AIRCRAFT), KINDOFMASK_NONE);
+			const Int ground = enemy->countObjects(MAKE_KINDOF_MASK(KINDOF_VEHICLE), MAKE_KINDOF_MASK(KINDOF_AIRCRAFT)) +
+				enemy->countObjects(MAKE_KINDOF_MASK(KINDOF_INFANTRY), KINDOFMASK_NONE);
+			airRatio = (Real)air / (Real)max(air + ground, 1);
 		}
+		std::vector<Int> weights;
+		Int totalWeight = 0;
+		for (t = candidateList.begin(); t != candidateList.end(); ++t)
+		{
+			Int weight = 100;
+			if (airRatio > 0.1f)
+				weight += REAL_TO_INT(400.0f * airRatio * antiAirFraction(*t));
+			weights.push_back(weight);
+			totalWeight += weight;
+		}
+		Int pick = GameLogicRandomValue( 0, totalWeight-1 );
+		Int i = 0;
+		for (t = candidateList.begin(); t != candidateList.end(); ++t, ++i)
+		{
+			pick -= weights[i];
+			if (pick < 0)
+			{
+				teamProto = (*t);
+				break;
+			}
+		}
+	}
+	else
+	{
+		// pick a random team from the hi-priority set
+		Int which = GameLogicRandomValue( 0, count-1 );
 
-		i++;
+		Int i = 0;
+		for (t = candidateList.begin(); t != candidateList.end(); ++t)
+		{
+			if (i == which)
+			{
+				teamProto = (*t);
+				break;
+			}
+
+			i++;
+		}
 	}
 	if (teamProto) {
 		if (!teamProto->getTemplateInfo()->m_hasHomeLocation && !isSkirmishAI()) {
@@ -1771,6 +1825,37 @@ Bool AIPlayer::selectTeamToBuild()
 		return true;
 	}
 	return false;
+}
+
+// ------------------------------------------------------------------------------------------------
+/** Fraction of the units of a team that can attack aircraft. */
+// ------------------------------------------------------------------------------------------------
+Real AIPlayer::antiAirFraction(const TeamPrototype *proto)
+{
+	const TeamTemplateInfo *info = proto->getTemplateInfo();
+	Int total = 0;
+	Int antiAir = 0;
+	for (Int u = 0; u < info->m_numUnitsInfo; ++u)
+	{
+		const Int units = max(info->m_unitsInfo[u].maxUnits, 1);
+		total += units;
+		const ThingTemplate *unit = TheThingFactory->findTemplate(info->m_unitsInfo[u].unitThingName);
+		if (unit == nullptr)
+			continue;
+		Bool canHitAir = false;
+		const WeaponTemplateSetVector &sets = unit->getWeaponTemplateSets();
+		for (WeaponTemplateSetVector::const_iterator set = sets.begin(); set != sets.end() && !canHitAir; ++set)
+		{
+			for (Int slot = 0; slot < WEAPONSLOT_COUNT && !canHitAir; ++slot)
+			{
+				const WeaponTemplate *weapon = set->getNth((WeaponSlotType)slot);
+				canHitAir = weapon && (weapon->getAntiMask() & WEAPON_ANTI_AIRBORNE_VEHICLE);
+			}
+		}
+		if (canHitAir)
+			antiAir += units;
+	}
+	return total > 0 ? (Real)antiAir / (Real)total : 0.0f;
 }
 
 // ------------------------------------------------------------------------------------------------

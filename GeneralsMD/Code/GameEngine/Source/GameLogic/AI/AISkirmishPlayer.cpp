@@ -183,7 +183,7 @@ void AISkirmishPlayer::processBaseBuilding()
 			if (info->getObjectID()==INVALID_ID && info->getObjectTimestamp()>0) {
 				// this object was built at some time, and got destroyed at or near objectTimestamp.
 				// Wait a few seconds before initiating a rebuild.
-				if (info->getObjectTimestamp()+TheAI->getAiData()->m_rebuildDelaySeconds*LOGICFRAMES_PER_SECOND > TheGameLogic->getFrame()) {
+				if (info->getObjectTimestamp()+getRebuildDelayFrames() > TheGameLogic->getFrame()) {
 					continue;
 				}	else {
 					DEBUG_LOG(("Enabling rebuild for %s", info->getTemplateName().str()));
@@ -198,8 +198,16 @@ void AISkirmishPlayer::processBaseBuilding()
 				continue;
 			}
 			if (info->isPriorityBuild()) {
-				// Always take priority build, unless we already have priority build.
-				if (!isPriority) {
+				// Always take priority build, unless we already have priority build. Waiting for the
+				// money is intended, but a priority build that lacks technology stopped all other
+				// building, so it is skipped.
+				Bool priorityBlocked = false;
+				Object *priorityDozer = findDozer(info->getLocation());
+				if (priorityDozer) {
+					const CanMakeType canMake = TheBuildAssistant->canMakeUnit(priorityDozer, curPlan);
+					priorityBlocked = canMake != CANMAKE_OK && canMake != CANMAKE_NO_MONEY;
+				}
+				if (!isPriority && !priorityBlocked) {
 					bldgPlan = curPlan;
 					bldgInfo = info;
 					isPriority = true;
@@ -266,6 +274,35 @@ void AISkirmishPlayer::processBaseBuilding()
 				}
 				m_frameLastBuildingBuilt = TheGameLogic->getFrame();
 				// only build one building per delay loop
+
+				// With more to build, use another dozer so construction does not queue up behind one.
+				Int wantedDozers;
+				switch (getAIDifficulty())
+				{
+					case DIFFICULTY_EASY: wantedDozers = TheAI->getAiData()->m_skirmishDozersEasy; break;
+					case DIFFICULTY_HARD: wantedDozers = TheAI->getAiData()->m_skirmishDozersHard; break;
+					default: wantedDozers = TheAI->getAiData()->m_skirmishDozersNormal; break;
+				}
+				if (wantedDozers > 1)
+				{
+					Bool moreToBuild = false;
+					for (BuildListInfo *other = m_player->getBuildList(); other && !moreToBuild; other = other->getNext())
+					{
+						moreToBuild = other != bldgInfo && other->isAutomaticBuild() && other->isBuildable() &&
+							other->getObjectID() == INVALID_ID && other->getObjectTimestamp() == 0;
+					}
+					if (moreToBuild && m_player->countObjects(MAKE_KINDOF_MASK(KINDOF_DOZER), KINDOFMASK_NONE) < wantedDozers)
+						queueDozer();
+				}
+			}
+			else
+			{
+				// No place to build it. Try again in a while and build something else meanwhile,
+				// instead of retrying the same building forever.
+				const Int retryFrames = 10*LOGICFRAMES_PER_SECOND;
+				const Int rebuildFrames = getRebuildDelayFrames();
+				const Int timestamp = (Int)TheGameLogic->getFrame() + retryFrames - rebuildFrames;
+				bldgInfo->setObjectTimestamp(timestamp > 1 ? timestamp : 1);
 			}
 
 #else
@@ -482,9 +519,27 @@ void AISkirmishPlayer::acquireEnemy()
 	Player *bestEnemy = nullptr;
 	Real bestDistanceSqr = HUGE_DIST*HUGE_DIST;
 
+	// Players that damaged us recently are preferred, including human players.
+	const UnsignedInt RECENT_ATTACK_FRAMES = 30*LOGICFRAMES_PER_SECOND;
+	const UnsignedInt now = TheGameLogic->getFrame();
+	auto attackedRecentlyBy = [&](const Player *other) {
+		const UnsignedInt frame = m_player->getLastAttackedByFrame(other->getPlayerIndex());
+		return frame != 0 && frame + RECENT_ATTACK_FRAMES >= now;
+	};
+
 	if (m_currentEnemy) {
 		Bool inBadShape = !m_currentEnemy->hasAnyUnits() || !m_currentEnemy->hasAnyBuildFacility();
-		if (!inBadShape) return;
+		// Keep the current enemy unless it is crippled, or another player is attacking us while the
+		// current enemy is not.
+		Bool otherAttacker = false;
+		if (!attackedRecentlyBy(m_currentEnemy)) {
+			for (Int n = 0; n < ThePlayerList->getPlayerCount() && !otherAttacker; n++) {
+				Player *other = ThePlayerList->getNthPlayer(n);
+				otherAttacker = other != m_currentEnemy && m_player->getRelationship(other->getDefaultTeam()) == ENEMIES &&
+					attackedRecentlyBy(other);
+			}
+		}
+		if (!inBadShape && !otherAttacker) return;
 	}
 
 	// look for the closest enemy.
@@ -518,11 +573,13 @@ void AISkirmishPlayer::acquireEnemy()
 					// Some ai is already targeting this guy.  Add a distance penalty.
 					curDistSqr += (500*500);
 				}
-				if (somePlayer->isSkirmishAIPlayer() && (somePlayer->getCurrentEnemy()==m_player)) {
-					// he is attacking me.  So I will (gently) prefer to attack him.
-					curDistSqr -= (25*25);
-					if (curDistSqr<0) curDistSqr = 0;
-				}
+			}
+			// Prefer to fight back. This checked whether any other ai targeted me, instead of this player.
+			if (curPlayer->getCurrentEnemy()==m_player) {
+				curDistSqr *= 0.7f;
+			}
+			if (attackedRecentlyBy(curPlayer)) {
+				curDistSqr *= 0.25f;
 			}
 
 			// Ai enemy - will take if we don't get a better offer.
@@ -892,8 +949,11 @@ void AISkirmishPlayer::doBaseBuilding()
 				m_readyToBuildStructure = true;
 				m_buildDelay = 0;
 			}
-			if (m_structureTimer > 3*LOGICFRAMES_PER_SECOND) {
-				m_structureTimer = 3*LOGICFRAMES_PER_SECOND;
+			// The original game capped the timer at 3 seconds, so harder or easier AIs could not
+			// build at a different pace. The cap now scales with the difficulty.
+			const Int maxStructureTimer = REAL_TO_INT_CEIL(3*LOGICFRAMES_PER_SECOND/getDifficultySpeed());
+			if (m_structureTimer > maxStructureTimer) {
+				m_structureTimer = maxStructureTimer;
 			}
 		}
 		// This timer is to keep from banging on the logic each frame.  If something interesting
@@ -945,8 +1005,9 @@ void AISkirmishPlayer::doTeamBuilding()
 				m_readyToBuildTeam = true;
 				m_teamDelay = 0;
 			}
-			if (m_teamTimer > 3*LOGICFRAMES_PER_SECOND) {
-				m_teamTimer = 3*LOGICFRAMES_PER_SECOND;
+			const Int maxTeamTimer = REAL_TO_INT_CEIL(3*LOGICFRAMES_PER_SECOND/getDifficultySpeed());
+			if (m_teamTimer > maxTeamTimer) {
+				m_teamTimer = maxTeamTimer;
 			}
 		}
 
@@ -971,6 +1032,26 @@ void AISkirmishPlayer::doTeamBuilding()
 void AISkirmishPlayer::update()
 {
 	AIPlayer::update();
+}
+
+//----------------------------------------------------------------------------------------------------------
+Real AISkirmishPlayer::getDifficultySpeed() const
+{
+	const TAiData *data = TheAI->getAiData();
+	Real speed;
+	switch (getAIDifficulty())
+	{
+		case DIFFICULTY_EASY: speed = data->m_skirmishSpeedEasy; break;
+		case DIFFICULTY_HARD: speed = data->m_skirmishSpeedHard; break;
+		default: speed = data->m_skirmishSpeedNormal; break;
+	}
+	return max(speed, 0.1f);
+}
+
+//----------------------------------------------------------------------------------------------------------
+Int AISkirmishPlayer::getRebuildDelayFrames() const
+{
+	return REAL_TO_INT_CEIL(TheAI->getAiData()->m_rebuildDelaySeconds*LOGICFRAMES_PER_SECOND/getDifficultySpeed());
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -1176,11 +1257,16 @@ Bool AISkirmishPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *powe
 
 		Coord3D goalPos = m_baseCenter;
 		Waypoint *way = TheTerrainLogic->getClosestWaypointOnPath( &goalPos, pathLabel );
-		if (way) {
+		// When an enemy attacked recently, mine the side of the base that faces him instead of a
+		// random entrance.
+		Player *attacker = getAiEnemy();
+		const Bool recentlyAttacked = attacker && m_player->getLastAttackedByFrame(attacker->getPlayerIndex()) != 0 &&
+			m_player->getLastAttackedByFrame(attacker->getPlayerIndex()) + 30*LOGICFRAMES_PER_SECOND >= TheGameLogic->getFrame();
+		if (way && !recentlyAttacked) {
 			goalPos = *way->getLocation();
 		} else {
 			Region2D bounds;
-			getPlayerStructureBounds(&bounds, getMyEnemyPlayerIndex());
+			getPlayerStructureBounds(&bounds, recentlyAttacked ? attacker->getPlayerIndex() : getMyEnemyPlayerIndex());
 			goalPos.x = bounds.lo.x + bounds.width()/2;
 			goalPos.y = bounds.lo.y + bounds.height()/2;
 		}
