@@ -449,6 +449,9 @@ public:
 
 	/// Is this player a skirmish ai player?
 	Bool isSkirmishAIPlayer();
+	/// For comparing AI versions: true when GENERALS_CLASSIC_AI_PLAYERS lists this player's index,
+	/// so the skirmish AI behaves like the original game apart from bug fixes.
+	Bool isClassicSkirmishAI() const;
 
 	/// Have the ai check for bridges.
 	virtual Bool checkBridges(Object *unit, Waypoint *way);

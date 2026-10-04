@@ -360,6 +360,8 @@ public:
 	Int m_quickSkirmishOpponents;			///< Number of AI opponents, or 0 for the last skirmish setup
 	Bool m_quickSkirmishObserver;			///< Watch the -skirmish match as an observer (-observe)
 	Int m_quickSkirmishSpeed;					///< Logic frames per second of the -skirmish match (-gamespeed)
+	AsciiString m_quickSkirmishAIFaction;	///< Faction of all -skirmish AI players, empty for random (-aifaction)
+	Int m_quickSkirmishSeed;					///< Random seed of the -skirmish match, 0 for a random one (-seed)
 	AsciiString m_pendingFile;				///< If this is specified, use this map at the next game start
 	AsciiString m_loadSaveGame;				///< If this is specified, load a save game file from the command-line
 	AsciiString m_loadReplayGame;			///< If this is specified, play a replay file from the command-line

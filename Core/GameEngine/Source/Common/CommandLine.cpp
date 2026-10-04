@@ -459,6 +459,28 @@ Int parseSkirmishSpeed(char *args[], int num)
 	return 1;
 }
 
+// -aifaction NAME gives all -skirmish AI players the same faction, for example GLA or America.
+Int parseSkirmishAIFaction(char *args[], int num)
+{
+	if (num > 1)
+	{
+		TheWritableGlobalData->m_quickSkirmishAIFaction = args[1];
+		return 2;
+	}
+	return 1;
+}
+
+// -seed N makes -skirmish matches repeatable.
+Int parseSkirmishSeed(char *args[], int num)
+{
+	if (num > 1)
+	{
+		TheWritableGlobalData->m_quickSkirmishSeed = atoi(args[1]);
+		return 2;
+	}
+	return 1;
+}
+
 // -opponents N sets the number of -skirmish AI opponents.
 Int parseSkirmishOpponents(char *args[], int num)
 {
@@ -1270,6 +1292,8 @@ static CommandLineParam paramsForEngineInit[] =
 	{ "-opponents", parseSkirmishOpponents },
 	{ "-observe", parseSkirmishObserver },
 	{ "-gamespeed", parseSkirmishSpeed },
+	{ "-aifaction", parseSkirmishAIFaction },
+	{ "-seed", parseSkirmishSeed },
 	{ "-nologo", parseNoLogo }, // TheSuperHackers @tweak Is now available in Release builds.
 	{ "-noshellmap", parseNoShellMap },
 	{ "-noShellAnim", parseNoWindowAnimation }, // TheSuperHackers @tweak Is now available in Release builds.

@@ -739,7 +739,7 @@ static Bool canPlayerRetaliate(Player *player)
 		return false;
 	if (player->getPlayerType() == PLAYER_HUMAN)
 		return player->isLogicalRetaliationModeEnabled();
-	return TheAI->getAiData()->m_skirmishAIRetaliates && player->isSkirmishAIPlayer();
+	return TheAI->getAiData()->m_skirmishAIRetaliates && player->isSkirmishAIPlayer() && !player->isClassicSkirmishAI();
 }
 
 //-------------------------------------------------------------------------------------------------

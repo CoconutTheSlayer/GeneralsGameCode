@@ -999,6 +999,8 @@ GlobalData::GlobalData()
 	m_quickSkirmishOpponents = 0;
 	m_quickSkirmishObserver = FALSE;
 	m_quickSkirmishSpeed = LOGICFRAMES_PER_SECOND;
+	m_quickSkirmishAIFaction.clear();
+	m_quickSkirmishSeed = 0;
 	m_pendingFile.clear();
 
 	m_simulateReplays.clear();

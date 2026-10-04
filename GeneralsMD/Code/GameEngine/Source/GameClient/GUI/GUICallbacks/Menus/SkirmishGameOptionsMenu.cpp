@@ -538,10 +538,28 @@ Bool startQuickSkirmish()
 		Int opponents = TheGlobalData->m_quickSkirmishOpponents > 0 ? TheGlobalData->m_quickSkirmishOpponents : (TheGlobalData->m_quickSkirmishObserver ? 2 : 1);
 		opponents = min(opponents, md->m_numPlayers - (TheGlobalData->m_quickSkirmishObserver ? 0 : 1));
 		SlotState ai = TheGlobalData->m_quickSkirmishAI >= 0 ? (SlotState)TheGlobalData->m_quickSkirmishAI : SLOT_EASY_AI;
+		Int aiFaction = PLAYERTEMPLATE_RANDOM;
+		if (TheGlobalData->m_quickSkirmishAIFaction.isNotEmpty())
+		{
+			AsciiString name = TheGlobalData->m_quickSkirmishAIFaction;
+			aiFaction = ThePlayerTemplateStore->getTemplateNumByName(name);
+			if (aiFaction < 0)
+			{
+				name.format("Faction%s", TheGlobalData->m_quickSkirmishAIFaction.str());
+				aiFaction = ThePlayerTemplateStore->getTemplateNumByName(name);
+			}
+			if (aiFaction < 0)
+			{
+				fprintf(stderr, "-aifaction: faction '%s' not found\n", TheGlobalData->m_quickSkirmishAIFaction.str());
+				aiFaction = PLAYERTEMPLATE_RANDOM;
+			}
+		}
 		for (Int i = 1; i < MAX_SLOTS; ++i)
 		{
 			GameSlot slot;
 			slot.setState(i <= opponents ? ai : SLOT_OPEN);
+			if (i <= opponents)
+				slot.setPlayerTemplate(aiFaction);
 			TheSkirmishGameInfo->setSlot(i, slot);
 		}
 	}
@@ -552,7 +570,7 @@ Bool startQuickSkirmish()
 		if (slot && slot->getStartPos() >= md->m_numPlayers)
 			slot->setStartPos(-1);
 	}
-	TheSkirmishGameInfo->setSeed(GetTickCount());
+	TheSkirmishGameInfo->setSeed(TheGlobalData->m_quickSkirmishSeed != 0 ? TheGlobalData->m_quickSkirmishSeed : GetTickCount());
 	TheSkirmishGameInfo->setStartingCash(prefs.getStartingCash());
 	TheSkirmishGameInfo->setSuperweaponRestriction(prefs.getSuperweaponRestricted() ? 1 : 0);
 

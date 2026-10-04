@@ -209,7 +209,7 @@ void AIPlayer::checkForSupplyCenter( BuildListInfo *info, Object *bldg )
 				if (difficulty == DIFFICULTY_HARD) {
 					desiredGatherers = resInfo->m_hard;
 					// The shipped data uses the same number for every difficulty.
-					if (isSkirmishAI()) {
+					if (isSkirmishAI() && !m_player->isClassicSkirmishAI()) {
 						desiredGatherers += TheAI->getAiData()->m_skirmishExtraGatherersHard;
 					}
 				}
@@ -1222,8 +1222,9 @@ Bool AIPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *power, Coord
 	yCount = REAL_TO_INT_CEIL(bounds.height()/weaponRadius)+1;
 
 	// A finer search than the original 10 by 10 grid, which modern machines evaluate easily.
-	if (xCount>20) xCount = 20;
-	if (yCount>20) yCount = 20;
+	const Int maxGrid = m_player->isClassicSkirmishAI() ? 10 : 20;
+	if (xCount>maxGrid) xCount = maxGrid;
+	if (yCount>maxGrid) yCount = maxGrid;
 
 	Int cash = -1;
 	Coord3D pos;
@@ -1275,7 +1276,7 @@ Bool AIPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *power, Coord
 			pos.x = bounds.lo.x + ( bounds.width() * xIndex ) / xCount;
 			pos.y = bounds.lo.y + ( bounds.height() * yIndex ) / yCount;
 			pos.z = 0;
-			Int curCash = getPlayerSuperweaponValue( &pos, playerNdx, 2*weaponRadius, targetMilitaryUnits );
+			Int curCash = getPlayerSuperweaponValue( &pos, playerNdx, 2*weaponRadius, targetMilitaryUnits, !m_player->isClassicSkirmishAI() );
 			if ( curCash > cash)
 			{
 				cash = curCash;
@@ -1301,7 +1302,7 @@ Bool AIPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *power, Coord
 			pos.x = bestPos.x + (x-5)*(weaponRadius/10);
 			pos.y = bestPos.y + (y-5)*(weaponRadius/10);
 			pos.z = 0;
-			Int curCash = getPlayerSuperweaponValue( &pos, playerNdx, weaponRadius, targetMilitaryUnits );
+			Int curCash = getPlayerSuperweaponValue( &pos, playerNdx, weaponRadius, targetMilitaryUnits, !m_player->isClassicSkirmishAI() );
 			if ( curCash > cash)
 			{
 				cash = curCash;
@@ -1335,7 +1336,7 @@ Bool AIPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *power, Coord
 /**
  * Get the target value for structures in an area.
  */
-Int AIPlayer::getPlayerSuperweaponValue(Coord3D *center, Int playerNdx, Real radius, Bool includeMilitaryUnits )
+Int AIPlayer::getPlayerSuperweaponValue(Coord3D *center, Int playerNdx, Real radius, Bool includeMilitaryUnits, Bool valueDamagedTargets )
 {
 	if (radius < 4*PATHFIND_CELL_SIZE_F)
 	{
@@ -1406,7 +1407,7 @@ Int AIPlayer::getPlayerSuperweaponValue(Coord3D *center, Int playerNdx, Real rad
 						else
 							value = value / 10; // Superweapons cannot be killed by any superweapon, so we don't want to target them as highly. jba.
 					}
-					if (includeMilitaryUnits)
+					if (includeMilitaryUnits && valueDamagedTargets)
 					{
 						// Damaged targets are more likely to be destroyed, so they are worth more.
 						const BodyModuleInterface *body = pObj->getBodyModule();
@@ -1754,7 +1755,7 @@ Bool AIPlayer::selectTeamToBuild()
 	}
 
 	TeamPrototype *teamProto = nullptr;
-	if (isSkirmishAI() && count > 1)
+	if (isSkirmishAI() && count > 1 && !m_player->isClassicSkirmishAI())
 	{
 		// Skirmish AIs weigh the choice towards teams that counter the enemy: when the enemy
 		// relies on aircraft, teams with anti air units are picked more often.

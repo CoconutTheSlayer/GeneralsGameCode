@@ -1399,7 +1399,7 @@ StateReturnType AIIdleState::update()
 	// Idle skirmish AI units look for targets twice as often, so they react quicker.
 	{
 		const Player *owner = getMachineOwner()->getControllingPlayer();
-		if (owner && const_cast<Player *>(owner)->isSkirmishAIPlayer())
+		if (owner && const_cast<Player *>(owner)->isSkirmishAIPlayer() && !owner->isClassicSkirmishAI())
 			timeToSleep = IDLE_COUNTDOWN_DELAY/2 + m_initialSleepOffset/2;
 	}
 	UnsignedInt oldSleepOffset = m_initialSleepOffset;

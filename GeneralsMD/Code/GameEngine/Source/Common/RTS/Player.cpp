@@ -1155,6 +1155,34 @@ Bool Player::isSkirmishAIPlayer()
 	return m_ai ? m_ai->isSkirmishAI() : false;
 }
 
+//----------------------------------------------------------------------------------------------------------
+Bool Player::isClassicSkirmishAI() const
+{
+	static UnsignedInt classicMask = 0;
+	static Bool parsed = false;
+	if (!parsed)
+	{
+		parsed = true;
+		if (const char *list = getenv("GENERALS_CLASSIC_AI_PLAYERS"))
+		{
+			for (const char *p = list; *p; )
+			{
+				char *end = nullptr;
+				const long index = strtol(p, &end, 10);
+				if (end == p)
+				{
+					++p;
+					continue;
+				}
+				if (index >= 0 && index < 32)
+					classicMask |= 1u << index;
+				p = end;
+			}
+		}
+	}
+	return (classicMask & (1u << getPlayerIndex())) != 0;
+}
+
 
 //----------------------------------------------------------------------------------------------------------
 /**

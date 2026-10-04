@@ -203,7 +203,7 @@ void AISkirmishPlayer::processBaseBuilding()
 				// building, so it is skipped.
 				Bool priorityBlocked = false;
 				Object *priorityDozer = findDozer(info->getLocation());
-				if (priorityDozer) {
+				if (priorityDozer && !m_player->isClassicSkirmishAI()) {
 					const CanMakeType canMake = TheBuildAssistant->canMakeUnit(priorityDozer, curPlan);
 					priorityBlocked = canMake != CANMAKE_OK && canMake != CANMAKE_NO_MONEY;
 				}
@@ -283,7 +283,7 @@ void AISkirmishPlayer::processBaseBuilding()
 					case DIFFICULTY_HARD: wantedDozers = TheAI->getAiData()->m_skirmishDozersHard; break;
 					default: wantedDozers = TheAI->getAiData()->m_skirmishDozersNormal; break;
 				}
-				if (wantedDozers > 1)
+				if (wantedDozers > 1 && !m_player->isClassicSkirmishAI())
 				{
 					Bool moreToBuild = false;
 					for (BuildListInfo *other = m_player->getBuildList(); other && !moreToBuild; other = other->getNext())
@@ -295,7 +295,7 @@ void AISkirmishPlayer::processBaseBuilding()
 						queueDozer();
 				}
 			}
-			else
+			else if (!m_player->isClassicSkirmishAI())
 			{
 				// No place to build it. Try again in a while and build something else meanwhile,
 				// instead of retrying the same building forever.
@@ -522,7 +522,10 @@ void AISkirmishPlayer::acquireEnemy()
 	// Players that damaged us recently are preferred, including human players.
 	const UnsignedInt RECENT_ATTACK_FRAMES = 30*LOGICFRAMES_PER_SECOND;
 	const UnsignedInt now = TheGameLogic->getFrame();
+	const Bool classic = m_player->isClassicSkirmishAI();
 	auto attackedRecentlyBy = [&](const Player *other) {
+		if (classic)
+			return false;
 		const UnsignedInt frame = m_player->getLastAttackedByFrame(other->getPlayerIndex());
 		return frame != 0 && frame + RECENT_ATTACK_FRAMES >= now;
 	};
@@ -575,7 +578,7 @@ void AISkirmishPlayer::acquireEnemy()
 				}
 			}
 			// Prefer to fight back. This checked whether any other ai targeted me, instead of this player.
-			if (curPlayer->getCurrentEnemy()==m_player) {
+			if (curPlayer->getCurrentEnemy()==m_player && !classic) {
 				curDistSqr *= 0.7f;
 			}
 			if (attackedRecentlyBy(curPlayer)) {
@@ -1037,6 +1040,8 @@ void AISkirmishPlayer::update()
 //----------------------------------------------------------------------------------------------------------
 Real AISkirmishPlayer::getDifficultySpeed() const
 {
+	if (m_player->isClassicSkirmishAI())
+		return 1.0f;
 	const TAiData *data = TheAI->getAiData();
 	Real speed;
 	switch (getAIDifficulty())
@@ -1260,7 +1265,7 @@ Bool AISkirmishPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *powe
 		// When an enemy attacked recently, mine the side of the base that faces him instead of a
 		// random entrance.
 		Player *attacker = getAiEnemy();
-		const Bool recentlyAttacked = attacker && m_player->getLastAttackedByFrame(attacker->getPlayerIndex()) != 0 &&
+		const Bool recentlyAttacked = attacker && !m_player->isClassicSkirmishAI() && m_player->getLastAttackedByFrame(attacker->getPlayerIndex()) != 0 &&
 			m_player->getLastAttackedByFrame(attacker->getPlayerIndex()) + 30*LOGICFRAMES_PER_SECOND >= TheGameLogic->getFrame();
 		if (way && !recentlyAttacked) {
 			goalPos = *way->getLocation();

@@ -696,7 +696,7 @@ Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifie
 	{
 		const Player *owner = me->getControllingPlayer();
 		const Weapon *weapon = me->getCurrentWeapon();
-		if (owner && const_cast<Player *>(owner)->isSkirmishAIPlayer() && weapon)
+		if (owner && const_cast<Player *>(owner)->isSkirmishAIPlayer() && !owner->isClassicSkirmishAI() && weapon)
 		{
 			// Skirmish AI units prefer the nearby target they can kill fastest, instead of simply the
 			// closest one: estimated damage per shot over remaining health, with a small penalty for
