@@ -691,9 +691,10 @@ Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifie
 	Object *bestEnemy = nullptr;
 	Int			effectivePriority=0;
 	Int			actualPriority=0;
-	ObjectIterator *iter = ThePartitionManager->iterateObjectsInRange(me, range, FROM_BOUNDINGSPHERE_2D, filters, ITER_SORTED_NEAR_TO_FAR);
+	SimpleObjectIterator *iter = ThePartitionManager->iterateObjectsInRange(me, range, FROM_BOUNDINGSPHERE_2D, filters, ITER_SORTED_NEAR_TO_FAR);
 	MemoryPoolObjectHolder holder(iter);
-	for (Object *theEnemy = iter->first(); theEnemy; theEnemy = iter->next())
+	Real distSqr;
+	for (Object *theEnemy = iter->firstWithNumeric(&distSqr); theEnemy; theEnemy = iter->nextWithNumeric(&distSqr))
 	{
 		Int curPriority = info->getPriority(theEnemy->getTemplate());
 		if (curPriority == 0)
@@ -711,7 +712,6 @@ Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifie
 			}
 		}
 
-		Real distSqr = ThePartitionManager->getDistanceSquared(me, theEnemy, FROM_BOUNDINGSPHERE_2D);
 		Real dist = sqrt(distSqr);
 		Int modifier = dist/getAiData()->m_attackPriorityDistanceModifier;
 		Int modPriority = curPriority-modifier;
