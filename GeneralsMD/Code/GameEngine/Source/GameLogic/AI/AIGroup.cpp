@@ -2721,19 +2721,22 @@ void AIGroup::groupDoSpecialPowerAtLocation( UnsignedInt specialPowerID, const C
 
 
 	//This one requires a position
-	std::list<Object *>::iterator i;
-	for( i = m_memberList.begin(); i != m_memberList.end(); )
+	// TheSuperHackers @bugfix Iterate a copy of the member IDs. Doing a special power can destroy this
+	// group: rebels of a Rebel Ambush drowning over water deselect themselves, which clears the
+	// member list and left the list iterator dangling (see #3185).
+	std::vector<ObjectID> memberIDs;
+	memberIDs.reserve( m_memberList.size() );
+	for( std::list<Object *>::const_iterator it = m_memberList.begin(); it != m_memberList.end(); ++it )
+		memberIDs.push_back( (*it)->getID() );
+
+	for( size_t memberIndex = 0; memberIndex < memberIDs.size(); ++memberIndex )
 	{
 		//Special powers do a lot of different things, but the top level stuff doesn't use
 		//ai interface code. It finds the special power module and calls it directly for each object.
 
-		Object *object = (*i);
-
-    ++i; // just in case the act of specialpowering changes this list,
-         // like when the rebelambush happens over the ocean, and all the rebels drown
-         // and, of course, their slowdeath behavior calls deselect(), which naturally
-         // destroys the AIGroup list, in order to keep the selection sync'ed with the group.
-         // M Lorenzen... 8/23/03
+		Object *object = TheGameLogic->findObjectByID( memberIDs[memberIndex] );
+		if( object == nullptr )
+			continue;
 
     const SpecialPowerTemplate *spTemplate = TheSpecialPowerStore->findSpecialPowerTemplateByID( specialPowerID );
 		if( spTemplate )
