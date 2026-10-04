@@ -4892,7 +4892,7 @@ void PartitionManager::getNearestGroupWithValue( Int playerIndex, UnsignedInt wh
 
 	CellValueProcParms parms;
 	parms.valueRequired = valueRequired;
-	parms.greaterThan = valueRequired;
+	parms.greaterThan = greaterThan;
 	parms.valueType = valType;
 	parms.allowedPlayersMasks = playerMask;
 	for (i = 0; i < MAX_PLAYER_COUNT; ++i)

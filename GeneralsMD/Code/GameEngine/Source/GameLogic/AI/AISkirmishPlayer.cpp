@@ -223,7 +223,7 @@ void AISkirmishPlayer::processBaseBuilding()
 				}
 				continue;
 			}
-			if (TheBuildAssistant->canMakeUnit(dozer, bldgPlan)!=CANMAKE_OK) {
+			if (TheBuildAssistant->canMakeUnit(dozer, curPlan)!=CANMAKE_OK) {
 				if (info->isBuildable()) {
 					AsciiString bldgName = info->getTemplateName();
 					bldgName.concat(" - Dozer unable to build - money or technology missing.");
@@ -603,6 +603,7 @@ void AISkirmishPlayer::buildAIBaseDefenseStructure(const AsciiString &thingName,
 		DEBUG_CRASH(("Couldn't find base defense structure '%s' for side %s", thingName.str(), m_player->getSide().str()));
 		return;
 	}
+	Bool restarted = false;
 	do {
 		AsciiString pathLabel;
 		if (flank) {
@@ -672,7 +673,22 @@ void AISkirmishPlayer::buildAIBaseDefenseStructure(const AsciiString &thingName,
 			}
 		}
 
-		if (angle > PI/3) break;
+		if (angle > PI/3 || angle < -PI/3) {
+			// The slots on this side are used up. Sweep once more from the front, so the slots of
+			// destroyed defenses are used again; occupied slots fail the placement test below.
+			// Before, the AI stopped building defenses for good after the first sweep.
+			if (restarted) break;
+			restarted = true;
+			if (flank) {
+				m_curFlankBaseDefense = 0;
+				m_curLeftFlankLeftDefenseAngle = m_curLeftFlankRightDefenseAngle = 0;
+				m_curRightFlankLeftDefenseAngle = m_curRightFlankRightDefenseAngle = 0;
+			} else {
+				m_curFrontBaseDefense = 0;
+				m_curFrontLeftDefenseAngle = m_curFrontRightDefenseAngle = 0;
+			}
+			continue;
+		}
 		Real s = sin(angle);
 		Real c = cos(angle);
 
@@ -1038,16 +1054,24 @@ void AISkirmishPlayer::adjustBuildList(BuildListInfo *list)
 		}
 	}
 
+	// The build lists are authored for this fixed rotation, including the building facings. Only
+	// the extra rotation towards the map center also has to turn the buildings.
+	const Real facingAngle = angle;
 	angle += 3*PI/4;
 
 	Real s = sin(angle);
 	Real c = cos(angle);
 
+	if (!foundInBuildList) {
+		DEBUG_LOG(("No command center in the ai build list."));
+		return;
+	}
+
+	// Move every entry of the build list relative to the command center. This only tested the
+	// first entry, so it worked only while the command center came first.
 	cur = list;
 	while (cur) {
-		const ThingTemplate *tTemplate = TheThingFactory->findTemplate(list->getTemplateName());
-		if (tTemplate && tTemplate->isKindOf(KINDOF_COMMANDCENTER)) {
-			foundInBuildList = true;
+		{
 			Coord3D curPos = *cur->getLocation();
 			// Transform to new coords.
 			curPos.x -= buildPos.x;
@@ -1057,7 +1081,7 @@ void AISkirmishPlayer::adjustBuildList(BuildListInfo *list)
 			curPos.x = newX + startPos.x;
 			curPos.y = newY + startPos.y;
 			cur->setLocation(curPos);
-			cur->setAngle(cur->getAngle());
+			cur->setAngle(cur->getAngle() + facingAngle);
 		}
 		cur = cur->getNext();
 	}

@@ -576,6 +576,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 																							 BuildAssistant::TERRAIN_RESTRICTIONS |
 																							 BuildAssistant::NO_OBJECT_OVERLAP,
 																							 dozer, m_player ) == LBC_OK;
+					if (valid) break;
 				}
 				if (valid) break;
 				xPos = pos.x-offset;
@@ -595,6 +596,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 																							 BuildAssistant::TERRAIN_RESTRICTIONS |
 																							 BuildAssistant::NO_OBJECT_OVERLAP,
 																							 dozer, m_player ) == LBC_OK;
+					if (valid) break;
 				}
 				if (valid) break;
 			}
@@ -906,14 +908,20 @@ void AIPlayer::guardSupplyCenter( Team *team, Int minSupplies )
 #endif
 		Coord3D location = *warehouse->getPosition();
 		// It's probably a defensive move - position towards the enemy.
-		Region2D bounds;
-		Int enemyNdx = TheScriptEngine->getSkirmishEnemyPlayer()->getPlayerIndex();
-		getPlayerStructureBounds(&bounds, enemyNdx);
 		Coord3D offset;
 		offset.zero();
-		offset.x = location.x - (bounds.lo.x+bounds.hi.x)*0.5f;
-		offset.y = location.y - (bounds.lo.y+bounds.hi.y)*0.5f;
-		offset.normalize();
+		// There is no skirmish enemy without human players, for example in AI only games.
+		Player *enemy = TheScriptEngine->getSkirmishEnemyPlayer();
+		if (enemy == nullptr)
+			enemy = m_player->getCurrentEnemy();
+		if (enemy)
+		{
+			Region2D bounds;
+			getPlayerStructureBounds(&bounds, enemy->getPlayerIndex());
+			offset.x = location.x - (bounds.lo.x+bounds.hi.x)*0.5f;
+			offset.y = location.y - (bounds.lo.y+bounds.hi.y)*0.5f;
+			offset.normalize();
+		}
 		Real radius = warehouse->getGeometryInfo().getBoundingCircleRadius()*0.8f;
 
 		location.x -= offset.x*radius;
@@ -928,7 +936,10 @@ void AIPlayer::guardSupplyCenter( Team *team, Int minSupplies )
 //-------------------------------------------------------------------------------------------------
 Bool AIPlayer::isSupplySourceAttacked()
 {
-	const Int SCAN_RATE = 10; // don't scan more often than every 10 seconds.
+	const Int SCAN_RATE = 10; // don't scan more often than every 10 frames.
+	// Damage within this window counts as an attack. It was SCAN_RATE frames (a third of a second),
+	// so scripts that check on a timer missed most raids on supply gatherers.
+	const UnsignedInt ATTACKED_WINDOW = 10*LOGICFRAMES_PER_SECOND;
 	UnsignedInt curFrame = TheGameLogic->getFrame();
 	if (curFrame==0) {
 		m_supplySourceAttackCheckFrame = curFrame+SCAN_RATE;
@@ -938,7 +949,7 @@ Bool AIPlayer::isSupplySourceAttacked()
 	if (curFrame < m_supplySourceAttackCheckFrame) {
 		return false;
 	}
-	if (m_player->getAttackedFrame()+SCAN_RATE < curFrame) {
+	if (m_player->getAttackedFrame()+ATTACKED_WINDOW < curFrame) {
 		return false; // haven't been attacked recently.
 	}
 	m_supplySourceAttackCheckFrame = curFrame+SCAN_RATE;
@@ -968,7 +979,7 @@ Bool AIPlayer::isSupplySourceAttacked()
 						if (info->out.m_noEffect) {
 							continue;
 						}
-						if (body->getLastDamageTimestamp() + SCAN_RATE > curFrame) {
+						if (body->getLastDamageTimestamp() + ATTACKED_WINDOW > curFrame) {
 							// winner.
 							m_attackedSupplyCenter = obj->getID();
 							return true;
@@ -1169,6 +1180,8 @@ void AIPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *power, Coord
 	Int xCount, yCount;
 	bounds.lo.x += weaponRadius;
 	bounds.hi.x -= weaponRadius;
+	bounds.lo.y += weaponRadius;
+	bounds.hi.y -= weaponRadius;
 	if (bounds.hi.x<bounds.lo.x) {
 		bounds.hi.x = bounds.lo.x = (bounds.hi.x+bounds.lo.x)/2.0f;
 	}
@@ -1779,12 +1792,17 @@ void AIPlayer::buildBySupplies(Int minimumCash, const AsciiString& thingName)
 		Real radius = 3*PATHFIND_CELL_SIZE_F;
 		if (!tTemplate->isKindOf(KINDOF_CASH_GENERATOR)) {
 			// It's probably a defensive structure - build towards the enemy.
-			Region2D bounds;
-			Int enemyNdx = TheScriptEngine->getSkirmishEnemyPlayer()->getPlayerIndex();
-			getPlayerStructureBounds(&bounds, enemyNdx);
-			offset.x = location.x - (bounds.lo.x+bounds.hi.x)*0.5f;
-			offset.y = location.y - (bounds.lo.y+bounds.hi.y)*0.5f;
-			offset.normalize();
+			Player *enemy = TheScriptEngine->getSkirmishEnemyPlayer();
+			if (enemy == nullptr)
+				enemy = m_player->getCurrentEnemy();
+			if (enemy)
+			{
+				Region2D bounds;
+				getPlayerStructureBounds(&bounds, enemy->getPlayerIndex());
+				offset.x = location.x - (bounds.lo.x+bounds.hi.x)*0.5f;
+				offset.y = location.y - (bounds.lo.y+bounds.hi.y)*0.5f;
+				offset.normalize();
+			}
 			radius = bestSupplyWarehouse->getGeometryInfo().getBoundingCircleRadius();
 		}
 		location.x -= offset.x*radius;

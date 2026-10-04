@@ -5486,12 +5486,17 @@ void ScriptActions::doSkirmishAttackNearestGroupWithValue( const AsciiString& te
 	if (!player)
 		return;
 
-	Coord3D loc;
 	Coord3D groupLoc;
 	theGroup->getCenter(&groupLoc);
-	if (comparison == Parameter::GREATER_EQUAL || comparison == Parameter::GREATER) {
-		ThePartitionManager->getNearestGroupWithValue(player->getPlayerIndex(), ALLOW_ENEMIES, VOT_CashValue,
-			&groupLoc, value, true, &loc);
+	// The location was used uninitialized when no group matched, sending the team to a random
+	// spot, which could also desync network games.
+	Coord3D loc;
+	loc.x = loc.y = loc.z = -1.0f;
+	const Bool greaterThan = comparison == Parameter::GREATER_EQUAL || comparison == Parameter::GREATER;
+	ThePartitionManager->getNearestGroupWithValue(player->getPlayerIndex(), ALLOW_ENEMIES, VOT_CashValue,
+		&groupLoc, value, greaterThan, &loc);
+	if (loc.x < 0.0f || loc.y < 0.0f) {
+		return; // nothing matching found
 	}
 
 	theGroup->groupAttackMoveToPosition( &loc, NO_MAX_SHOTS_LIMIT, CMD_FROM_SCRIPT );
