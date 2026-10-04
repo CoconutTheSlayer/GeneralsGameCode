@@ -3923,6 +3923,26 @@ void GameLogic::update()
 
 
 
+	// GENERALS_AI_STATS=1 prints the score of every player once a minute, to compare AI versions.
+	static const Bool printStats = getenv("GENERALS_AI_STATS") != nullptr;
+	if (printStats && m_frame > 0 && m_frame % (60*LOGICFRAMES_PER_SECOND) == 0)
+	{
+		for (Int i = 0; i < ThePlayerList->getPlayerCount(); ++i)
+		{
+			Player *player = ThePlayerList->getNthPlayer(i);
+			if (player == nullptr || player->getPlayerTemplate() == nullptr || !player->isPlayerActive())
+				continue;
+			ScoreKeeper *score = player->getScoreKeeper();
+			AsciiString name;
+			name.translate(player->getPlayerDisplayName());
+			fprintf(stderr, "AI_STATS min %u player %d '%s' %s units built %d lost %d killed %d buildings built %d lost %d killed %d money %d alive %d\n",
+				m_frame / (60*LOGICFRAMES_PER_SECOND), i, name.str(), player->getSide().str(),
+				score->getTotalUnitsBuilt(), score->getTotalUnitsLost(), score->getTotalUnitsDestroyed(),
+				score->getTotalBuildingsBuilt(), score->getTotalBuildingsLost(), score->getTotalBuildingsDestroyed(),
+				score->getTotalMoneyEarned(), player->hasAnyObjects() ? 1 : 0);
+		}
+	}
+
 	// increment world time
 	if (!m_startNewGame)
 	{

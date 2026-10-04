@@ -441,6 +441,24 @@ Int parseSkirmishAI(char *args[], int num)
 	return 1;
 }
 
+// -observe watches the -skirmish match as an observer, so the AI players fight each other.
+Int parseSkirmishObserver(char *args[], int num)
+{
+	TheWritableGlobalData->m_quickSkirmishObserver = TRUE;
+	return 1;
+}
+
+// -gamespeed N runs the -skirmish match at N logic frames per second (30 is normal speed).
+Int parseSkirmishSpeed(char *args[], int num)
+{
+	if (num > 1)
+	{
+		TheWritableGlobalData->m_quickSkirmishSpeed = clamp(15, atoi(args[1]), 240);
+		return 2;
+	}
+	return 1;
+}
+
 // -opponents N sets the number of -skirmish AI opponents.
 Int parseSkirmishOpponents(char *args[], int num)
 {
@@ -1250,6 +1268,8 @@ static CommandLineParam paramsForEngineInit[] =
 	{ "-skirmish", parseSkirmish },
 	{ "-ai", parseSkirmishAI },
 	{ "-opponents", parseSkirmishOpponents },
+	{ "-observe", parseSkirmishObserver },
+	{ "-gamespeed", parseSkirmishSpeed },
 	{ "-nologo", parseNoLogo }, // TheSuperHackers @tweak Is now available in Release builds.
 	{ "-noshellmap", parseNoShellMap },
 	{ "-noShellAnim", parseNoWindowAnimation }, // TheSuperHackers @tweak Is now available in Release builds.
@@ -1496,6 +1516,12 @@ void CommandLine::parseCommandLineForStartup()
 
 	if (TheGlobalData->m_commandLineData.m_hasParsedCommandLineForStartup)
 		return;
+#if defined(__APPLE__)
+	// On macOS the arguments are only known once main runs, but this can be called earlier from
+	// static constructors. Parse later then, or the startup options are ignored.
+	if (__argc == 0)
+		return;
+#endif
 	TheWritableGlobalData->m_commandLineData.m_hasParsedCommandLineForStartup = true;
 
 	parseCommandLine(paramsForStartup, ARRAY_SIZE(paramsForStartup),

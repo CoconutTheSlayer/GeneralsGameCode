@@ -474,7 +474,7 @@ Bool startQuickSkirmish()
 	player.setName(prefs.getUserName());
 	player.setState(SLOT_PLAYER, prefs.getUserName());
 	player.setColor(prefs.getPreferredColor());
-	player.setPlayerTemplate(prefs.getPreferredFaction());
+	player.setPlayerTemplate(TheGlobalData->m_quickSkirmishObserver ? PLAYERTEMPLATE_OBSERVER : prefs.getPreferredFaction());
 	TheSkirmishGameInfo->setSlot(0, player);
 
 	// Find the map: a name like "Alpine Assault" matches the map folder or file name.
@@ -515,15 +515,17 @@ Bool startQuickSkirmish()
 	TheSkirmishGameInfo->setMapSize(md->m_filesize);
 
 	// Opponents: the last skirmish setup, unless -ai or -opponents ask for something else.
-	if (TheGlobalData->m_quickSkirmishAI < 0 && TheGlobalData->m_quickSkirmishOpponents <= 0 && prefs.getSlotList().isNotEmpty())
+	if (TheGlobalData->m_quickSkirmishAI < 0 && TheGlobalData->m_quickSkirmishOpponents <= 0 && prefs.getSlotList().isNotEmpty() &&
+		!TheGlobalData->m_quickSkirmishObserver)
 	{
 		ParseAsciiStringToGameInfo(TheSkirmishGameInfo, prefs.getSlotList());
 		TheSkirmishGameInfo->setSlot(0, player);
 	}
 	else
 	{
-		Int opponents = TheGlobalData->m_quickSkirmishOpponents > 0 ? TheGlobalData->m_quickSkirmishOpponents : 1;
-		opponents = min(opponents, md->m_numPlayers - 1);
+		// An observer watches at least two AIs fight each other.
+		Int opponents = TheGlobalData->m_quickSkirmishOpponents > 0 ? TheGlobalData->m_quickSkirmishOpponents : (TheGlobalData->m_quickSkirmishObserver ? 2 : 1);
+		opponents = min(opponents, md->m_numPlayers - (TheGlobalData->m_quickSkirmishObserver ? 0 : 1));
 		SlotState ai = TheGlobalData->m_quickSkirmishAI >= 0 ? (SlotState)TheGlobalData->m_quickSkirmishAI : SLOT_EASY_AI;
 		for (Int i = 1; i < MAX_SLOTS; ++i)
 		{
@@ -549,7 +551,7 @@ Bool startQuickSkirmish()
 	msg->appendIntegerArgument(md->m_isMultiplayer ? GAME_SKIRMISH : GAME_SINGLE_PLAYER);
 	msg->appendIntegerArgument(DIFFICULTY_NORMAL);
 	msg->appendIntegerArgument(0);
-	msg->appendIntegerArgument(LOGICFRAMES_PER_SECOND);
+	msg->appendIntegerArgument(TheGlobalData->m_quickSkirmishSpeed);
 	return TRUE;
 }
 
