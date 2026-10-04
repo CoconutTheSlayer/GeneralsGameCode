@@ -49,11 +49,16 @@ Direct3D::Direct3D()
 	m_mtlDevice = MTLCreateSystemDefaultDevice();
 
 	SDL_InitSubSystem(SDL_INIT_VIDEO);
-	int nativeW = 1920, nativeH = 1080;
+	int nativeW = 1920, nativeH = 1080, pointsW = 0, pointsH = 0;
+	UINT refresh = 60;
 	if (const SDL_DisplayMode* mode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay()))
 	{
 		nativeW = (int)(mode->w * mode->pixel_density);
 		nativeH = (int)(mode->h * mode->pixel_density);
+		pointsW = mode->w;
+		pointsH = mode->h;
+		if (mode->refresh_rate >= 30.0f)
+			refresh = (UINT)(mode->refresh_rate + 0.5f);
 	}
 
 	static const int kSizes[][2] = {
@@ -67,8 +72,12 @@ Direct3D::Direct3D()
 		if (s[0] <= nativeW && s[1] <= nativeH)
 			sizes.push_back({ s[0], s[1] });
 	}
+	// The desktop size in points is the default resolution on macOS, so it must be a valid mode.
+	if (pointsW >= 800 && pointsH >= 600 && std::find(sizes.begin(), sizes.end(), std::make_pair(pointsW, pointsH)) == sizes.end())
+		sizes.push_back({ pointsW, pointsH });
 	if (std::find(sizes.begin(), sizes.end(), std::make_pair(nativeW, nativeH)) == sizes.end())
 		sizes.push_back({ nativeW, nativeH });
+	std::sort(sizes.begin(), sizes.end());
 
 	for (D3DFORMAT format : { D3DFMT_R5G6B5, D3DFMT_X8R8G8B8 })
 	{
@@ -77,7 +86,7 @@ Direct3D::Direct3D()
 			D3DDISPLAYMODE m;
 			m.Width = (UINT)s.first;
 			m.Height = (UINT)s.second;
-			m.RefreshRate = 60;
+			m.RefreshRate = refresh;
 			m.Format = format;
 			m_modes.push_back(m);
 		}
