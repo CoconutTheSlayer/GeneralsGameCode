@@ -1256,6 +1256,7 @@ private:
 #ifdef FASTER_GCO
 	Int							m_maxGcoRadius;
 	RadiusVec				m_radiusVec;
+	std::vector<Int>		m_radiusMinReach;	///< smallest Chebyshev cell distance of any offset at this radius or beyond
 #endif
 
 protected:

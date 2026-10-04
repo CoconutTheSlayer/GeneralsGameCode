@@ -2776,6 +2776,7 @@ void PartitionManager::shutdown()
 
 #ifdef FASTER_GCO
 	m_radiusVec.clear();
+	m_radiusMinReach.clear();
 #endif
 
 	resetPendingUndoShroudRevealQueue();
@@ -3267,6 +3268,23 @@ void PartitionManager::calcRadiusVec()
 		}
 	}
 
+	// m_radiusMinReach[r] is the smallest max(|x|,|y|) of any offset at radius r or larger.
+	// Once it exceeds the distance from the search cell to the farthest map edge, every
+	// remaining offset lands off the map and the search can stop there.
+	m_radiusMinReach.assign(m_maxGcoRadius+1, INT_MAX);
+	for (Int r = m_maxGcoRadius; r >= 0; --r)
+	{
+		Int reach = (r < m_maxGcoRadius) ? m_radiusMinReach[r+1] : INT_MAX;
+		const OffsetVec& offsets = m_radiusVec[r];
+		for (OffsetVec::const_iterator it = offsets.begin(); it != offsets.end(); ++it)
+		{
+			Int d = maxInt(absInt(it->x), absInt(it->y));
+			if (d < reach)
+				reach = d;
+		}
+		m_radiusMinReach[r] = reach;
+	}
+
 #if defined(RTS_DEBUG)
 	Int total = 0;
 	for (Int i = 0; i <= m_maxGcoRadius; ++i)
@@ -3361,6 +3379,13 @@ Object *PartitionManager::getClosestObjects(
 #else
 	Int maxRadiusLimit = maxRadius;
 #endif
+
+	{
+		// skip radii whose cells all lie off the map
+		Int mapReach = maxInt(maxInt(cellCenterX, m_cellCountX - 1 - cellCenterX), maxInt(cellCenterY, m_cellCountY - 1 - cellCenterY));
+		while (maxRadiusLimit > 0 && m_radiusMinReach[maxRadiusLimit] > mapReach)
+			--maxRadiusLimit;
+	}
 
 	Bool foundAny = false;
 
