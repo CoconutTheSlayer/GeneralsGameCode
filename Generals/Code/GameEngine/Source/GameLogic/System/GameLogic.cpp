@@ -2269,13 +2269,26 @@ void GameLogic::processDestroyList()
 		UpdateModulePtr sleepyUpdatesForThisObject[MAX_SUO];
 		Int numSUO = 0;
 
-		for (std::vector<UpdateModulePtr>::iterator it2 = m_sleepyUpdates.begin(); it2 != m_sleepyUpdates.end(); ++it2)
+		// Collect this object's scheduled updates from its own modules rather than scanning the
+		// whole heap, then sort them by heap index so they are erased in the same order as a heap scan.
+		for (BehaviorModule** b = currentObject->getBehaviorModules(); *b; ++b)
 		{
-			UpdateModulePtr u = *it2;
-			if (u->friend_getObject() == currentObject && numSUO < MAX_SUO)
-			{
-				sleepyUpdatesForThisObject[numSUO++] = u;
-			}
+#ifdef DIRECT_UPDATEMODULE_ACCESS
+			UpdateModulePtr u = (UpdateModulePtr)((*b)->getUpdate());
+#else
+			UpdateModulePtr u = (*b)->getUpdate();
+#endif
+			if (u == NULL || u->friend_getIndexInLogic() < 0)
+				continue;
+
+			DEBUG_ASSERTCRASH(numSUO < MAX_SUO, ("Too many update modules on one object"));
+			if (numSUO >= MAX_SUO)
+				break;
+
+			Int i = numSUO++;
+			for (; i > 0 && sleepyUpdatesForThisObject[i - 1]->friend_getIndexInLogic() > u->friend_getIndexInLogic(); --i)
+				sleepyUpdatesForThisObject[i] = sleepyUpdatesForThisObject[i - 1];
+			sleepyUpdatesForThisObject[i] = u;
 		}
 
 		for (--numSUO; numSUO >= 0; --numSUO)
