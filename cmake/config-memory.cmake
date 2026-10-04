@@ -1,13 +1,5 @@
 # Game Memory features
-# On macOS the replaced global operator new and delete are also used by the system frameworks,
-# which sometimes pair them with malloc and free. The game memory manager then crashes the process,
-# so macOS uses the system allocator through the null memory manager.
-if(APPLE)
-    set(RTS_GAMEMEMORY_DEFAULT OFF)
-else()
-    set(RTS_GAMEMEMORY_DEFAULT ON)
-endif()
-option(RTS_GAMEMEMORY_ENABLE "Enables the memory pool and dynamic memory allocator." ${RTS_GAMEMEMORY_DEFAULT})
+option(RTS_GAMEMEMORY_ENABLE "Enables the memory pool and dynamic memory allocator." ON)
 
 # Disable Game Memory if ASAN is enabled - Game Memory overrides new/delete and interferes with ASAN
 if(RTS_BUILD_OPTION_ASAN)
