@@ -1273,7 +1273,8 @@ protected:
 		PartitionFilter **filters,
 		SimpleObjectIterator *iter,	// if nonnull, append ALL satisfactory objects to the iterator (not just the single closest)
 		Real *closestDistArg,
-		Coord3D *closestVecArg
+		Coord3D *closestVecArg,
+		Bool stopAtFirst = false		// if true, return the first satisfactory object found rather than the closest
 	);
 
 	void shutdown();
@@ -1384,6 +1385,14 @@ public:
 		PartitionFilter **filters = nullptr,
 		Real *closestDist = nullptr,
 		Coord3D *closestDistVec = nullptr
+	);
+
+	/// Return any object within range that passes the filters, not necessarily the closest one.
+	Object *getAnyObjectInRange(
+		const Object *obj,
+		Real maxDist,
+		DistanceCalculationType dc,
+		PartitionFilter **filters = nullptr
 	);
 
 	Real getRelativeAngle2D( const Object *obj, const Object *otherObj );
