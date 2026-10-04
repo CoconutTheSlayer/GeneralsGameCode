@@ -39,10 +39,24 @@ extern "C" IDirect3D8* WINAPI Direct3DCreate8(UINT SDKVersion)
 namespace d3d8metal
 {
 
-// The renderer identifies as a GeForce2 class card without programmable
-// shaders, which routes the game through its fixed function code paths.
+// The renderer identifies as a GeForce3 with vs.1.1 and ps.1.1, which enables the game's shader
+// paths (single pass terrain, animated water, swaying trees). D3D8METAL_SHADERS=0 identifies as a
+// GeForce2 without shaders instead, which keeps the game on its fixed function paths.
 static const DWORD kVendorId = 0x10DE;   // NVIDIA
-static const DWORD kDeviceId = 0x0150;   // GeForce2 GTS
+
+static bool shadersEnabled()
+{
+	static const bool enabled = [] {
+		const char* env = getenv("D3D8METAL_SHADERS");
+		return env == nullptr || atoi(env) != 0;
+	}();
+	return enabled;
+}
+
+static DWORD deviceId()
+{
+	return shadersEnabled() ? 0x0200 /* GeForce3 */ : 0x0150 /* GeForce2 GTS */;
+}
 
 Direct3D::Direct3D()
 {
@@ -109,7 +123,7 @@ HRESULT Direct3D::GetAdapterIdentifier(UINT Adapter, DWORD, D3DADAPTER_IDENTIFIE
 	id->DriverVersion.HighPart = (6 << 16) | 14;
 	id->DriverVersion.LowPart = (10 << 16) | 9999;
 	id->VendorId = kVendorId;
-	id->DeviceId = kDeviceId;
+	id->DeviceId = deviceId();
 	id->SubSysId = 0;
 	id->Revision = 0;
 	id->WHQLLevel = 1;
@@ -257,7 +271,8 @@ void FillCaps(D3DCAPS8* caps)
 		| D3DTEXOPCAPS_MODULATECOLOR_ADDALPHA | D3DTEXOPCAPS_MODULATEINVALPHA_ADDCOLOR | D3DTEXOPCAPS_MODULATEINVCOLOR_ADDALPHA
 		| D3DTEXOPCAPS_DOTPRODUCT3 | D3DTEXOPCAPS_MULTIPLYADD | D3DTEXOPCAPS_LERP;
 	caps->MaxTextureBlendStages = EMULATED_STAGES;
-	caps->MaxSimultaneousTextures = EMULATED_STAGES;
+	// Pixel shaders sample up to 4 textures; fixed function blending evaluates EMULATED_STAGES.
+	caps->MaxSimultaneousTextures = shadersEnabled() ? 4 : EMULATED_STAGES;
 	caps->VertexProcessingCaps = D3DVTXPCAPS_TEXGEN | D3DVTXPCAPS_MATERIALSOURCE7 | D3DVTXPCAPS_DIRECTIONALLIGHTS | D3DVTXPCAPS_POSITIONALLIGHTS
 		| D3DVTXPCAPS_LOCALVIEWER;
 	caps->MaxActiveLights = 8;
@@ -269,9 +284,9 @@ void FillCaps(D3DCAPS8* caps)
 	caps->MaxVertexIndex = 0xFFFFFF;
 	caps->MaxStreams = 4;
 	caps->MaxStreamStride = 255;
-	caps->VertexShaderVersion = 0;
-	caps->MaxVertexShaderConst = 0;
-	caps->PixelShaderVersion = 0;
+	caps->VertexShaderVersion = shadersEnabled() ? D3DVS_VERSION(1, 1) : 0;
+	caps->MaxVertexShaderConst = shadersEnabled() ? 96 : 0;
+	caps->PixelShaderVersion = shadersEnabled() ? D3DPS_VERSION(1, 1) : 0;
 	caps->MaxPixelShaderValue = 1.0f;
 }
 

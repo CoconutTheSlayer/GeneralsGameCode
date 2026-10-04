@@ -112,6 +112,11 @@ on the current display and scales the image to fit.
 - The renderer antialiases with 4 samples per pixel and gives smoothly filtered textures trilinear and 16x
   anisotropic filtering. `D3D8METAL_MSAA=<samples>` and `D3D8METAL_ANISOTROPY=<1-16>` change that (1 turns either
   off).
+- The renderer runs the game's vs.1.1 and ps.1.1 shaders (translated to Metal), so the game uses its shader
+  paths: single pass terrain with cloud shadows, water with soft shores and sparkles, swaying trees. Set
+  `D3D8METAL_SHADERS=0` to report a card without shaders and use the fixed function paths instead.
+- Set `GENERALS_LOOKAT=x,y` to move the camera once to that point of the map (fractions of its size), for
+  screenshots of a particular place in `-skirmish` test runs.
 - Set `D3D8METAL_TRACE=1` to print the fixed function state of every draw call, the textures that are created and
   the shader compile times.
 - The renderer lists every pipeline it builds in `~/Library/Caches/<bundle id>/pipelines.bin` and builds those

@@ -44,6 +44,7 @@ enum VertexAttribute
 enum BufferSlot
 {
 	BUFFER_UNIFORMS = 0,
+	BUFFER_SHADER_CONSTANTS = 1, // vs.1.1 / ps.1.x constant registers
 	BUFFER_STREAM0 = 16,
 };
 
@@ -91,6 +92,11 @@ struct ShaderKey
 	uint8_t pointSprite;    // texture coordinates come from the point sprite
 	uint8_t pointScale;     // point size attenuates with distance
 	StageKey stages[8];
+	// Programmable shaders, by the hash RegisterShaderCode returned; 0 for fixed function.
+	uint32_t pixelShader;
+	uint32_t vertexShader;
+	// Vertex shader inputs: D3DVSDT type + 1 of each input register, 0 when not declared.
+	uint8_t vsInputType[16];
 
 	uint64_t hash() const;
 	bool operator==(const ShaderKey& o) const { return memcmp(this, &o, sizeof(*this)) == 0; }
@@ -100,6 +106,7 @@ struct VertexLayout
 {
 	uint32_t fvf;
 	uint32_t stride;
+	uint8_t vsInputOffset[16]; // vertex shader inputs: byte offset of each declared register
 };
 
 struct BlendKey
@@ -162,6 +169,9 @@ uint64_t HashWords(const void* data, size_t size);
 
 // Returns MSL source with entry points "vs_main" and "fs_main" for the key.
 std::string GenerateShaderSource(const ShaderKey& key);
+// Texture coordinate expression (float2) a 2D texture of 'stage' samples with, from the float4
+// interpolant 'tc', including the projective divide.
+std::string StageTexCoord(const ShaderKey& key, unsigned stage, const std::string& tc);
 
 unsigned FvfVertexSize(DWORD fvf);
 unsigned FvfTexCoordSize(DWORD fvf, unsigned index);

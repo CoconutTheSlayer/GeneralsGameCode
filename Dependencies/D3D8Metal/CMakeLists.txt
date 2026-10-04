@@ -9,7 +9,9 @@ set(D3D8METAL_SRC
     src/internal.h
     src/resources.mm
     src/shadergen.cpp
+    src/shadertrans.cpp
     src/shadergen.h
+    src/shadertrans.h
 )
 
 add_library(d3d8metal STATIC ${D3D8METAL_SRC})

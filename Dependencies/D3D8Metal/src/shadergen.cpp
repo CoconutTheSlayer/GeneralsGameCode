@@ -17,6 +17,7 @@
 */
 
 #include "shadergen.h"
+#include "shadertrans.h"
 
 #include <sstream>
 
@@ -247,10 +248,30 @@ unsigned FvfVertexSize(DWORD fvf)
 	return size;
 }
 
+std::string StageTexCoord(const ShaderKey& key, unsigned stage, const std::string& tc)
+{
+	const StageKey& st = key.stages[stage];
+	if (st.projected && st.transformCount >= 2)
+	{
+		const char* comp = st.transformCount == 2 ? "y" : st.transformCount == 3 ? "z" : "w";
+		return tc + ".xy / " + tc + "." + comp;
+	}
+	return tc + ".xy";
+}
+
 std::string GenerateShaderSource(const ShaderKey& key)
 {
 	std::ostringstream s;
-	s << kCommonDecls;
+	s << kCommonDecls << ShaderHelpers();
+
+	const bool vsMode = key.vertexShader != 0;
+	const bool psMode = key.pixelShader != 0;
+	std::vector<DWORD> vsCode, psCode;
+	ShaderInfo vsInfo;
+	if (vsMode && FindShaderCode(key.vertexShader, vsCode))
+		vsInfo = AnalyzeShader(vsCode);
+	if (psMode)
+		FindShaderCode(key.pixelShader, psCode);
 
 	const DWORD fvf = key.fvf;
 	const bool rhw = (fvf & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW;
@@ -264,6 +285,24 @@ std::string GenerateShaderSource(const ShaderKey& key)
 
 	// Vertex input
 	s << "struct VIn {\n";
+	if (vsMode)
+	{
+		// Vertex shader input registers from the declaration. Integer formats need integer types.
+		bool any = false;
+		for (int r = 0; r < 16; ++r)
+		{
+			unsigned type = key.vsInputType[r];
+			if (type == 0)
+				continue;
+			type -= 1;
+			const char* t = type == D3DVSDT_UBYTE4 ? "uint4" : (type == D3DVSDT_SHORT2 || type == D3DVSDT_SHORT4) ? "int4" : "float4";
+			s << "\t" << t << " v" << r << " [[attribute(" << r << ")]];\n";
+			any = true;
+		}
+		if (!any)
+			s << "\tfloat4 v0 [[attribute(0)]];\n";
+	}
+	else
 	s << (rhw ? "\tfloat4 position [[attribute(0)]];\n" : "\tfloat3 position [[attribute(0)]];\n");
 	if (hasNormal)
 		s << "\tfloat3 normal [[attribute(2)]];\n";
@@ -281,7 +320,7 @@ std::string GenerateShaderSource(const ShaderKey& key)
 	s << "};\n\n";
 
 	int clipCount = 0;
-	for (int i = 0; i < 6; ++i)
+	for (int i = 0; i < 6 && !vsMode; ++i)
 	{
 		if (key.clipPlaneMask & (1 << i))
 			clipCount = i + 1;
@@ -312,8 +351,52 @@ std::string GenerateShaderSource(const ShaderKey& key)
 	//-------------------------------------------------------------------------
 	// Vertex shader
 	//-------------------------------------------------------------------------
-	s << "vertex VOut vs_main(VIn in [[stage_in]], constant VertexUniforms& u [[buffer(0)]]) {\n";
+	s << "vertex VOut vs_main(VIn in [[stage_in]], constant VertexUniforms& u [[buffer(0)]]";
+	if (vsMode)
+		s << ", constant float4* vc [[buffer(1)]]";
+	s << ") {\n";
 	s << "\tVOut out;\n";
+	if (vsMode)
+	{
+		s << "\tfloat4 v[16];\n";
+		for (int r = 0; r < 16; ++r)
+		{
+			if (key.vsInputType[r] != 0)
+				s << "\tv[" << r << "] = float4(in.v" << r << ");\n";
+			else
+				s << "\tv[" << r << "] = float4(0.0, 0.0, 0.0, 1.0);\n";
+		}
+		s << "\tfloat4 oPos = float4(0.0), oFog = float4(0.0), oPts = float4(0.0);\n";
+		s << "\tfloat4 oD[2] = { float4(0.0), float4(0.0) };\n";
+		s << "\tfloat4 oT[8];\n\tfor (int i = 0; i < 8; ++i) oT[i] = float4(0.0, 0.0, 0.0, 1.0);\n";
+		s << TranslateVertexShader(vsCode);
+		s << "\tout.position = oPos;\n";
+		// D3D samples pixels at integer coordinates, Metal at half integers.
+		s << "\tout.position.x += out.position.w / u.viewport.z;\n";
+		s << "\tout.position.y -= out.position.w / u.viewport.w;\n";
+		s << "\tout.viewDepth = oPos.w;\n";
+		s << "\tout.diffuse = saturate(oD[0]);\n";
+		s << "\tout.specular = saturate(oD[1]);\n";
+		if (key.fogEnable && key.tableFog == 0)
+		{
+			if (vsInfo.writesFog)
+				s << "\tout.fog = saturate(oFog.x);\n";
+			else if (key.vertexFog != 0)
+				s << "\tout.fog = fogFactor(" << (int)key.vertexFog << ", abs(oPos.w), u.fogParams);\n";
+			else
+				s << "\tout.fog = 1.0;\n";
+		}
+		else
+			s << "\tout.fog = 1.0;\n";
+		// With a vertex shader, stage i uses texture coordinate set i.
+		for (unsigned i = 0; i < numStages; ++i)
+			s << "\tout.tc" << i << " = oT[" << i << "];\n";
+		if (key.pointList)
+			s << "\tout.pointSize = clamp(" << (vsInfo.writesPointSize ? "oPts.x" : "u.pointParams.x") << ", max(u.pointParams.y, 1.0), max(u.pointParams.z, 1.0));\n";
+		s << "\treturn out;\n}\n\n";
+	}
+	else
+	{
 	if (rhw)
 	{
 		// Pretransformed screen space vertices. Map them through the current
@@ -478,6 +561,7 @@ std::string GenerateShaderSource(const ShaderKey& key)
 	}
 
 	s << "\treturn out;\n}\n\n";
+	}
 
 	//-------------------------------------------------------------------------
 	// Fragment shader
@@ -485,6 +569,8 @@ std::string GenerateShaderSource(const ShaderKey& key)
 	s << "fragment float4 fs_main(FIn in [[stage_in]], constant FragmentUniforms& u [[buffer(0)]]";
 	if (key.pointSprite)
 		s << ", float2 pointCoord [[point_coord]]";
+	if (psMode)
+		s << ", constant float4* pc [[buffer(1)]]";
 	for (unsigned i = 0; i < numStages; ++i)
 	{
 		if (key.stages[i].textureType == 2)
@@ -494,6 +580,10 @@ std::string GenerateShaderSource(const ShaderKey& key)
 		s << ", sampler s" << i << " [[sampler(" << i << ")]]";
 	}
 	s << ") {\n";
+	if (psMode)
+		s << TranslatePixelShader(psCode, key);
+	else
+	{
 	s << "\tfloat4 diffuse = in.diffuse;\n";
 	s << "\tfloat4 specular = in.specular;\n";
 	s << "\tfloat4 current = diffuse;\n";
@@ -511,13 +601,10 @@ std::string GenerateShaderSource(const ShaderKey& key)
 		std::string tc = key.pointSprite ? std::string("float4(pointCoord, 0.0, 1.0)") : "in.tc" + std::to_string(i);
 		if (st.textureType == 2)
 			coord = tc + ".xyz";
-		else if (st.projected && st.transformCount >= 2)
-		{
-			const char* comp = st.transformCount == 2 ? "y" : st.transformCount == 3 ? "z" : "w";
-			coord = tc + ".xy / " + tc + "." + comp;
-		}
-		else
+		else if (key.pointSprite)
 			coord = tc + ".xy";
+		else
+			coord = StageTexCoord(key, i, tc);
 
 		if (st.textureType == 0)
 			s << "\t\tfloat4 tex = float4(1.0);\n";
@@ -559,6 +646,7 @@ std::string GenerateShaderSource(const ShaderKey& key)
 
 	if (key.specularEnable)
 		s << "\tcurrent.rgb = saturate(current.rgb + specular.rgb);\n";
+	}
 
 	if (key.fogEnable)
 	{

@@ -23,6 +23,7 @@
 #define STB_IMAGE_WRITE_STATIC
 #include <stb_image_write.h>
 #include "internal.h"
+#include "shadertrans.h"
 
 #include <win32shim.h>
 
@@ -340,6 +341,8 @@ bool Device::createSwapChainResources()
 
 void Device::resetState()
 {
+	++m_vsConstantsVersion;
+	++m_psConstantsVersion;
 	DeviceState& s = m_state;
 	memset(s.renderStates, 0, sizeof(s.renderStates));
 	DWORD* rs = s.renderStates;
@@ -1466,6 +1469,8 @@ HRESULT Device::ApplyStateBlock(DWORD Token)
 	if (it == m_stateBlocks.end())
 		return D3DERR_INVALIDCALL;
 	m_state = it->second;
+	++m_vsConstantsVersion;
+	++m_psConstantsVersion;
 	return D3D_OK;
 }
 
@@ -1555,9 +1560,80 @@ HRESULT Device::GetCurrentTexturePalette(UINT* PaletteNumber)
 }
 
 //-----------------------------------------------------------------------------
-// Shaders (programmable shaders are not reported in the caps; handles are kept
-// so the game can create and delete them, but drawing uses the FVF path)
+// Shaders (vs.1.1 and ps.1.0 to ps.1.3, translated to MSL in shadertrans.cpp)
 //-----------------------------------------------------------------------------
+namespace
+{
+// Reads the stream 0 part of a vertex declaration and derives the FVF it matches, if any.
+void parseDeclaration(VertexShaderObject& obj)
+{
+	static const unsigned sizes[8] = { 4, 8, 12, 16, 4, 4, 4, 8 }; // D3DVSDT_FLOAT1 .. D3DVSDT_SHORT4
+	unsigned stream = 0, offset = 0;
+	std::vector<std::pair<unsigned, unsigned>> order; // register, type
+	for (DWORD t : obj.declaration)
+	{
+		DWORD kind = (t & D3DVSD_TOKENTYPEMASK) >> D3DVSD_TOKENTYPESHIFT;
+		if (kind == D3DVSD_TOKEN_STREAM)
+		{
+			stream = t & D3DVSD_STREAMNUMBERMASK;
+			offset = 0;
+		}
+		else if (kind == D3DVSD_TOKEN_STREAMDATA && stream == 0)
+		{
+			if (t & 0x10000000)
+			{
+				offset += ((t & D3DVSD_SKIPCOUNTMASK) >> D3DVSD_SKIPCOUNTSHIFT) * 4;
+				continue;
+			}
+			unsigned reg = t & D3DVSD_VERTEXREGMASK;
+			unsigned type = (t & D3DVSD_DATATYPEMASK) >> D3DVSD_DATATYPESHIFT;
+			if (reg >= 16 || type > 7)
+				continue;
+			obj.inputType[reg] = (uint8_t)(type + 1);
+			obj.inputOffset[reg] = (uint8_t)offset;
+			offset += sizes[type];
+			order.push_back({ reg, type });
+		}
+	}
+	obj.stride = offset;
+
+	// FVF equivalent for fixed function vertex processing with a declaration: the registers in the
+	// order and types of the FVF layout.
+	DWORD fvf = 0;
+	size_t i = 0;
+	auto take = [&](unsigned reg, unsigned type) {
+		if (i < order.size() && order[i].first == reg && order[i].second == type)
+		{
+			++i;
+			return true;
+		}
+		return false;
+	};
+	if (!take(D3DVSDE_POSITION, D3DVSDT_FLOAT3))
+		return;
+	fvf |= D3DFVF_XYZ;
+	if (take(D3DVSDE_NORMAL, D3DVSDT_FLOAT3))
+		fvf |= D3DFVF_NORMAL;
+	if (take(D3DVSDE_PSIZE, D3DVSDT_FLOAT1))
+		fvf |= D3DFVF_PSIZE;
+	if (take(D3DVSDE_DIFFUSE, D3DVSDT_D3DCOLOR))
+		fvf |= D3DFVF_DIFFUSE;
+	if (take(D3DVSDE_SPECULAR, D3DVSDT_D3DCOLOR))
+		fvf |= D3DFVF_SPECULAR;
+	unsigned tex = 0;
+	while (i < order.size() && order[i].first == D3DVSDE_TEXCOORD0 + tex && order[i].second <= D3DVSDT_FLOAT4)
+	{
+		unsigned n = order[i].second + 1;
+		fvf |= n == 1 ? D3DFVF_TEXCOORDSIZE1(tex) : n == 2 ? D3DFVF_TEXCOORDSIZE2(tex) : n == 3 ? D3DFVF_TEXCOORDSIZE3(tex) : D3DFVF_TEXCOORDSIZE4(tex);
+		++tex;
+		++i;
+	}
+	if (i != order.size())
+		return;
+	obj.fvf = fvf | (tex << D3DFVF_TEXCOUNT_SHIFT);
+}
+} // namespace
+
 HRESULT Device::CreateVertexShader(CONST DWORD* pDeclaration, CONST DWORD* pFunction, DWORD* pHandle, DWORD)
 {
 	if (pHandle == nullptr)
@@ -1569,11 +1645,19 @@ HRESULT Device::CreateVertexShader(CONST DWORD* pDeclaration, CONST DWORD* pFunc
 		while (*p != D3DVSD_END())
 			obj.declaration.push_back(*p++);
 	}
+	parseDeclaration(obj);
 	if (pFunction)
 	{
 		const DWORD* p = pFunction;
 		while (*p != 0x0000FFFF)
 			obj.function.push_back(*p++);
+		ShaderInfo info = AnalyzeShader(obj.function);
+		if (!info.valid || info.pixel)
+		{
+			fprintf(stderr, "d3d8metal: vertex shader rejected: %s\n", info.error.c_str());
+			return D3DERR_INVALIDCALL;
+		}
+		obj.hash = RegisterShaderCode(obj.function);
 	}
 	DWORD handle = (m_nextShaderHandle++ << 1) | 1; // bit 0 distinguishes handles from FVF codes
 	m_vertexShaders[handle] = obj;
@@ -1606,6 +1690,7 @@ HRESULT Device::SetVertexShaderConstant(DWORD Register, CONST void* pConstantDat
 	if (Register + ConstantCount > 96 || pConstantData == nullptr)
 		return D3DERR_INVALIDCALL;
 	memcpy(m_state.vsConstants[Register], pConstantData, ConstantCount * 16);
+	++m_vsConstantsVersion;
 	return D3D_OK;
 }
 
@@ -1673,6 +1758,14 @@ HRESULT Device::CreatePixelShader(CONST DWORD* pFunction, DWORD* pHandle)
 	const DWORD* p = pFunction;
 	while (*p != 0x0000FFFF)
 		obj.function.push_back(*p++);
+	ShaderInfo info = AnalyzeShader(obj.function);
+	if (!info.valid || !info.pixel)
+	{
+		fprintf(stderr, "d3d8metal: pixel shader rejected: %s\n", info.error.c_str());
+		return D3DERR_INVALIDCALL;
+	}
+	obj.hash = RegisterShaderCode(obj.function);
+	obj.textureCount = info.textureCount;
 	DWORD handle = m_nextShaderHandle++;
 	m_pixelShaders[handle] = obj;
 	*pHandle = handle;
@@ -1704,6 +1797,7 @@ HRESULT Device::SetPixelShaderConstant(DWORD Register, CONST void* pConstantData
 	if (Register + ConstantCount > 8 || pConstantData == nullptr)
 		return D3DERR_INVALIDCALL;
 	memcpy(m_state.psConstants[Register], pConstantData, ConstantCount * 16);
+	++m_psConstantsVersion;
 	return D3D_OK;
 }
 

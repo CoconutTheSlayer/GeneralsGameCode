@@ -42,6 +42,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "formats.h"
@@ -382,6 +383,9 @@ struct EncoderState
 	bool fragmentUniformsValid;
 	VertexUniforms vertexUniforms;
 	FragmentUniforms fragmentUniforms;
+	// Versions of the shader constants last sent (see Device::m_vsConstantsVersion).
+	uint64_t vsConstantsVersion;
+	uint64_t psConstantsVersion;
 
 	void reset();
 };
@@ -391,11 +395,18 @@ struct VertexShaderObject
 	std::vector<DWORD> declaration;
 	std::vector<DWORD> function;
 	DWORD fvf = 0; // FVF equivalent of the declaration, when it has one
+	uint32_t hash = 0; // RegisterShaderCode hash of the function, 0 without one
+	// Stream 0 layout from the declaration: D3DVSDT type + 1 and byte offset per input register.
+	uint8_t inputType[16] = {};
+	uint8_t inputOffset[16] = {};
+	unsigned stride = 0;
 };
 
 struct PixelShaderObject
 {
 	std::vector<DWORD> function;
+	uint32_t hash = 0;
+	unsigned textureCount = 0;
 };
 
 //-----------------------------------------------------------------------------
@@ -618,6 +629,9 @@ private:
 	std::map<DWORD, VertexShaderObject> m_vertexShaders;
 	std::map<DWORD, PixelShaderObject> m_pixelShaders;
 	DWORD m_nextShaderHandle = 1;
+	// Bumped when shader constants change, so draws only send them when needed.
+	uint64_t m_vsConstantsVersion = 1;
+	uint64_t m_psConstantsVersion = 1;
 
 	D3DGAMMARAMP m_gammaRamp {};
 
@@ -629,6 +643,8 @@ private:
 	id<MTLRenderPipelineState> m_lastPipeline = nil;
 	// Pipelines used in earlier runs are listed here and built at startup.
 	FILE* m_pipelineCacheFile = nullptr;
+	// Cached pipelines with programmable shaders, built on first use instead of at startup.
+	std::unordered_set<PipelineKey, PipelineKeyHash> m_deferredCachedKeys;
 	std::unordered_map<uint64_t, id<MTLDepthStencilState>> m_depthStates;
 	std::unordered_map<uint64_t, id<MTLSamplerState>> m_samplers;
 	std::unordered_map<uint64_t, id<MTLTexture>> m_scratchDepth;

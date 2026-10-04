@@ -228,6 +228,8 @@ void EncoderState::reset()
 	}
 	vertexUniformsValid = false;
 	fragmentUniformsValid = false;
+	vsConstantsVersion = 0;
+	psConstantsVersion = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -546,6 +548,31 @@ id<MTLRenderPipelineState> Device::buildPipeline(const PipelineKey& key, id<MTLF
 		vd.attributes[index].bufferIndex = BUFFER_STREAM0;
 		offset += size;
 	};
+	if (key.shader.vertexShader != 0)
+	{
+		// Vertex shader input registers as the declaration laid them out.
+		static const MTLVertexFormat formats[8] = { MTLVertexFormatFloat, MTLVertexFormatFloat2, MTLVertexFormatFloat3,
+			MTLVertexFormatFloat4, MTLVertexFormatUChar4Normalized_BGRA, MTLVertexFormatUChar4, MTLVertexFormatShort2,
+			MTLVertexFormatShort4 };
+		bool any = false;
+		for (int r = 0; r < 16; ++r)
+		{
+			unsigned type = key.shader.vsInputType[r];
+			if (type == 0)
+				continue;
+			vd.attributes[r].format = formats[type - 1];
+			vd.attributes[r].offset = layout.vsInputOffset[r];
+			vd.attributes[r].bufferIndex = BUFFER_STREAM0;
+			any = true;
+		}
+		if (!any)
+		{
+			vd.attributes[0].format = MTLVertexFormatFloat4;
+			vd.attributes[0].offset = 0;
+			vd.attributes[0].bufferIndex = BUFFER_STREAM0;
+		}
+	}
+	else
 	switch (fvf & D3DFVF_POSITION_MASK)
 	{
 	case D3DFVF_XYZRHW: attr(ATTR_POSITION, MTLVertexFormatFloat4, 16); break;
@@ -567,7 +594,7 @@ id<MTLRenderPipelineState> Device::buildPipeline(const PipelineKey& key, id<MTLF
 		attr(ATTR_DIFFUSE, MTLVertexFormatUChar4Normalized_BGRA, 4);
 	if (fvf & D3DFVF_SPECULAR)
 		attr(ATTR_SPECULAR, MTLVertexFormatUChar4Normalized_BGRA, 4);
-	unsigned numTex = (fvf & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+	unsigned numTex = key.shader.vertexShader != 0 ? 0 : (fvf & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 	for (unsigned i = 0; i < numTex; ++i)
 	{
 		unsigned n = FvfTexCoordSize(fvf, i);
@@ -652,7 +679,7 @@ struct PipelineCacheHeader
 };
 
 // Bump when generated shaders change in a way that makes old keys useless.
-const uint32_t kPipelineCacheVersion = 2;
+const uint32_t kPipelineCacheVersion = 3;
 
 PipelineCacheHeader currentCacheHeader()
 {
@@ -697,7 +724,14 @@ void Device::loadPipelineCache()
 			valid = true;
 			PipelineKey key;
 			while (fread(&key, sizeof(key), 1, f) == 1)
-				keys.push_back(key);
+			{
+				// Programmable shaders are created by the game later, so their pipelines are built
+				// when first used; they are already in the file.
+				if (key.shader.pixelShader != 0 || key.shader.vertexShader != 0)
+					m_deferredCachedKeys.insert(key);
+				else
+					keys.push_back(key);
+			}
 		}
 		fclose(f);
 	}
@@ -763,7 +797,7 @@ void Device::loadPipelineCache()
 
 void Device::recordPipeline(const PipelineKey& key)
 {
-	if (m_pipelineCacheFile == nullptr)
+	if (m_pipelineCacheFile == nullptr || m_deferredCachedKeys.count(key) != 0)
 		return;
 	fwrite(&key, sizeof(key), 1, m_pipelineCacheFile);
 	fflush(m_pipelineCacheFile);
@@ -788,11 +822,11 @@ void Device::traceDraw(const ShaderKey& key, D3DPRIMITIVETYPE type) const
 	const DWORD* rs = m_state.renderStates;
 	const D3DMATERIAL8& m = m_state.material;
 	fprintf(stderr, "d3d8metal: draw type %d fvf 0x%X lighting %d ambient 0x%08X colorvertex %d sources d%d a%d e%d"
-		" material d(%.2f %.2f %.2f %.2f) a(%.2f %.2f %.2f) e(%.2f %.2f %.2f) s(%.2f %.2f %.2f) specular %d\n",
+		" material d(%.2f %.2f %.2f %.2f) a(%.2f %.2f %.2f) e(%.2f %.2f %.2f) s(%.2f %.2f %.2f) specular %d vs %08x ps %08x\n",
 		(int)type, (unsigned)key.fvf, key.lighting, (unsigned)rs[D3DRS_AMBIENT], key.colorVertex, key.diffuseSource,
 		key.ambientSource, key.emissiveSource, m.Diffuse.r, m.Diffuse.g, m.Diffuse.b, m.Diffuse.a, m.Ambient.r,
 		m.Ambient.g, m.Ambient.b, m.Emissive.r, m.Emissive.g, m.Emissive.b, m.Specular.r, m.Specular.g, m.Specular.b,
-		key.specularEnable);
+		key.specularEnable, key.vertexShader, key.pixelShader);
 	for (int i = 0; i < MAX_LIGHTS; ++i)
 	{
 		if (!key.lightTypes[i])
@@ -819,8 +853,23 @@ void Device::traceDraw(const ShaderKey& key, D3DPRIMITIVETYPE type) const
 void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 {
 	ok = false;
-	DWORD fvf = currentFvf(m_state, m_vertexShaders);
-	if (fvf == 0 || (fvf & D3DFVF_POSITION_MASK) == 0)
+	const VertexShaderObject* vso = nullptr;
+	if (m_state.vertexShader & 1)
+	{
+		auto it = m_vertexShaders.find(m_state.vertexShader);
+		if (it != m_vertexShaders.end())
+			vso = &it->second;
+	}
+	const bool vsMode = vso != nullptr && vso->hash != 0;
+	const PixelShaderObject* pso = nullptr;
+	if (m_state.pixelShader != 0)
+	{
+		auto it = m_pixelShaders.find(m_state.pixelShader);
+		if (it != m_pixelShaders.end())
+			pso = &it->second;
+	}
+	DWORD fvf = vsMode ? 0 : currentFvf(m_state, m_vertexShaders);
+	if (!vsMode && (fvf == 0 || (fvf & D3DFVF_POSITION_MASK) == 0))
 		return;
 	const DWORD* rs = m_state.renderStates;
 	PipelineKey ctx;
@@ -829,7 +878,7 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 		ShaderKey& key = ctx.shader;
 		key.fvf = fvf & ~D3DFVF_LASTBETA_UBYTE4;
 		bool rhw = (fvf & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW;
-		key.lighting = (!rhw && rs[D3DRS_LIGHTING]) ? 1 : 0;
+		key.lighting = (!rhw && !vsMode && rs[D3DRS_LIGHTING]) ? 1 : 0;
 		if (key.lighting)
 		{
 			key.localViewer = rs[D3DRS_LOCALVIEWER] ? 1 : 0;
@@ -855,11 +904,31 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 		}
 		key.alphaFunc = rs[D3DRS_ALPHATESTENABLE] ? (uint8_t)rs[D3DRS_ALPHAFUNC] : (uint8_t)D3DCMP_ALWAYS;
 		key.flatShade = rs[D3DRS_SHADEMODE] == D3DSHADE_FLAT ? 1 : 0;
-		key.clipPlaneMask = rhw ? 0 : (uint8_t)(rs[D3DRS_CLIPPLANEENABLE] & 0x3F);
+		key.clipPlaneMask = (rhw || vsMode) ? 0 : (uint8_t)(rs[D3DRS_CLIPPLANEENABLE] & 0x3F);
 		key.pointList = type == D3DPT_POINTLIST ? 1 : 0;
 		key.pointSprite = (key.pointList && rs[D3DRS_POINTSPRITEENABLE]) ? 1 : 0;
 		key.pointScale = (key.pointList && rs[D3DRS_POINTSCALEENABLE]) ? 1 : 0;
 		unsigned numStages = 0;
+		auto stageTexture = [&](unsigned i, StageKey& st) {
+			const DWORD* ts = m_state.stageStates[i];
+			st.texCoordIndex = (uint8_t)(ts[D3DTSS_TEXCOORDINDEX] & 0xFFFF);
+			st.texGen = (uint8_t)((ts[D3DTSS_TEXCOORDINDEX] >> 16) & 0xF);
+			DWORD ttff = ts[D3DTSS_TEXTURETRANSFORMFLAGS];
+			st.transformCount = (uint8_t)(ttff & 0xFF);
+			st.projected = (ttff & D3DTTFF_PROJECTED) ? 1 : 0;
+			IDirect3DBaseTexture8* tex = m_state.textures[i];
+			st.textureType = tex == nullptr ? 0 : (tex->GetType() == D3DRTYPE_CUBETEXTURE ? 2 : 1);
+		};
+		if (pso)
+		{
+			// The pixel shader replaces the stage operations; the stages still provide textures,
+			// samplers and texture coordinates.
+			numStages = pso->textureCount;
+			for (unsigned i = 0; i < numStages; ++i)
+				stageTexture(i, key.stages[i]);
+			key.pixelShader = pso->hash;
+		}
+		else
 		for (unsigned i = 0; i < EMULATED_STAGES; ++i)
 		{
 			const DWORD* ts = m_state.stageStates[i];
@@ -885,6 +954,17 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 			++numStages;
 		}
 		key.numStages = (uint8_t)numStages;
+		if (vsMode)
+		{
+			// The vertex shader writes texture coordinate set i for stage i.
+			for (unsigned i = 0; i < numStages; ++i)
+			{
+				key.stages[i].texCoordIndex = (uint8_t)i;
+				key.stages[i].texGen = 0;
+			}
+			key.vertexShader = vso->hash;
+			memcpy(key.vsInputType, vso->inputType, sizeof(key.vsInputType));
+		}
 
 		BlendKey& blend = ctx.blend;
 		if (rs[D3DRS_ALPHABLENDENABLE])
@@ -924,7 +1004,13 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 
 		ctx.layout.fvf = key.fvf;
 		ctx.layout.stride = m_state.streams[0].stride;
-		if (ctx.layout.stride == 0)
+		if (vsMode)
+		{
+			memcpy(ctx.layout.vsInputOffset, vso->inputOffset, sizeof(ctx.layout.vsInputOffset));
+			if (ctx.layout.stride == 0)
+				ctx.layout.stride = vso->stride;
+		}
+		else if (ctx.layout.stride == 0)
 			ctx.layout.stride = FvfVertexSize(key.fvf);
 	}
 
@@ -1126,6 +1212,16 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 		[enc setFragmentBytes:&fu length:sizeof(fu) atIndex:BUFFER_UNIFORMS];
 		es.fragmentUniforms = fu;
 		es.fragmentUniformsValid = true;
+	}
+	if (vsMode && es.vsConstantsVersion != m_vsConstantsVersion)
+	{
+		[enc setVertexBytes:m_state.vsConstants length:sizeof(m_state.vsConstants) atIndex:BUFFER_SHADER_CONSTANTS];
+		es.vsConstantsVersion = m_vsConstantsVersion;
+	}
+	if (pso && es.psConstantsVersion != m_psConstantsVersion)
+	{
+		[enc setFragmentBytes:m_state.psConstants length:sizeof(m_state.psConstants) atIndex:BUFFER_SHADER_CONSTANTS];
+		es.psConstantsVersion = m_psConstantsVersion;
 	}
 
 	// Textures

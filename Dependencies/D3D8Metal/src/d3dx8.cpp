@@ -22,6 +22,7 @@
 
 #include "formats.h"
 #include "shadergen.h"
+#include "shadertrans.h"
 
 #include <cmath>
 #include <string>
@@ -162,17 +163,59 @@ extern "C" HRESULT WINAPI D3DXGetErrorStringA(HRESULT hr, LPSTR pBuffer, UINT Bu
 	return D3D_OK;
 }
 
-extern "C" HRESULT WINAPI D3DXAssembleShader(LPCVOID, UINT, DWORD, LPD3DXBUFFER* ppConstants, LPD3DXBUFFER* ppCompiledShader, LPD3DXBUFFER* ppCompilationErrors)
+namespace
 {
-	// Programmable shaders are not supported by the Metal backend yet; the game
-	// falls back to fixed function rendering when assembly fails.
+// ID3DXBuffer holding a copy of some bytes.
+class Buffer : public ID3DXBuffer
+{
+public:
+	Buffer(const void* data, size_t size) : m_data((const uint8_t*)data, (const uint8_t*)data + size) {}
+	virtual ~Buffer() {}
+	STDMETHOD(QueryInterface)(REFIID, LPVOID* ppv) override
+	{
+		if (ppv)
+			*ppv = nullptr;
+		return E_NOINTERFACE;
+	}
+	STDMETHOD_(ULONG, AddRef)() override { return ++m_refs; }
+	STDMETHOD_(ULONG, Release)() override
+	{
+		ULONG refs = --m_refs;
+		if (refs == 0)
+			delete this;
+		return refs;
+	}
+	STDMETHOD_(LPVOID, GetBufferPointer)() override { return m_data.data(); }
+	STDMETHOD_(DWORD, GetBufferSize)() override { return (DWORD)m_data.size(); }
+
+private:
+	std::vector<uint8_t> m_data;
+	ULONG m_refs = 1;
+};
+} // namespace
+
+extern "C" HRESULT WINAPI D3DXAssembleShader(LPCVOID pSrcData, UINT SrcDataLen, DWORD, LPD3DXBUFFER* ppConstants, LPD3DXBUFFER* ppCompiledShader, LPD3DXBUFFER* ppCompilationErrors)
+{
 	if (ppConstants)
 		*ppConstants = nullptr;
 	if (ppCompiledShader)
 		*ppCompiledShader = nullptr;
 	if (ppCompilationErrors)
 		*ppCompilationErrors = nullptr;
-	return E_NOTIMPL;
+	if (pSrcData == nullptr)
+		return D3DERR_INVALIDCALL;
+	std::vector<DWORD> code;
+	std::string errors;
+	if (!d3d8metal::AssembleShader((const char*)pSrcData, SrcDataLen, code, errors))
+	{
+		fprintf(stderr, "d3d8metal: D3DXAssembleShader failed:\n%s", errors.c_str());
+		if (ppCompilationErrors)
+			*ppCompilationErrors = new Buffer(errors.c_str(), errors.size() + 1);
+		return D3DERR_INVALIDCALL;
+	}
+	if (ppCompiledShader)
+		*ppCompiledShader = new Buffer(code.data(), code.size() * sizeof(DWORD));
+	return D3D_OK;
 }
 
 //-----------------------------------------------------------------------------
