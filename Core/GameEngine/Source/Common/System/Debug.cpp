@@ -60,6 +60,9 @@
 #endif
 #include "Common/CommandLine.h"
 #include "Common/Debug.h"
+#if defined(__APPLE__)
+#include <win32shim.h>
+#endif
 #include "Common/CRCDebug.h"
 #include "Common/UnicodeString.h"
 #include "GameClient/ClientInstance.h"
@@ -377,11 +380,19 @@ void DebugInit(int flags)
 			return;
 
 		char dirbuf[ _MAX_PATH ];
+#if defined(__APPLE__)
+		// Next to the session logs; the executable is inside the application bundle.
+		if (const char *logDir = Win32Shim_GetLogDirectory())
+			snprintf(dirbuf, sizeof(dirbuf), "%s/", logDir);
+		else
+			strcpy(dirbuf, "./");
+#else
 		::GetModuleFileName( nullptr, dirbuf, sizeof( dirbuf ) );
 		if (char *pEnd = strrchr(dirbuf, '\\'))
 		{
 			*(pEnd + 1) = 0;
 		}
+#endif
 
 		static_assert(ARRAY_SIZE(theLogFileNamePrev) >= ARRAY_SIZE(dirbuf), "Incorrect array size");
 		strcpy(theLogFileNamePrev, dirbuf);

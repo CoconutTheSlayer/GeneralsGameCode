@@ -26,6 +26,14 @@ struct SDL_Window;
 // Initializes SDL.
 void Win32Shim_Initialize();
 
+// Copies stdout and stderr into a new log file in ~/Library/Logs/Command and Conquer Generals
+// (<appName>-<date>-<pid>.log, with <appName>-latest.log pointing at it), writes a header with
+// the version and system, and appends a stack trace when the game crashes. The newest 20 logs of
+// each game are kept. GENERALS_NO_LOG=1 turns it off. Call after Win32Shim_SetCommandLine.
+void Win32Shim_StartSessionLog(const char* appName, const char* version);
+// Folder of the session logs (created when needed), or null if HOME is not set.
+const char* Win32Shim_GetLogDirectory();
+
 // Finds the game data folders (environment variables GENERALS_ZH_PATH /
 // GENERALS_PATH, saved settings, the working directory or a folder picker),
 // records them in the emulated registry and changes the working directory to the

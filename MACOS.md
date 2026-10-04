@@ -33,7 +33,7 @@ Homebrew (set `MACOS_APP_NO_BUNDLE_LIBS=1` to skip this).
 
 Other presets:
 
-- `macos-releaselog`: release build with the game's debug log (`generalszhDebugLogFile.txt` next to the executable)
+- `macos-releaselog`: release build with the game's debug log (`DebugLogFile.txt` in the log folder, see Troubleshooting)
 - `macos-debug`: debug build
 
 ## Game data
@@ -99,6 +99,12 @@ on the current display and scales the image to fit.
 
 ## Troubleshooting
 
+- Every run writes a session log to `~/Library/Logs/Command and Conquer Generals/` (also shown in Console.app):
+  `ZeroHour-<date>-<pid>.log` or `Generals-<date>-<pid>.log`, with `ZeroHour-latest.log` and `Generals-latest.log`
+  pointing at the newest. It starts with the version, macOS, CPU, GPU and data folders, holds everything the game
+  prints, and ends with a stack trace if the game crashes (the full crash report is in
+  `~/Library/Logs/DiagnosticReports`). Output still reaches the terminal or a redirection. The newest 20 logs of
+  each game are kept; set `GENERALS_NO_LOG=1` to turn the session log off.
 - *"Technical Difficulties" on start*: the game data could not be read. Check that `INIZH.big` is in the Zero
   Hour folder and `INI.big` in the Generals folder, or delete `registry.txt` to pick the folders again.
 - Set `GENERALS_NO_MESSAGEBOX=1` to print message boxes to the terminal instead of showing them.
@@ -108,7 +114,8 @@ on the current display and scales the image to fit.
 - The renderer lists every pipeline it builds in `~/Library/Caches/<bundle id>/pipelines.bin` and builds those
   pipelines at startup, so shader compilation does not stall the game the first time a unit or effect appears.
   Delete the file to start over, or set `D3D8METAL_PIPELINE_CACHE` to another file (empty to disable it).
-- The `macos-releaselog` preset writes the game's debug log, which names missing INI files and failed assertions.
+- The `macos-releaselog` preset writes the game's debug log, which names missing INI files and failed assertions,
+  to `DebugLogFile.txt` in the log folder and into the session log.
 
 ## Tests
 

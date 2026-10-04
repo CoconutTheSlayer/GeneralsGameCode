@@ -944,6 +944,7 @@ GameEngine *CreateGameEngine()
 
 #if defined(__APPLE__)
 #include <win32shim.h>
+#include "gitinfo.h"
 
 // macOS entry point: set up the Win32 shim and run the regular WinMain.
 //
@@ -964,6 +965,9 @@ int main(int argc, char** argv)
 {
 	installCriticalSections();
 	Win32Shim_SetCommandLine(argc, argv);
+	char version[128];
+	snprintf(version, sizeof(version), "%s%s (%s)", GitShortSHA1, GitUncommittedChanges ? "+changes" : "", GitCommitDate);
+	Win32Shim_StartSessionLog("Generals", version);
 	Win32Shim_Initialize();
 	Win32Shim_LocateGameData(false);
 	return WinMain(GetModuleHandle(nullptr), nullptr, GetCommandLine(), SW_SHOW);

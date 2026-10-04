@@ -221,6 +221,8 @@ bool Device::initialize()
 
 	if (!createSwapChainResources())
 		return false;
+	fprintf(stderr, "d3d8metal: %s, %ux%u %s\n", [[m_mtlDevice name] UTF8String], m_params.BackBufferWidth, m_params.BackBufferHeight,
+		m_params.Windowed ? "windowed" : "fullscreen");
 	resetState();
 	loadPipelineCache();
 	g_currentDevice = this;

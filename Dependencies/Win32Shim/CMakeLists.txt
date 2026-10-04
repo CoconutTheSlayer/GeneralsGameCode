@@ -3,6 +3,7 @@ set(WIN32SHIM_SRC
     src/cursor.cpp
     src/gdi.cpp
     src/kernel.cpp
+    src/log.cpp
     src/registry.cpp
     src/user.cpp
 )
