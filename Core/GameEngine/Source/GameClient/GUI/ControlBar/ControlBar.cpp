@@ -909,6 +909,7 @@ ControlBar::ControlBar()
 	m_genStarOff = nullptr;
 	m_genStarOn  = nullptr;
 	m_UIDirty    = FALSE;
+	m_lastLogicRefreshFrame = ~0u;
 	//	m_controlBarResizer = nullptr;
 	m_buildUpClockColor = GameMakeColor(0,0,0,100);
 	m_commandBarBorderColor = GameMakeColor(0,0,0,100);
@@ -1448,7 +1449,15 @@ void ControlBar::update()
 		hideBuildTooltipLayout();
 	}*/
 
-	updateSpecialPowerShortcut();
+	// The client updates once per rendered frame, which can be several times per logic frame.
+	// Command availability only changes with the logic or the selection, so the costly
+	// refreshes below only run when either of those has changed.
+	const UnsignedInt logicFrame = TheGameLogic->getFrame();
+	const Bool refreshCommands = m_UIDirty || logicFrame != m_lastLogicRefreshFrame;
+	m_lastLogicRefreshFrame = logicFrame;
+
+	if (refreshCommands)
+		updateSpecialPowerShortcut();
 	// if we're an observer, don't do the complete update
 	if( m_isObserverCommandBar)
 	{
@@ -1533,7 +1542,7 @@ void ControlBar::update()
 	}
 
 	// enable/disable the beacon button depending on if the max has been reached
-	if (ThePlayerList && ThePlayerList->getLocalPlayer() && ThePlayerList->getLocalPlayer()->getPlayerTemplate())
+	if (refreshCommands && ThePlayerList && ThePlayerList->getLocalPlayer() && ThePlayerList->getLocalPlayer()->getPlayerTemplate())
 	{
 		Int count;
 		const ThingTemplate *thing = TheThingFactory->findTemplate( ThePlayerList->getLocalPlayer()->getPlayerTemplate()->getBeaconTemplate() );
@@ -1560,7 +1569,8 @@ void ControlBar::update()
 	if( m_currContext == CB_CONTEXT_MULTI_SELECT )
 	{
 
-		updateContextMultiSelect();
+		if (refreshCommands)
+			updateContextMultiSelect();
 		return;
 
 	}

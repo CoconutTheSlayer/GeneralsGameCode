@@ -889,6 +889,7 @@ protected:
 	ControlBarStages m_currentControlBarStage;
 
 	Bool m_UIDirty;																///< the context UI must be re-evaluated
+	UnsignedInt m_lastLogicRefreshFrame;						///< logic frame of the last per-frame command availability refresh
 
 	CommandButton *m_commandButtons;							///< list of possible commands to have
 	CommandSet *m_commandSets;										///< list of all command sets defined
