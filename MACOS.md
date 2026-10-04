@@ -109,6 +109,9 @@ on the current display and scales the image to fit.
   Hour folder and `INI.big` in the Generals folder, or delete `registry.txt` to pick the folders again.
 - Set `GENERALS_NO_MESSAGEBOX=1` to print message boxes to the terminal instead of showing them.
 - Set `GENERALS_AUDIO_DUMP=<file>` to record the mixed audio output as raw 32 bit float stereo samples.
+- The renderer antialiases with 4 samples per pixel and gives smoothly filtered textures trilinear and 16x
+  anisotropic filtering. `D3D8METAL_MSAA=<samples>` and `D3D8METAL_ANISOTROPY=<1-16>` change that (1 turns either
+  off).
 - Set `D3D8METAL_TRACE=1` to print the fixed function state of every draw call, the textures that are created and
   the shader compile times.
 - The renderer lists every pipeline it builds in `~/Library/Caches/<bundle id>/pipelines.bin` and builds those

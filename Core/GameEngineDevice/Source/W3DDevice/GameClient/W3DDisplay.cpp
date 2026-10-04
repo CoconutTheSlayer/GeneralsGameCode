@@ -2968,8 +2968,11 @@ VideoBuffer*	W3DDisplay::createVideoBuffer()
 		}
 	}
 	// on low mem machines, render every video in 16bit
+#if !defined(__APPLE__)
+	// The Metal renderer identifies as a GeForce2 but has no reason to save video memory.
 	if (TheGameLODManager && (!TheGameLODManager->didMemPass() || W3DShaderManager::getChipset() == DC_GEFORCE2))
 		format = VideoBuffer::TYPE_R5G6B5;
+#endif
 
 	W3DVideoBuffer *buffer = NEW W3DVideoBuffer( format );
 

@@ -3177,6 +3177,12 @@ StaticGameLODLevel W3DShaderManager::getGPUPerformanceIndex()
 	ChipsetType	chipType;
 	StaticGameLODLevel detailSetting=STATIC_GAME_LOD_LOW;	//assume lowest settings for now.
 
+#if defined(__APPLE__)
+	// Every Mac that runs the Metal renderer handles the highest detail; the GeForce2 it identifies as
+	// only selects the fixed function code paths.
+	return STATIC_GAME_LOD_VERY_HIGH;
+#endif
+
 	if ((chipType=getChipset()) != DC_UNKNOWN)
 	{
 		//a known video card so we can make some assumptions

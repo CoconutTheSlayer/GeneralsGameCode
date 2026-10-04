@@ -108,6 +108,8 @@ struct TextureStorage
 	~TextureStorage();
 
 	id<MTLTexture> texture = nil;
+	// Multisampled color the back buffer renders into; 'texture' then holds the resolved image.
+	id<MTLTexture> msaaTexture = nil;
 	D3DFORMAT format = D3DFMT_UNKNOWN;
 	// Layout of the GPU texture; 16 bit formats are stored natively.
 	GpuFormat gpuFormat = GpuFormat::BGRA8;
@@ -630,6 +632,13 @@ private:
 	std::unordered_map<uint64_t, id<MTLDepthStencilState>> m_depthStates;
 	std::unordered_map<uint64_t, id<MTLSamplerState>> m_samplers;
 	std::unordered_map<uint64_t, id<MTLTexture>> m_scratchDepth;
+	// Samples per pixel of the back buffer (D3D8METAL_MSAA, default 4) and its depth buffer.
+	unsigned m_msaaSamples = 1;
+	// Anisotropy for smoothly filtered mipmapped textures (D3D8METAL_ANISOTROPY, default 16, 1 keeps
+	// the game's filters).
+	unsigned m_filterUpgrade = 1;
+	id<MTLTexture> m_msaaDepth = nil;
+	unsigned renderTargetSamples() const;
 	id<MTLRenderPipelineState> m_presentPipeline = nil;
 	id<MTLRenderPipelineState> m_clearPipelines[16] {};
 	id<MTLDepthStencilState> m_clearDepthStates[4] {};

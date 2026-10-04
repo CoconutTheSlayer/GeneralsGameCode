@@ -110,7 +110,8 @@ struct BlendKey
 	uint8_t op;
 	uint8_t writeMask;   // MTLColorWriteMask bits
 	uint8_t hasDepth;
-	uint8_t pad[2];
+	uint8_t sampleCount; // samples per pixel of the render target (0 or 1 without multisampling)
+	uint8_t pad;
 };
 
 // Uniform blocks; layouts must match the MSL declarations in shadergen.cpp.

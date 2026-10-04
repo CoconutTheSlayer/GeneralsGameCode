@@ -98,6 +98,16 @@ Device::Device(Direct3D* d3d, HWND window, DWORD behaviorFlags, D3DPRESENT_PARAM
 	m_d3d->AddRef();
 	m_mtlDevice = d3d->m_mtlDevice;
 	m_native16 = [m_mtlDevice supportsFamily:MTLGPUFamilyApple1];
+	// Antialias the back buffer. D3D8METAL_MSAA sets the samples per pixel (1 turns it off).
+	{
+		const char* env = getenv("D3D8METAL_MSAA");
+		unsigned samples = env ? (unsigned)std::max(1, atoi(env)) : 4;
+		while (samples > 1 && ![m_mtlDevice supportsTextureSampleCount:samples])
+			samples /= 2;
+		m_msaaSamples = std::max(1u, samples);
+		const char* aniso = getenv("D3D8METAL_ANISOTROPY");
+		m_filterUpgrade = (unsigned)std::clamp(aniso ? atoi(aniso) : 16, 1, 16);
+	}
 	m_frameSemaphore = dispatch_semaphore_create(3);
 	for (int i = 0; i < 256; ++i)
 	{
@@ -163,8 +173,8 @@ bool Device::initialize()
 	desc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
 	m_presentPipeline = [m_mtlDevice newRenderPipelineStateWithDescriptor:desc error:&error];
 
-	// Clear pipelines: index bit 0 = color write, bit 1 = has depth attachment.
-	for (int i = 0; i < 4; ++i)
+	// Clear pipelines: index bit 0 = color write, bit 1 = has depth attachment, bit 2 = multisampled.
+	for (int i = 0; i < 8; ++i)
 	{
 		MTLRenderPipelineDescriptor* cd = [MTLRenderPipelineDescriptor new];
 		cd.vertexFunction = [library newFunctionWithName:@"clear_vs"];
@@ -176,6 +186,8 @@ bool Device::initialize()
 			cd.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 			cd.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 		}
+		if (i & 4)
+			cd.rasterSampleCount = m_msaaSamples;
 		m_clearPipelines[i] = [m_mtlDevice newRenderPipelineStateWithDescriptor:cd error:&error];
 	}
 	// Clear depth states: bit 0 = write depth, bit 1 = write stencil.
@@ -284,6 +296,18 @@ bool Device::createSwapChainResources()
 	auto backStorage = createStorage(m_params.BackBufferWidth, m_params.BackBufferHeight, 1, 1, D3DUSAGE_RENDERTARGET, m_params.BackBufferFormat, D3DPOOL_DEFAULT);
 	if (backStorage == nullptr)
 		return false;
+	if (m_msaaSamples > 1)
+	{
+		MTLTextureDescriptor* td = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+			width:m_params.BackBufferWidth height:m_params.BackBufferHeight mipmapped:NO];
+		td.textureType = MTLTextureType2DMultisample;
+		td.sampleCount = m_msaaSamples;
+		td.usage = MTLTextureUsageRenderTarget;
+		td.storageMode = MTLStorageModePrivate;
+		backStorage->msaaTexture = [m_mtlDevice newTextureWithDescriptor:td];
+		td.pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+		m_msaaDepth = m_params.EnableAutoDepthStencil ? [m_mtlDevice newTextureWithDescriptor:td] : nil;
+	}
 	Surface* back = new Surface(this, backStorage);
 	if (m_backBuffer)
 		m_backBuffer->Release();

@@ -233,20 +233,38 @@ void EncoderState::reset()
 //-----------------------------------------------------------------------------
 // Render passes
 //-----------------------------------------------------------------------------
+unsigned Device::renderTargetSamples() const
+{
+	return m_renderTarget->m_storage->msaaTexture != nil ? m_msaaSamples : 1;
+}
+
 id<MTLTexture> Device::activeDepthTexture()
 {
 	if (m_depthStencil == nullptr || m_depthStencil->m_storage->texture == nil)
 		return nil;
 	unsigned w = m_renderTarget->width(), h = m_renderTarget->height();
-	if (m_depthStencil->width() == w && m_depthStencil->height() == h)
+	unsigned samples = renderTargetSamples();
+	bool sameSize = m_depthStencil->width() == w && m_depthStencil->height() == h;
+	if (samples > 1)
+	{
+		// The multisampled back buffer pairs with the multisampled copy of the automatic depth buffer.
+		if (m_depthStencil == m_depthBuffer && sameSize && m_msaaDepth != nil)
+			return m_msaaDepth;
+	}
+	else if (sameSize)
 		return m_depthStencil->m_storage->texture;
 	// D3D allows a depth buffer larger than the render target, Metal requires
-	// matching sizes. Use a depth buffer of the render target size instead.
-	uint64_t key = ((uint64_t)w << 32) | h;
+	// matching sizes and sample counts. Use a depth buffer that matches instead.
+	uint64_t key = ((uint64_t)w << 34) | ((uint64_t)h << 4) | samples;
 	auto it = m_scratchDepth.find(key);
 	if (it != m_scratchDepth.end())
 		return it->second;
 	MTLTextureDescriptor* td = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8 width:w height:h mipmapped:NO];
+	if (samples > 1)
+	{
+		td.textureType = MTLTextureType2DMultisample;
+		td.sampleCount = samples;
+	}
 	td.usage = MTLTextureUsageRenderTarget;
 	td.storageMode = MTLStorageModePrivate;
 	id<MTLTexture> depth = [m_mtlDevice newTextureWithDescriptor:td];
@@ -261,10 +279,21 @@ id<MTLRenderCommandEncoder> Device::renderEncoder()
 
 	TextureStorage& rt = *m_renderTarget->m_storage;
 	MTLRenderPassDescriptor* pass = [MTLRenderPassDescriptor renderPassDescriptor];
-	pass.colorAttachments[0].texture = rt.texture;
-	pass.colorAttachments[0].slice = m_renderTarget->m_face;
-	pass.colorAttachments[0].level = m_renderTarget->m_level;
-	pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+	if (rt.msaaTexture != nil)
+	{
+		// Keep the samples for the next pass and resolve them into the texture after every pass, so
+		// presentation, readbacks and screenshots see the finished image.
+		pass.colorAttachments[0].texture = rt.msaaTexture;
+		pass.colorAttachments[0].resolveTexture = rt.texture;
+		pass.colorAttachments[0].storeAction = MTLStoreActionStoreAndMultisampleResolve;
+	}
+	else
+	{
+		pass.colorAttachments[0].texture = rt.texture;
+		pass.colorAttachments[0].slice = m_renderTarget->m_face;
+		pass.colorAttachments[0].level = m_renderTarget->m_level;
+		pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+	}
 	if (m_pendingClearFlags & D3DCLEAR_TARGET)
 	{
 		pass.colorAttachments[0].loadAction = MTLLoadActionClear;
@@ -307,7 +336,7 @@ void Device::drawClearQuad(DWORD flags, D3DCOLOR color, float z, DWORD stencil, 
 {
 	id<MTLRenderCommandEncoder> enc = renderEncoder();
 	bool hasDepth = activeDepthTexture() != nil;
-	int pipe = ((flags & D3DCLEAR_TARGET) ? 1 : 0) | (hasDepth ? 2 : 0);
+	int pipe = ((flags & D3DCLEAR_TARGET) ? 1 : 0) | (hasDepth ? 2 : 0) | (renderTargetSamples() > 1 ? 4 : 0);
 	int ds = hasDepth ? (((flags & D3DCLEAR_ZBUFFER) ? 1 : 0) | ((flags & D3DCLEAR_STENCIL) ? 2 : 0)) : 0;
 	struct
 	{
@@ -406,6 +435,14 @@ id<MTLSamplerState> Device::samplerFor(DWORD stage)
 	DWORD aniso = std::min<DWORD>(16, std::max<DWORD>(1, ts[D3DTSS_MAXANISOTROPY]));
 	if (mag != D3DTEXF_ANISOTROPIC && min != D3DTEXF_ANISOTROPIC)
 		aniso = 1;
+	if (min != D3DTEXF_POINT && mip != D3DTEXF_NONE && m_filterUpgrade > 1)
+	{
+		// The game picks filters for 2001 hardware (the terrain uses bilinear filtering with the nearest
+		// mip level). Smoothly filtered mipmapped textures get trilinear and anisotropic filtering, which
+		// keeps the ground sharp and steady at the low camera angles of a zoomed out view.
+		mip = D3DTEXF_LINEAR;
+		aniso = std::max<DWORD>(aniso, m_filterUpgrade);
+	}
 	DWORD border = ts[D3DTSS_BORDERCOLOR];
 	uint64_t key = (uint64_t)mag | ((uint64_t)min << 4) | ((uint64_t)mip << 8) | ((uint64_t)ts[D3DTSS_ADDRESSU] << 12) | ((uint64_t)ts[D3DTSS_ADDRESSV] << 16)
 		| ((uint64_t)ts[D3DTSS_ADDRESSW] << 20) | ((uint64_t)aniso << 24) | ((uint64_t)(((border >> 24) & 0xFF) > 127 ? 1 : 0) << 32)
@@ -561,6 +598,7 @@ id<MTLRenderPipelineState> Device::buildPipeline(const PipelineKey& key, id<MTLF
 		pd.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 		pd.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 	}
+	pd.rasterSampleCount = std::max<unsigned>(blend.sampleCount, 1);
 	pd.inputPrimitiveTopology = key.shader.pointList ? MTLPrimitiveTopologyClassPoint : MTLPrimitiveTopologyClassUnspecified;
 
 	NSError* error = nil;
@@ -614,7 +652,7 @@ struct PipelineCacheHeader
 };
 
 // Bump when generated shaders change in a way that makes old keys useless.
-const uint32_t kPipelineCacheVersion = 1;
+const uint32_t kPipelineCacheVersion = 2;
 
 PipelineCacheHeader currentCacheHeader()
 {
@@ -882,6 +920,7 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 			mask &= ~MTLColorWriteMaskAlpha;
 		blend.writeMask = mask;
 		blend.hasDepth = activeDepthTexture() != nil ? 1 : 0;
+		blend.sampleCount = (uint8_t)renderTargetSamples();
 
 		ctx.layout.fvf = key.fvf;
 		ctx.layout.stride = m_state.streams[0].stride;
