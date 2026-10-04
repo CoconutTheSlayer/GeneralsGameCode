@@ -3,8 +3,15 @@
 #include <winsock.h>
 #include <io.h>
 #include <direct.h>
+#include <atomic>
 #include <set>
+#include <thread>
+#include <vector>
+#include <sys/stat.h>
 #include <string>
+
+// Internal to the shim (src/win32shim_internal.h).
+std::string Win32Shim_TranslatePath(const char* path);
 
 static int g_failures = 0;
 #define CHECK(cond) do { if (!(cond)) { fprintf(stderr, "FAILED %s:%d: %s\n", __FILE__, __LINE__, #cond); ++g_failures; } } while (0)
@@ -50,6 +57,21 @@ int main(int argc, char** argv)
 	CHECK(dirs.count("Sub") == 1);
 	CHECK(dirs.count("Test.MAP") == 0);
 	CHECK(find(win + "\\maps\\test.map").count("Test.MAP") == 1);
+
+	// Path case: existing paths are returned as they are, wrong case resolves to the real file on case sensitive
+	// volumes and opens on case insensitive ones, missing files keep their name.
+	CHECK(Win32Shim_TranslatePath((win + "\\Maps\\Test.MAP").c_str()) == root + "/Maps/Test.MAP");
+	CHECK(Win32Shim_TranslatePath((win + "\\Maps\\Missing.map").c_str()) == root + "/Maps/Missing.map");
+	CHECK(Win32Shim_TranslatePath((win + "\\NoDir\\Missing.map").c_str()) == root + "/NoDir/Missing.map");
+	{
+		std::string resolved = Win32Shim_TranslatePath((win + "\\MAPS\\test.map").c_str());
+		struct stat st;
+		CHECK(stat(resolved.c_str(), &st) == 0);
+		if (pathconf(root.c_str(), _PC_CASE_SENSITIVE) == 0)
+			CHECK(resolved == root + "/MAPS/test.map");
+		else
+			CHECK(resolved == root + "/Maps/Test.MAP");
+	}
 
 	// File attributes and CreateFile
 	CHECK(GetFileAttributes((win + "\\Maps\\Sub").c_str()) & FILE_ATTRIBUTE_DIRECTORY);
@@ -97,9 +119,54 @@ int main(int argc, char** argv)
 	InitializeCriticalSection(&cs);
 	EnterCriticalSection(&cs);
 	EnterCriticalSection(&cs); // recursive
+	CHECK(TryEnterCriticalSection(&cs)); // recursive
 	LeaveCriticalSection(&cs);
 	LeaveCriticalSection(&cs);
+	{
+		// Held by this thread: another thread can neither try-enter nor enter until it is released.
+		std::atomic<int> state{0};
+		std::thread other([&] {
+			state = TryEnterCriticalSection(&cs) ? 2 : 1;
+			EnterCriticalSection(&cs);
+			state = 3;
+			LeaveCriticalSection(&cs);
+		});
+		while (state == 0) std::this_thread::yield();
+		CHECK(state == 1);
+		Sleep(20);
+		CHECK(state == 1);
+		LeaveCriticalSection(&cs);
+		other.join();
+		CHECK(state == 3);
+		CHECK(TryEnterCriticalSection(&cs));
+		LeaveCriticalSection(&cs);
+	}
+	{
+		// Contention: unsynchronized increments under the lock, with recursion.
+		long counter = 0;
+		std::vector<std::thread> threads;
+		for (int t = 0; t < 8; ++t)
+			threads.emplace_back([&] {
+				for (int i = 0; i < 100000; ++i)
+				{
+					EnterCriticalSection(&cs);
+					EnterCriticalSection(&cs);
+					long v = counter;
+					LeaveCriticalSection(&cs);
+					counter = v + 1;
+					LeaveCriticalSection(&cs);
+				}
+			});
+		for (std::thread& t : threads) t.join();
+		CHECK(counter == 800000);
+	}
 	DeleteCriticalSection(&cs);
+	{
+		// A zero initialized critical section is usable, like a static one on Windows.
+		static CRITICAL_SECTION zeroed;
+		EnterCriticalSection(&zeroed);
+		LeaveCriticalSection(&zeroed);
+	}
 
 	// Strings
 	wchar_t wide[32];

@@ -48,6 +48,7 @@ public:
 	Bool isFramesPerSecondLimitEnabled() const; ///< Returns whether the fps limit is enabled here.
 	Bool isActualFramesPerSecondLimitEnabled() const; ///< Returns whether the fps limit is actually enabled when considering all game settings and setups.
 	Int  getActualFramesPerSecondLimit() const; // Get the actual update fps limit.
+	UnsignedInt getWaitFramesPerSecondLimit() const; ///< Get the fps limit that the update waits for. On macOS, this is relaxed when presentation is vsynced to the limit already.
 
 	Real getUpdateTime() const; ///< Get the last update delta time in seconds.
 	Real getUpdateFps() const; ///< Get the last update fps.
@@ -76,6 +77,7 @@ protected:
 
 	Int m_maxFPS; ///< Maximum frames per second for rendering
 	Int m_logicTimeScaleFPS; ///< Maximum frames per second for logic time scale
+	Int m_displayFPS; ///< Display refresh rate that presentation is synced to, 0 if unknown
 
 	Real m_updateTime; ///< Last update delta time in seconds
 	Real m_logicFramePhase; ///< How far the current render step reaches into the current logic frame, ranging 0 to 1.

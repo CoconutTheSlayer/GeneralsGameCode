@@ -32,11 +32,14 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <condition_variable>
 #include <cstring>
+#include <list>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 namespace
@@ -132,11 +135,13 @@ int16_t imaDecodeNibble(int nibble, int& predictor, int& index)
 
 void decodeImaAdpcm(const WavInfo& info, std::vector<int16_t>& out)
 {
-	int channels = std::max(1, info.channels);
+	int channels = std::clamp(info.channels, 1, 2);
 	int blockAlign = info.blockAlign;
+	out.clear();
+	if (blockAlign < 4 * channels)
+		return;
 	int samplesPerBlock = info.samplesPerBlock ? info.samplesPerBlock : ((blockAlign - 4 * channels) * 8) / (4 * channels) + 1;
 	size_t blocks = info.dataLen / (size_t)blockAlign;
-	out.clear();
 	out.reserve(blocks * samplesPerBlock * channels);
 	std::vector<int16_t> block((size_t)samplesPerBlock * channels);
 	for (size_t b = 0; b < blocks; ++b)
@@ -180,30 +185,44 @@ bool decodeWav(const uint8_t* file, size_t size, Pcm& pcm)
 		return false;
 	pcm.channels = std::clamp(info.channels, 1, 2);
 	pcm.rate = info.rate > 0 ? info.rate : 22050;
-	std::vector<int16_t> samples;
 	int srcChannels = std::max(1, info.channels);
+	int ch = pcm.channels;
+	size_t frames = 0;
+	// Decode straight into the final buffer. Channels beyond the first two are dropped.
 	if (info.format == WAVE_FORMAT_IMA_ADPCM)
-		decodeImaAdpcm(info, samples);
+	{
+		if (srcChannels > 2)
+			return false;
+		decodeImaAdpcm(info, pcm.frames);
+		frames = pcm.frames.size() / ch;
+	}
 	else if (info.format == 1 && info.bits == 16)
 	{
-		samples.resize(info.dataLen / 2);
-		memcpy(samples.data(), info.data, samples.size() * 2);
+		frames = info.dataLen / (2 * (size_t)srcChannels);
+		pcm.frames.resize(frames * ch);
+		if (srcChannels == ch)
+			memcpy(pcm.frames.data(), info.data, frames * ch * 2);
+		else
+		{
+			for (size_t f = 0; f < frames; ++f)
+			{
+				for (int c = 0; c < ch; ++c)
+					pcm.frames[f * ch + c] = (int16_t)rd16(info.data + (f * srcChannels + c) * 2);
+			}
+		}
 	}
 	else if (info.format == 1 && info.bits == 8)
 	{
-		samples.resize(info.dataLen);
-		for (size_t i = 0; i < info.dataLen; ++i)
-			samples[i] = (int16_t)(((int)info.data[i] - 128) << 8);
+		frames = info.dataLen / (size_t)srcChannels;
+		pcm.frames.resize(frames * ch);
+		for (size_t f = 0; f < frames; ++f)
+		{
+			for (int c = 0; c < ch; ++c)
+				pcm.frames[f * ch + c] = (int16_t)(((int)info.data[f * srcChannels + c] - 128) << 8);
+		}
 	}
 	else
 		return false;
-	size_t frames = samples.size() / srcChannels;
-	pcm.frames.resize(frames * pcm.channels);
-	for (size_t f = 0; f < frames; ++f)
-	{
-		for (int c = 0; c < pcm.channels; ++c)
-			pcm.frames[f * pcm.channels + c] = samples[f * srcChannels + std::min(c, srcChannels - 1)];
-	}
 	pcm.totalFrames = frames;
 	pcm.decodedFrames = frames;
 	pcm.complete = true;
@@ -213,28 +232,38 @@ bool decodeWav(const uint8_t* file, size_t size, Pcm& pcm)
 //-----------------------------------------------------------------------------
 // AudioToolbox decoding (MP3 and anything else Core Audio understands)
 //-----------------------------------------------------------------------------
+// A file in memory: either owned ('storage', for streams) or a view of an image
+// that outlives the decoder (one shot decoding of sample images).
 struct MemoryFile
 {
-	std::vector<uint8_t> data;
+	std::vector<uint8_t> storage;
+	const uint8_t* data = nullptr;
+	size_t size = 0;
+
+	void useStorage()
+	{
+		data = storage.data();
+		size = storage.size();
+	}
 };
 
 OSStatus memRead(void* client, SInt64 position, UInt32 count, void* buffer, UInt32* actual)
 {
 	MemoryFile* f = static_cast<MemoryFile*>(client);
-	if (position >= (SInt64)f->data.size())
+	if (position < 0 || position >= (SInt64)f->size)
 	{
 		*actual = 0;
 		return noErr;
 	}
-	UInt32 n = (UInt32)std::min<SInt64>(count, (SInt64)f->data.size() - position);
-	memcpy(buffer, f->data.data() + position, n);
+	UInt32 n = (UInt32)std::min<SInt64>(count, (SInt64)f->size - position);
+	memcpy(buffer, f->data + position, n);
 	*actual = n;
 	return noErr;
 }
 
 SInt64 memSize(void* client)
 {
-	return (SInt64) static_cast<MemoryFile*>(client)->data.size();
+	return (SInt64) static_cast<MemoryFile*>(client)->size;
 }
 
 struct CoreAudioDecoder
@@ -394,11 +423,13 @@ AIL_file_read_callback g_fileRead = nullptr;
 
 // Stream decoding thread
 std::mutex g_jobMutex;
+std::condition_variable g_jobCond;
 std::vector<StreamJob> g_jobs;
 std::thread g_decodeThread;
 std::atomic<bool> g_decodeRunning { false };
 
 std::vector<float> g_mixBuffer;
+std::vector<Voice*> g_finishedVoices; // reused by the mixer so that it does not allocate
 FILE* g_dumpFile = nullptr; // raw float stereo output for debugging ($GENERALS_AUDIO_DUMP)
 
 void computeGains(const Voice& v, float& left, float& right)
@@ -444,7 +475,8 @@ void SDLCALL mixCallback(void*, SDL_AudioStream* stream, int additional, int)
 		return;
 	int frames = additional / (int)(2 * sizeof(float));
 	g_mixBuffer.assign((size_t)frames * 2, 0.0f);
-	std::vector<Voice*> finished;
+	std::vector<Voice*>& finished = g_finishedVoices;
+	finished.clear();
 	{
 		std::lock_guard<std::recursive_mutex> lock(g_mutex);
 		for (Voice* v : g_voices)
@@ -463,41 +495,50 @@ void SDLCALL mixCallback(void*, SDL_AudioStream* stream, int additional, int)
 					continue;
 				v->buffering = false;
 			}
+			// The frames do not move while the lock is held (live voices append under it).
+			const int16_t* data = pcm.frames.data();
+			float* out = g_mixBuffer.data();
+			size_t available = pcm.decodedFrames.load(std::memory_order_acquire);
 			for (int i = 0; i < frames; ++i)
 			{
-				size_t available = pcm.decodedFrames.load(std::memory_order_acquire);
 				size_t idx = (size_t)v->position;
 				if (idx + 1 >= available)
 				{
-					bool atEnd = pcm.complete.load() && idx + 1 >= available;
-					if (!atEnd)
+					// Look for newly decoded frames only when the known ones run out. Read
+					// 'complete' first: it is set after the last frames are published.
+					bool complete = pcm.complete.load();
+					available = pcm.decodedFrames.load(std::memory_order_acquire);
+					if (idx + 1 >= available)
 					{
-						if (v->live)
-							v->buffering = true;
-						break; // still decoding: output silence for the rest of this block
-					}
-					v->loopsDone++;
-					if (v->loopCount == 0 || v->loopsDone < v->loopCount)
-					{
-						v->position = 0.0;
-						idx = 0;
-						if (available < 2)
+						if (!complete)
+						{
+							if (v->live)
+								v->buffering = true;
+							break; // still decoding: output silence for the rest of this block
+						}
+						v->loopsDone++;
+						if (v->loopCount == 0 || v->loopsDone < v->loopCount)
+						{
+							v->position = 0.0;
+							idx = 0;
+							if (available < 2)
+								break;
+						}
+						else
+						{
+							v->state = STATE_DONE;
+							finished.push_back(v);
 							break;
-					}
-					else
-					{
-						v->state = STATE_DONE;
-						finished.push_back(v);
-						break;
+						}
 					}
 				}
 				double frac = v->position - (double)idx;
-				const int16_t* a = pcm.frames.data() + idx * ch;
+				const int16_t* a = data + idx * ch;
 				const int16_t* b = a + ch;
 				float l = (float)((a[0] + (b[0] - a[0]) * frac) * (1.0 / 32768.0));
 				float r = ch == 2 ? (float)((a[1] + (b[1] - a[1]) * frac) * (1.0 / 32768.0)) : l;
-				g_mixBuffer[(size_t)i * 2] += l * gl;
-				g_mixBuffer[(size_t)i * 2 + 1] += r * gr;
+				out[(size_t)i * 2] += l * gl;
+				out[(size_t)i * 2 + 1] += r * gr;
 				v->position += step;
 			}
 		}
@@ -527,32 +568,32 @@ void SDLCALL mixCallback(void*, SDL_AudioStream* stream, int additional, int)
 
 void decodeThreadMain()
 {
-	while (g_decodeRunning)
+	// Jobs are moved out of g_jobs while decoding so that new streams can be queued
+	// meanwhile; swapping the two vectors keeps their capacity, so nothing is copied.
+	std::vector<StreamJob> work;
+	std::unique_lock<std::mutex> lock(g_jobMutex);
+	for (;;)
 	{
-		bool worked = false;
-		std::vector<StreamJob> jobs;
-		{
-			std::lock_guard<std::mutex> lock(g_jobMutex);
-			jobs = g_jobs;
-		}
-		for (StreamJob& job : jobs)
+		g_jobCond.wait(lock, [] { return !g_decodeRunning || !g_jobs.empty(); });
+		if (!g_decodeRunning)
+			break;
+		work.swap(g_jobs);
+		lock.unlock();
+		for (StreamJob& job : work)
 		{
 			if (job.pcm->complete)
 				continue;
-			if (job.decoder->decode(*job.pcm, 32768))
-				worked = true;
-			else
+			if (!job.decoder->decode(*job.pcm, 32768))
 			{
 				job.pcm->totalFrames = job.pcm->decodedFrames.load();
 				job.pcm->complete = true;
 			}
 		}
-		{
-			std::lock_guard<std::mutex> lock(g_jobMutex);
-			g_jobs.erase(std::remove_if(g_jobs.begin(), g_jobs.end(), [](const StreamJob& j) { return j.pcm->complete.load() || j.pcm.use_count() <= 2; }), g_jobs.end());
-		}
-		if (!worked)
-			SDL_Delay(5);
+		// Drop finished jobs and those whose stream was closed (only the job holds the data).
+		work.erase(std::remove_if(work.begin(), work.end(), [](const StreamJob& j) { return j.pcm->complete.load() || j.pcm.use_count() <= 1; }), work.end());
+		lock.lock();
+		g_jobs.insert(g_jobs.end(), std::make_move_iterator(work.begin()), std::make_move_iterator(work.end()));
+		work.clear();
 	}
 }
 
@@ -564,15 +605,39 @@ bool readFile(const char* name, std::vector<uint8_t>& out)
 		void* handle = nullptr;
 		if (!g_fileOpen(name, &handle) || handle == nullptr)
 			return false;
-		uint8_t buffer[65536];
-		for (;;)
+		// Size the buffer from the file length so that it is read in one go.
+		S32 length = -1;
+		if (g_fileSeek)
 		{
-			U32 n = g_fileRead(handle, buffer, sizeof(buffer));
-			if (n == 0 || n == (U32)-1)
-				break;
-			out.insert(out.end(), buffer, buffer + n);
-			if (n < sizeof(buffer))
-				break;
+			length = g_fileSeek(handle, 0, AIL_FILE_SEEK_END);
+			if (g_fileSeek(handle, 0, AIL_FILE_SEEK_BEGIN) != 0)
+				length = -1;
+		}
+		if (length > 0)
+		{
+			out.resize((size_t)length);
+			size_t done = 0;
+			while (done < out.size())
+			{
+				U32 n = g_fileRead(handle, out.data() + done, (U32)(out.size() - done));
+				if (n == 0 || n == (U32)-1)
+					break;
+				done += n;
+			}
+			out.resize(done);
+		}
+		else
+		{
+			uint8_t buffer[65536];
+			for (;;)
+			{
+				U32 n = g_fileRead(handle, buffer, sizeof(buffer));
+				if (n == 0 || n == (U32)-1)
+					break;
+				out.insert(out.end(), buffer, buffer + n);
+				if (n < sizeof(buffer))
+					break;
+			}
 		}
 		g_fileClose(handle);
 		return !out.empty();
@@ -586,6 +651,13 @@ bool readFile(const char* name, std::vector<uint8_t>& out)
 	FILE* f = fopen(path.c_str(), "rb");
 	if (f == nullptr)
 		return false;
+	if (fseek(f, 0, SEEK_END) == 0)
+	{
+		long length = ftell(f);
+		if (length > 0)
+			out.reserve((size_t)length);
+		fseek(f, 0, SEEK_SET);
+	}
 	uint8_t buffer[65536];
 	size_t n;
 	while ((n = fread(buffer, 1, sizeof(buffer), f)) > 0)
@@ -601,17 +673,101 @@ std::shared_ptr<Pcm> decodeImage(const void* image, size_t size)
 	const uint8_t* data = static_cast<const uint8_t*>(image);
 	if (decodeWav(data, size, *pcm))
 		return pcm;
+	// The image outlives the decoder, so Core Audio reads it in place.
 	auto file = std::make_shared<MemoryFile>();
-	file->data.assign(data, data + size);
+	file->data = data;
+	file->size = size;
 	if (decodeCoreAudio(file, *pcm))
 		return pcm;
 	return nullptr;
 }
 
+// Decoded sample images, so that replaying a sound from the game's audio file
+// cache does not decode it again. Entries are keyed by the image address and
+// size plus a fingerprint of its contents, because the game frees images and a
+// new one can reuse the address. Least recently used entries are dropped above
+// kDecodedCacheLimit bytes; voices keep their own reference to the data.
+struct DecodedEntry
+{
+	const void* image;
+	size_t size;
+	uint64_t fingerprint;
+	std::shared_ptr<Pcm> pcm;
+	size_t bytes;
+};
+
+const size_t kDecodedCacheLimit = 64 * 1024 * 1024;
+std::mutex g_decodedMutex;
+std::list<DecodedEntry> g_decoded; // most recently used first
+std::unordered_map<const void*, std::list<DecodedEntry>::iterator> g_decodedIndex;
+size_t g_decodedBytes = 0;
+
+// FNV-1a of the size, the first and the last 4 KB of the image.
+uint64_t imageFingerprint(const uint8_t* data, size_t size)
+{
+	uint64_t h = 1469598103934665603ull ^ size;
+	auto mix = [&h](const uint8_t* p, size_t n) {
+		for (size_t i = 0; i < n; ++i)
+			h = (h ^ p[i]) * 1099511628211ull;
+	};
+	const size_t span = 4096;
+	if (size <= 2 * span)
+		mix(data, size);
+	else
+	{
+		mix(data, span);
+		mix(data + size - span, span);
+	}
+	return h;
+}
+
+std::shared_ptr<Pcm> decodeImageCached(const void* image, size_t size)
+{
+	uint64_t fingerprint = imageFingerprint(static_cast<const uint8_t*>(image), size);
+	{
+		std::lock_guard<std::mutex> lock(g_decodedMutex);
+		auto it = g_decodedIndex.find(image);
+		if (it != g_decodedIndex.end())
+		{
+			DecodedEntry& e = *it->second;
+			if (e.size == size && e.fingerprint == fingerprint)
+			{
+				g_decoded.splice(g_decoded.begin(), g_decoded, it->second);
+				return e.pcm;
+			}
+			g_decodedBytes -= e.bytes;
+			g_decoded.erase(it->second);
+			g_decodedIndex.erase(it);
+		}
+	}
+	std::shared_ptr<Pcm> pcm = decodeImage(image, size);
+	if (!pcm)
+		return nullptr;
+	size_t bytes = pcm->frames.capacity() * sizeof(int16_t);
+	if (bytes > kDecodedCacheLimit / 4)
+		return pcm;
+	std::lock_guard<std::mutex> lock(g_decodedMutex);
+	if (g_decodedIndex.count(image))
+		return pcm; // decoded concurrently
+	g_decoded.push_front(DecodedEntry { image, size, fingerprint, pcm, bytes });
+	g_decodedIndex[image] = g_decoded.begin();
+	g_decodedBytes += bytes;
+	while (g_decodedBytes > kDecodedCacheLimit && !g_decoded.empty())
+	{
+		DecodedEntry& last = g_decoded.back();
+		g_decodedBytes -= last.bytes;
+		g_decodedIndex.erase(last.image);
+		g_decoded.pop_back();
+	}
+	return pcm;
+}
+
+// Size of a RIFF image from its header, 0 for anything else. Like Miles, sample
+// images without a size (AIL_set_sample_file) must be RIFF files.
 size_t wavImageSize(const void* image)
 {
 	const uint8_t* p = static_cast<const uint8_t*>(image);
-	if (memcmp(p, "RIFF", 4) == 0)
+	if (p != nullptr && memcmp(p, "RIFF", 4) == 0)
 		return rd32(p + 4) + 8;
 	return 0;
 }
@@ -716,12 +872,22 @@ void __stdcall AIL_shutdown(void)
 		fclose(g_dumpFile);
 		g_dumpFile = nullptr;
 	}
-	g_decodeRunning = false;
+	{
+		std::lock_guard<std::mutex> lock(g_jobMutex);
+		g_decodeRunning = false;
+	}
+	g_jobCond.notify_all();
 	if (g_decodeThread.joinable())
 		g_decodeThread.join();
 	{
 		std::lock_guard<std::mutex> lock(g_jobMutex);
 		g_jobs.clear();
+	}
+	{
+		std::lock_guard<std::mutex> lock(g_decodedMutex);
+		g_decoded.clear();
+		g_decodedIndex.clear();
+		g_decodedBytes = 0;
 	}
 	std::lock_guard<std::recursive_mutex> lock(g_mutex);
 	for (Voice* v : g_voices)
@@ -897,10 +1063,9 @@ void __stdcall AIL_init_sample(HSAMPLE sample)
 S32 __stdcall AIL_set_sample_file(HSAMPLE sample, const void* file_image, S32)
 {
 	Voice* v = toVoice(sample);
+	// The image size is only known for RIFF images (which may hold MP3 data).
 	size_t size = wavImageSize(file_image);
-	if (size == 0)
-		size = 16 * 1024 * 1024; // non-WAV images: Core Audio stops at the end of the data
-	std::shared_ptr<Pcm> pcm = decodeImage(file_image, size);
+	std::shared_ptr<Pcm> pcm = size ? decodeImageCached(file_image, size) : nullptr;
 	std::lock_guard<std::recursive_mutex> lock(g_mutex);
 	v->pcm = pcm;
 	v->position = 0.0;
@@ -914,7 +1079,7 @@ S32 __stdcall AIL_set_sample_file(HSAMPLE sample, const void* file_image, S32)
 S32 __stdcall AIL_set_named_sample_file(HSAMPLE sample, const char*, const void* file_image, S32 file_size, S32)
 {
 	Voice* v = toVoice(sample);
-	std::shared_ptr<Pcm> pcm = decodeImage(file_image, (size_t)file_size);
+	std::shared_ptr<Pcm> pcm = file_image && file_size > 0 ? decodeImageCached(file_image, (size_t)file_size) : nullptr;
 	std::lock_guard<std::recursive_mutex> lock(g_mutex);
 	v->pcm = pcm;
 	v->position = 0.0;
@@ -1052,9 +1217,7 @@ S32 __stdcall AIL_set_3D_sample_file(H3DSAMPLE sample, const void* file_image)
 {
 	Voice* v = toVoice(sample);
 	size_t size = wavImageSize(file_image);
-	if (size == 0)
-		size = 16 * 1024 * 1024;
-	std::shared_ptr<Pcm> pcm = decodeImage(file_image, size);
+	std::shared_ptr<Pcm> pcm = size ? decodeImageCached(file_image, size) : nullptr;
 	std::lock_guard<std::recursive_mutex> lock(g_mutex);
 	v->pcm = pcm;
 	v->position = 0.0;
@@ -1229,19 +1392,23 @@ HSTREAM __stdcall AIL_open_stream(HDIGDRIVER, const char* filename, S32)
 	if (!g_started || filename == nullptr)
 		return nullptr;
 	auto file = std::make_shared<MemoryFile>();
-	if (!readFile(filename, file->data))
+	if (!readFile(filename, file->storage))
 		return nullptr;
+	file->useStorage();
 
 	auto pcm = std::make_shared<Pcm>();
-	if (!decodeWav(file->data.data(), file->data.size(), *pcm))
+	if (!decodeWav(file->data, file->size, *pcm))
 	{
 		auto decoder = std::make_shared<CoreAudioDecoder>();
 		if (!decoder->open(file, *pcm))
 			return nullptr;
-		// Decode the first second right away so playback can start immediately.
-		decoder->decode(*pcm, (size_t)pcm->rate);
-		std::lock_guard<std::mutex> lock(g_jobMutex);
-		g_jobs.push_back(StreamJob { pcm, decoder });
+		// All decoding happens on the decode thread. It starts right away, and the
+		// voice plays silence until the first frames are there.
+		{
+			std::lock_guard<std::mutex> lock(g_jobMutex);
+			g_jobs.push_back(StreamJob { pcm, decoder });
+		}
+		g_jobCond.notify_one();
 	}
 	Voice* v = newVoice(VOICE_STREAM);
 	std::lock_guard<std::recursive_mutex> lock(g_mutex);

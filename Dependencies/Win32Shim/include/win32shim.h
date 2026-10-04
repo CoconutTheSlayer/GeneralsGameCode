@@ -52,3 +52,8 @@ HCURSOR Win32Shim_CreateCursorFromRGBA(const void* pixels, int width, int height
 // Area of the window (in window points) where the game image is presented, used
 // to map mouse coordinates when the image is letterboxed.
 void Win32Shim_SetPresentRect(HWND hwnd, float x, float y, float w, float h);
+
+// Whether presentation waits for the display refresh (vsync). Set by the
+// renderer; the frame pacer then leaves the render rate limit to vsync.
+void Win32Shim_SetPresentationSynced(bool synced);
+bool Win32Shim_IsPresentationSynced();

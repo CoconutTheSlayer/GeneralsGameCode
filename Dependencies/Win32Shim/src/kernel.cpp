@@ -246,6 +246,26 @@ void fillFindData(const std::string& fullPath, const char* name, LPWIN32_FIND_DA
 //-----------------------------------------------------------------------------
 namespace
 {
+// Returns whether the volume holding the existing directory 'dir' (device 'dev')
+// is case sensitive. The answer is cached per device.
+bool isCaseSensitiveVolume(const std::string& dir, dev_t dev)
+{
+	static std::mutex mutex;
+	static std::map<dev_t, bool> cache;
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		auto it = cache.find(dev);
+		if (it != cache.end())
+			return it->second;
+	}
+	// pathconf returns 0 for case insensitive volumes. If it fails, assume case
+	// sensitive so that the directory scan below still runs.
+	bool sensitive = pathconf(dir.c_str(), _PC_CASE_SENSITIVE) != 0;
+	std::lock_guard<std::mutex> lock(mutex);
+	cache[dev] = sensitive;
+	return sensitive;
+}
+
 // Game data paths are written with arbitrary case. On case sensitive volumes,
 // find each missing path component case insensitively.
 std::string resolvePathCase(const std::string& path)
@@ -253,6 +273,27 @@ std::string resolvePathCase(const std::string& path)
 	struct stat st;
 	if (path.empty() || stat(path.c_str(), &st) == 0)
 		return path;
+	// The file system tries loose files before the .big archives, so most lookups
+	// miss. On case insensitive volumes (the macOS default) a miss means the file
+	// does not exist in any case, so only the volume of the deepest existing
+	// directory needs to be checked.
+	{
+		std::string dir = path;
+		bool found = false;
+		while (!found)
+		{
+			size_t slash = dir.find_last_of('/');
+			if (slash == std::string::npos)
+				dir = ".";
+			else
+				dir.erase(slash == 0 ? 1 : slash);
+			found = stat(dir.c_str(), &st) == 0;
+			if (dir == "." || dir == "/")
+				break;
+		}
+		if (found && !isCaseSensitiveVolume(dir, st.st_dev))
+			return path;
+	}
 	std::string result;
 	size_t pos = 0;
 	if (path[0] == '/')
@@ -834,13 +875,13 @@ int GetTimeFormatW(LCID locale, DWORD flags, const SYSTEMTIME* t, LPCWSTR, LPWST
 //-----------------------------------------------------------------------------
 // Critical sections
 //-----------------------------------------------------------------------------
+// EnterCriticalSection, TryEnterCriticalSection and LeaveCriticalSection are
+// inline in windows.h.
 void InitializeCriticalSection(LPCRITICAL_SECTION cs)
 {
-	pthread_mutexattr_t attr;
-	pthread_mutexattr_init(&attr);
-	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-	pthread_mutex_init(&cs->mutex, &attr);
-	pthread_mutexattr_destroy(&attr);
+	cs->lock = OS_UNFAIR_LOCK_INIT;
+	cs->owner = 0;
+	cs->recursion = 0;
 }
 
 BOOL InitializeCriticalSectionAndSpinCount(LPCRITICAL_SECTION cs, DWORD)
@@ -849,10 +890,7 @@ BOOL InitializeCriticalSectionAndSpinCount(LPCRITICAL_SECTION cs, DWORD)
 	return TRUE;
 }
 
-void DeleteCriticalSection(LPCRITICAL_SECTION cs) { pthread_mutex_destroy(&cs->mutex); }
-void EnterCriticalSection(LPCRITICAL_SECTION cs) { pthread_mutex_lock(&cs->mutex); }
-BOOL TryEnterCriticalSection(LPCRITICAL_SECTION cs) { return pthread_mutex_trylock(&cs->mutex) == 0; }
-void LeaveCriticalSection(LPCRITICAL_SECTION cs) { pthread_mutex_unlock(&cs->mutex); }
+void DeleteCriticalSection(LPCRITICAL_SECTION) {}
 
 //-----------------------------------------------------------------------------
 // Threads
@@ -2294,3 +2332,4 @@ int Win32Shim_rmdir(const char* path)
 {
 	return rmdir(Win32Shim_TranslatePath(path).c_str());
 }
+

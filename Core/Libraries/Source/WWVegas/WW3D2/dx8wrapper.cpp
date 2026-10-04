@@ -487,6 +487,17 @@ void DX8Wrapper::Do_Onetime_Device_Dependent_Shutdowns()
 }
 
 
+#if defined(__APPLE__)
+#include <win32shim.h>
+
+// Tells the frame pacer whether presentation is vsynced. Like the Metal backend, only an immediate
+// presentation interval in fullscreen mode presents without waiting for the display refresh.
+static void Publish_Presentation_Sync(const D3DPRESENT_PARAMETERS& params)
+{
+	Win32Shim_SetPresentationSynced(!(params.FullScreen_PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE && !params.Windowed));
+}
+#endif
+
 bool DX8Wrapper::Create_Device()
 {
 	WWASSERT(D3DDevice==nullptr);	// for now, once you've created a device, you're stuck with it!
@@ -598,6 +609,9 @@ bool DX8Wrapper::Create_Device()
 	}
 
 	dbgHelpGuard.deactivate();
+#if defined(__APPLE__)
+	Publish_Presentation_Sync(_PresentParameters);
+#endif
 
 	/*
 	** Initialize all subsystems
@@ -638,6 +652,9 @@ bool DX8Wrapper::Reset_Device(bool reload_assets)
 		{	DX8CALL_HRES(Reset(&_PresentParameters),hr)
 			if (hr != D3D_OK)
 				return false;	//reset failed.
+#if defined(__APPLE__)
+			Publish_Presentation_Sync(_PresentParameters);
+#endif
 		}
 		else
 			return false;	//device is lost and can't be reset.

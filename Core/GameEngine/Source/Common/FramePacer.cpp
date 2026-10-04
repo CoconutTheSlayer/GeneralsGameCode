@@ -27,6 +27,10 @@
 #include "GameNetwork/NetworkDefs.h"
 #include "GameNetwork/NetworkInterface.h"
 
+#if defined(__APPLE__)
+#include <win32shim.h>
+#endif
+
 
 FramePacer* TheFramePacer = nullptr;
 
@@ -37,6 +41,7 @@ FramePacer::FramePacer()
 
 	m_maxFPS = BaseFps;
 	m_logicTimeScaleFPS = LOGICFRAMES_PER_SECOND;
+	m_displayFPS = 0;
 	m_updateTime = 1.0f / (Real)BaseFps; // initialized to something to avoid division by zero on first use
 	m_logicFramePhase = 1.0f;
 	m_enableFpsLimit = FALSE;
@@ -54,7 +59,7 @@ FramePacer::~FramePacer()
 void FramePacer::update()
 {
 	// Uses a high resolution counter to cap the frame rate more accurately to the desired limit than retail did.
-	const UnsignedInt maxFps = getActualFramesPerSecondLimit();
+	const UnsignedInt maxFps = getWaitFramesPerSecondLimit();
 	m_updateTime = m_frameRateLimit.wait(maxFps);
 
 	if (TheGameLogic != nullptr)
@@ -97,6 +102,7 @@ void FramePacer::setDecoupledFramesPerSecond( Int logicFps )
 	DEVMODE mode;
 	if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &mode) && mode.dmDisplayFrequency >= 30)
 		renderFps = (Int)mode.dmDisplayFrequency;
+	m_displayFPS = renderFps;
 	renderFps = max(renderFps, logicFps);
 	setFramesPerSecondLimit(renderFps);
 	setLogicTimeScaleFps(logicFps);
@@ -148,6 +154,24 @@ Bool FramePacer::isActualFramesPerSecondLimitEnabled() const
 Int FramePacer::getActualFramesPerSecondLimit() const
 {
 	return isActualFramesPerSecondLimitEnabled() ? getFramesPerSecondLimit() : RenderFpsPreset::UncappedFpsValue;
+}
+
+UnsignedInt FramePacer::getWaitFramesPerSecondLimit() const
+{
+	const Int maxFps = getActualFramesPerSecondLimit();
+#if defined(__APPLE__)
+	// Presentation already waits for the display refresh, so limiting the render rate to the refresh
+	// rate on the CPU as well only adds a sleep and a busy wait to every frame. Leave the pacing to
+	// vsync then. The simulation keeps its speed because the logic time scale uses the measured frame
+	// times. The limit stays at twice the refresh rate in case presentation stops blocking, for example
+	// while the window is hidden. Without vsync or with the logic bound to the render rate, the limit applies.
+	if (m_displayFPS > 0 && maxFps >= m_displayFPS && maxFps < (Int)RenderFpsPreset::UncappedFpsValue
+		&& isLogicTimeScaleEnabled() && Win32Shim_IsPresentationSynced())
+	{
+		return (UnsignedInt)m_displayFPS * 2;
+	}
+#endif
+	return maxFps;
 }
 
 Real FramePacer::getUpdateTime()  const

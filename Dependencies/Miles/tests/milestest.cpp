@@ -89,8 +89,27 @@ int main()
 	SDL_Delay(200);
 	MilesMac_ClosePCMStream(pcmStream);
 
+	// Decoded sample cache: the same image decodes once, and a changed image at the same
+	// address (here with half the sample rate in its header) is decoded again.
+	int failures = 0;
+	S32 total = 0, cur = 0;
+	AIL_set_sample_file(s, tone.data(), 0);
+	AIL_sample_ms_position(s, &total, &cur);
+	if (total != 500) { printf("FAILED: sample length %d ms (expected 500)\n", (int)total); failures++; }
+	AIL_set_sample_file(s, tone.data(), 0);
+	AIL_sample_ms_position(s, &total, &cur);
+	if (total != 500) { printf("FAILED: cached sample length %d ms (expected 500)\n", (int)total); failures++; }
+	tone[24] = 11025 & 0xff; tone[25] = 11025 >> 8; // rate
+	AIL_set_sample_file(s, tone.data(), 0);
+	AIL_sample_ms_position(s, &total, &cur);
+	if (total != 1000) { printf("FAILED: changed sample length %d ms (expected 1000)\n", (int)total); failures++; }
+	// Images without a RIFF header have no known size and are rejected.
+	unsigned char garbage[64] = {};
+	if (AIL_set_sample_file(s, garbage, 0) != 0) { printf("FAILED: non-RIFF sample accepted\n"); failures++; }
+
 	AIL_release_sample_handle(s);
 	AIL_release_3D_sample_handle(s3);
 	AIL_shutdown();
-	return 0;
+	printf(failures ? "%d FAILURES\n" : "miles tests passed\n", failures);
+	return failures ? 1 : 0;
 }

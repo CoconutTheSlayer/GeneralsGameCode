@@ -210,7 +210,8 @@
                 "RTS_BUILD_CORE_TOOLS": "OFF",
                 "RTS_BUILD_ZEROHOUR_TOOLS": "OFF",
                 "RTS_BUILD_GENERALS_TOOLS": "OFF",
-                "RTS_BUILD_OPTION_FFMPEG": "ON"
+                "RTS_BUILD_OPTION_FFMPEG": "ON",
+                "RTS_BUILD_OPTION_MACOS_LTO": "OFF"
             }
         },
         {

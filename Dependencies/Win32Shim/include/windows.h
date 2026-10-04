@@ -46,6 +46,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <os/lock.h>
 #include <malloc/malloc.h>
 
 // Pieces of the generic non-Windows compatibility layer that do not conflict with this shim.
@@ -552,13 +553,53 @@ int GetTimeFormatW(LCID locale, DWORD flags, const SYSTEMTIME* time, LPCWSTR for
 //-----------------------------------------------------------------------------
 // Threads and synchronization
 //-----------------------------------------------------------------------------
-typedef struct _CRITICAL_SECTION { pthread_mutex_t mutex; } CRITICAL_SECTION, *LPCRITICAL_SECTION, *PCRITICAL_SECTION;
+// A recursive lock built on os_unfair_lock. The memory manager takes one on
+// every allocation, so entering and leaving are inline. 'owner' is the
+// pthread_self() of the owning thread or 0; only the owner writes its own id,
+// so a relaxed read can tell whether the calling thread already holds the lock.
+// All zero is a valid unlocked state, like a zero initialized Windows one.
+typedef struct _CRITICAL_SECTION
+{
+	os_unfair_lock lock;
+	uint32_t recursion;
+	uintptr_t owner;
+} CRITICAL_SECTION, *LPCRITICAL_SECTION, *PCRITICAL_SECTION;
 void InitializeCriticalSection(LPCRITICAL_SECTION cs);
 BOOL InitializeCriticalSectionAndSpinCount(LPCRITICAL_SECTION cs, DWORD spinCount);
 void DeleteCriticalSection(LPCRITICAL_SECTION cs);
-void EnterCriticalSection(LPCRITICAL_SECTION cs);
-BOOL TryEnterCriticalSection(LPCRITICAL_SECTION cs);
-void LeaveCriticalSection(LPCRITICAL_SECTION cs);
+
+static inline void EnterCriticalSection(LPCRITICAL_SECTION cs)
+{
+	uintptr_t self = (uintptr_t)pthread_self();
+	if (__atomic_load_n(&cs->owner, __ATOMIC_RELAXED) != self)
+	{
+		os_unfair_lock_lock(&cs->lock);
+		__atomic_store_n(&cs->owner, self, __ATOMIC_RELAXED);
+	}
+	++cs->recursion;
+}
+
+static inline BOOL TryEnterCriticalSection(LPCRITICAL_SECTION cs)
+{
+	uintptr_t self = (uintptr_t)pthread_self();
+	if (__atomic_load_n(&cs->owner, __ATOMIC_RELAXED) != self)
+	{
+		if (!os_unfair_lock_trylock(&cs->lock))
+			return FALSE;
+		__atomic_store_n(&cs->owner, self, __ATOMIC_RELAXED);
+	}
+	++cs->recursion;
+	return TRUE;
+}
+
+static inline void LeaveCriticalSection(LPCRITICAL_SECTION cs)
+{
+	if (--cs->recursion == 0)
+	{
+		__atomic_store_n(&cs->owner, (uintptr_t)0, __ATOMIC_RELAXED);
+		os_unfair_lock_unlock(&cs->lock);
+	}
+}
 
 typedef struct _SECURITY_ATTRIBUTES { DWORD nLength; LPVOID lpSecurityDescriptor; BOOL bInheritHandle; } SECURITY_ATTRIBUTES, *LPSECURITY_ATTRIBUTES;
 typedef DWORD (*LPTHREAD_START_ROUTINE)(LPVOID param);

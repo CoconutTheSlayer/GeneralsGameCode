@@ -31,6 +31,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <atomic>
 #include <csignal>
 #include <sys/stat.h>
 #include <deque>
@@ -576,6 +577,21 @@ void Win32Shim_SetLogicalSize(HWND hwnd, int width, int height)
 		w->logicalWidth = width;
 		w->logicalHeight = height;
 	}
+}
+
+namespace
+{
+std::atomic<bool> g_presentationSynced{true};
+}
+
+void Win32Shim_SetPresentationSynced(bool synced)
+{
+	g_presentationSynced.store(synced, std::memory_order_relaxed);
+}
+
+bool Win32Shim_IsPresentationSynced()
+{
+	return g_presentationSynced.load(std::memory_order_relaxed);
 }
 
 void Win32Shim_SetPresentRect(HWND hwnd, float x, float y, float w, float h)
@@ -1342,7 +1358,8 @@ BOOL EnumDisplaySettings(LPCSTR, DWORD mode, LPDEVMODE dm)
 	dm->dmPelsWidth = (DWORD)(m->w * m->pixel_density + 0.5f);
 	dm->dmPelsHeight = (DWORD)(m->h * m->pixel_density + 0.5f);
 	dm->dmBitsPerPel = 32;
-	dm->dmDisplayFrequency = (DWORD)m->refresh_rate;
+	// Round fractional rates such as 59.94 Hz instead of truncating them.
+	dm->dmDisplayFrequency = (DWORD)(m->refresh_rate + 0.5f);
 	dm->dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL | DM_DISPLAYFREQUENCY;
 	return TRUE;
 }
