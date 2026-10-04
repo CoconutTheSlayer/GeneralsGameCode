@@ -1802,7 +1802,15 @@ Int TerrainShader8Stage::init()
 	ChipsetType res;
 
 	//this shader will also use the 2Stage shader for some of the passes so initialize it too.
-	if (terrainShader2Stage.init() && (res=W3DShaderManager::getChipset()) >= DC_TNT && res <= DC_GEFORCE2)
+	if (!terrainShader2Stage.init())
+		return FALSE;
+#ifdef __APPLE__
+	// This shader relies on how NVIDIA drivers mapped 8 texture stages onto the register combiners
+	// of the TNT and GeForce2. The Metal renderer evaluates the stages as Direct3D defines them,
+	// which turns the terrain white, so it uses the 2 stage shader.
+	return FALSE;
+#endif
+	if ((res=W3DShaderManager::getChipset()) >= DC_TNT && res <= DC_GEFORCE2)
 	{
 		W3DShaders[W3DShaderManager::ST_TERRAIN_BASE]=&terrainShader8Stage;
 		W3DShadersPassCount[W3DShaderManager::ST_TERRAIN_BASE]=1;
