@@ -1551,16 +1551,13 @@ void CommandLine::parseCommandLineForStartup()
 	parseCommandLine(paramsForStartup, ARRAY_SIZE(paramsForStartup),
 		TheWritableGlobalData->m_commandLineData.m_parsedArguments);
 
+#if !defined(__APPLE__)
+	// The executable does not live next to the game data on macOS; main() already changed to the
+	// game data directory. Restoring the startup directory, which static constructors captured
+	// before that, would go back to where the application was launched from (/ for a bundle).
 	if (!rts::WorkingDirectory::hasSetWorkingDirectory())
-	{
-#if defined(__APPLE__)
-		// The executable does not live next to the game data on macOS; the
-		// launcher already changed to the game data directory.
-		rts::WorkingDirectory::setStartupWorkingDirectory();
-#else
 		rts::WorkingDirectory::setExecutableWorkingDirectory();
 #endif
-	}
 }
 
 void CommandLine::parseCommandLineForEngineInit()
