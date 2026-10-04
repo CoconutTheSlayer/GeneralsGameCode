@@ -76,7 +76,7 @@ typedef struct
 typedef struct
 {
 	Int			numFrames;						///< Number of frames to rotate.
-	Int			curFrame;							///< Current frame.
+	Real		curFrame;							///< Current frame, in logic frames of elapsed time.
 	Int			startTimeMultiplier;
 	Int			endTimeMultiplier;
 	Int			numHoldFrames;				///< Number of frames to hold the camera before finishing the movement
@@ -101,7 +101,7 @@ typedef struct
 typedef struct
 {
 	Int			numFrames;						///< Number of frames to pitch.
-	Int			curFrame;							///< Current frame.
+	Real		curFrame;							///< Current frame, in logic frames of elapsed time.
 	Real		angle;
 	Real		startPitch;
 	Real		endPitch;
@@ -115,7 +115,7 @@ typedef struct
 typedef struct
 {
 	Int			numFrames;						///< Number of frames to zoom.
-	Int			curFrame;							///< Current frame.
+	Real		curFrame;							///< Current frame, in logic frames of elapsed time.
 	Real		startZoom;
 	Real		endZoom;
 	Int			startTimeMultiplier;
