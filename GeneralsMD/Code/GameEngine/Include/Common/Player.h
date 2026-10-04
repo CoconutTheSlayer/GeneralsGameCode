@@ -449,9 +449,6 @@ public:
 
 	/// Is this player a skirmish ai player?
 	Bool isSkirmishAIPlayer();
-	/// For comparing AI versions: true when GENERALS_CLASSIC_AI_PLAYERS lists this player's index,
-	/// so the skirmish AI behaves like the original game apart from bug fixes.
-	Bool isClassicSkirmishAI() const;
 
 	/// Have the ai check for bridges.
 	virtual Bool checkBridges(Object *unit, Waypoint *way);
@@ -660,7 +657,6 @@ public:
 	void setAttackedBy( Int playerNdx );
 	Bool getAttackedBy( Int playerNdx ) const;
 	UnsignedInt getAttackedFrame() {return m_attackedFrame;}  // Return last frame attacked.
-	UnsignedInt getLastAttackedByFrame( Int playerNdx ) const { return m_attackedByFrame[playerNdx]; } ///< Last frame the player attacked me, 0 if never.
 
 	Real getCashBounty() const { return m_cashBountyPercent; }
 	void setCashBounty(Real percentage) { m_cashBountyPercent = percentage; }
@@ -803,7 +799,6 @@ private:
 	Bool									m_unitsShouldHunt;
 
 	Bool									m_attackedBy[MAX_PLAYER_COUNT];	///< For each player, have they attacked me?
-	UnsignedInt						m_attackedByFrame[MAX_PLAYER_COUNT];	///< For each player, when did they last attack me? Not saved.
 	UnsignedInt						m_attackedFrame;	///< Last frame attacked.
 
 	Real									m_cashBountyPercent;

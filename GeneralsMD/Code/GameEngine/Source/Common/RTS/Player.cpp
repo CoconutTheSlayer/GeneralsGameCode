@@ -340,7 +340,6 @@ Player::Player( Int playerIndex )
 	for (i = 0; i < MAX_PLAYER_COUNT; ++i)
 	{
 		m_attackedBy[i] = false;
-		m_attackedByFrame[i] = 0;
 	}
 	m_attackedFrame = 0;
 
@@ -987,7 +986,6 @@ void Player::initFromDict(const Dict* d)
 	for ( i = 0; i < MAX_PLAYER_COUNT; ++i ) // For now, it has been decided to just fix this one.  Dear god me must reset.
 	{
 		m_attackedBy[i] = false;
-		m_attackedByFrame[i] = 0;
 	}
 
 	Int c = d->getInt(TheKey_playerColor, &exists);
@@ -1153,34 +1151,6 @@ void Player::becomingLocalPlayer(Bool yes)
 Bool Player::isSkirmishAIPlayer()
 {
 	return m_ai ? m_ai->isSkirmishAI() : false;
-}
-
-//----------------------------------------------------------------------------------------------------------
-Bool Player::isClassicSkirmishAI() const
-{
-	static UnsignedInt classicMask = 0;
-	static Bool parsed = false;
-	if (!parsed)
-	{
-		parsed = true;
-		if (const char *list = getenv("GENERALS_CLASSIC_AI_PLAYERS"))
-		{
-			for (const char *p = list; *p; )
-			{
-				char *end = nullptr;
-				const long index = strtol(p, &end, 10);
-				if (end == p)
-				{
-					++p;
-					continue;
-				}
-				if (index >= 0 && index < 32)
-					classicMask |= 1u << index;
-				p = end;
-			}
-		}
-	}
-	return (classicMask & (1u << getPlayerIndex())) != 0;
 }
 
 
@@ -3967,7 +3937,6 @@ void Player::setAttackedBy( Int playerNdx )
 	DEBUG_ASSERTCRASH(playerNdx >= 0, ("Player::setAttackedBy Player index is %d", playerNdx));
 	m_attackedBy[playerNdx] = true;
 	m_attackedFrame = TheGameLogic->getFrame();
-	m_attackedByFrame[playerNdx] = TheGameLogic->getFrame();
 
 }
 

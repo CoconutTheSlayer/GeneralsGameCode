@@ -188,7 +188,6 @@ public: // AIPlayer interface, may be overridden by AISkirmishPlayer.  jba.
 public:
 	Bool getBaseCenter(Coord3D *pos) const {*pos = m_baseCenter; return m_baseCenterSet;}
 	/// Difficulty level for this player.
-	static Real antiAirFraction(const TeamPrototype *proto); ///< Fraction of a team's units that can attack aircraft.
 	GameDifficulty getAIDifficulty() const;
 	void setAIDifficulty(GameDifficulty difficulty) {m_difficulty = difficulty;}
 	void buildBySupplies(Int minimumCash, const AsciiString &thingName ); ///< Builds a building by supplies.
@@ -231,7 +230,7 @@ protected:
 	virtual Bool isAGoodIdeaToBuildTeam( TeamPrototype *proto );		///< return true if team should be built
 	virtual void processBaseBuilding();		///< do base-building behaviors
 	virtual void processTeamBuilding();		///< do team-building behaviors
- 	static Int getPlayerSuperweaponValue( Coord3D *center, Int playerNdx, Real radius, Bool includeMilitaryUnits = TRUE, Bool valueDamagedTargets = FALSE );
+ 	static Int getPlayerSuperweaponValue( Coord3D *center, Int playerNdx, Real radius, Bool includeMilitaryUnits = TRUE );
 // End of aiplayer interface.
 
 protected:

@@ -195,14 +195,6 @@ static const FieldParse TheAIFieldParseTable[] =
 
  	{ "MaxRetaliationDistance",	INI::parseReal,nullptr,			offsetof( TAiData, m_maxRetaliateDistance ) },
  	{ "RetaliationFriendsRadius",	INI::parseReal,nullptr,			offsetof( TAiData, m_retaliateFriendsRadius ) },
- 	{ "SkirmishSpeedEasy",	INI::parseReal,nullptr,			offsetof( TAiData, m_skirmishSpeedEasy ) },
- 	{ "SkirmishSpeedNormal",	INI::parseReal,nullptr,			offsetof( TAiData, m_skirmishSpeedNormal ) },
- 	{ "SkirmishSpeedHard",	INI::parseReal,nullptr,			offsetof( TAiData, m_skirmishSpeedHard ) },
- 	{ "SkirmishExtraGatherersHard",	INI::parseInt,nullptr,			offsetof( TAiData, m_skirmishExtraGatherersHard ) },
- 	{ "SkirmishDozersEasy",	INI::parseInt,nullptr,			offsetof( TAiData, m_skirmishDozersEasy ) },
- 	{ "SkirmishDozersNormal",	INI::parseInt,nullptr,			offsetof( TAiData, m_skirmishDozersNormal ) },
- 	{ "SkirmishDozersHard",	INI::parseInt,nullptr,			offsetof( TAiData, m_skirmishDozersHard ) },
- 	{ "SkirmishAIRetaliates",	INI::parseBool,nullptr,			offsetof( TAiData, m_skirmishAIRetaliates ) },
 
 
 	{ nullptr,					nullptr,						nullptr,						0 }
@@ -694,38 +686,6 @@ Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifie
 
 	if (info == nullptr || info == TheScriptEngine->getDefaultAttackInfo())
 	{
-		const Player *owner = me->getControllingPlayer();
-		const Weapon *weapon = me->getCurrentWeapon();
-		if (owner && const_cast<Player *>(owner)->isSkirmishAIPlayer() && !owner->isClassicSkirmishAI() && weapon)
-		{
-			// Skirmish AI units prefer the nearby target they can kill fastest, instead of simply the
-			// closest one: estimated damage per shot over remaining health, with a small penalty for
-			// distance. Only the closest few candidates are compared to keep this cheap.
-			const Int MAX_CANDIDATES = 12;
-			Object *bestTarget = nullptr;
-			Real bestScore = 0.0f;
-			Int candidates = 0;
-			ObjectIterator *iter = ThePartitionManager->iterateObjectsInRange(me, range, FROM_BOUNDINGSPHERE_2D, filters, ITER_SORTED_NEAR_TO_FAR);
-			MemoryPoolObjectHolder holder(iter);
-			for (Object *target = iter->first(); target && candidates < MAX_CANDIDATES; target = iter->next(), ++candidates)
-			{
-				const BodyModuleInterface *body = target->getBodyModule();
-				const Real health = body ? max(body->getHealth(), 1.0f) : 1.0f;
-				const Real damage = const_cast<Weapon *>(weapon)->estimateWeaponDamage(me, target);
-				Real score = min(damage / health, 1.0f);
-				if (damage >= health)
-					score += 0.5f; // a kill this shot
-				const Real dist = sqrt(ThePartitionManager->getDistanceSquared(me, target, FROM_BOUNDINGSPHERE_2D));
-				score -= 0.2f * dist / max(range, 1.0f);
-				if (bestTarget == nullptr || score > bestScore)
-				{
-					bestTarget = target;
-					bestScore = score;
-				}
-			}
-			return bestTarget;
-		}
-
 		// No additional attack info, so just return the closest one.
 		Object* o = ThePartitionManager->getClosestObject( me, range, FROM_BOUNDINGSPHERE_2D, filters );
 		return o;
@@ -994,15 +954,7 @@ m_teamWealthyMod(0.0f),
 m_aiDozerBoredRadiusModifier(2.0),
 m_aiCrushesInfantry(true),
 m_maxRetaliateDistance(210.0f),
-m_retaliateFriendsRadius(120.0f),
-m_skirmishSpeedEasy(0.6f),
-m_skirmishSpeedNormal(1.0f),
-m_skirmishSpeedHard(1.5f),
-m_skirmishExtraGatherersHard(1),
-m_skirmishDozersEasy(1),
-m_skirmishDozersNormal(2),
-m_skirmishDozersHard(2),
-m_skirmishAIRetaliates(true)
+m_retaliateFriendsRadius(120.0f)
 {
 }
 

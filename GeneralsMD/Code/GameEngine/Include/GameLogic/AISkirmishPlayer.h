@@ -73,11 +73,6 @@ public:	// AIPlayer interface methods.
 	virtual Player *getAiEnemy() override;	///< Solo AI attacks based on scripting.  Only skirmish auto-acquires an enemy at this point.  jba.
 
 protected:
-	/// Build speed for the difficulty of this AI, 1 being the original game.
-	Real getDifficultySpeed() const;
-	/// Delay before rebuilding a destroyed building, in frames.
-	Int getRebuildDelayFrames() const;
-
 
 	// snapshot methods
 	virtual void crc( Xfer *xfer ) override;

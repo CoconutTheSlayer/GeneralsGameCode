@@ -335,8 +335,6 @@ void ActiveBody::doDamageFX( const DamageInfo *damageInfo )
 	}
 }
 
-static Bool canPlayerRetaliate(Player *player);
-
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 void ActiveBody::attemptDamage( DamageInfo *damageInfo )
@@ -693,7 +691,7 @@ void ActiveBody::attemptDamage( DamageInfo *damageInfo )
 	//Also only retaliate if we're controlled by a human player and the thing that attacked me
 	//is an enemy.
 	Player *controllingPlayer = obj->getControllingPlayer();
-	if( controllingPlayer && canPlayerRetaliate(controllingPlayer) )
+	if( controllingPlayer && controllingPlayer->isLogicalRetaliationModeEnabled() && controllingPlayer->getPlayerType() == PLAYER_HUMAN )
 	{
 		if( shouldRetaliateAgainstAggressor(obj, damager))
 		{
@@ -730,19 +728,6 @@ void ActiveBody::attemptDamage( DamageInfo *damageInfo )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** Human players retaliate when they enabled it. Skirmish AI players retaliate too, so their units
-	no longer get picked off one at a time. */
-//-------------------------------------------------------------------------------------------------
-static Bool canPlayerRetaliate(Player *player)
-{
-	if (player == nullptr)
-		return false;
-	if (player->getPlayerType() == PLAYER_HUMAN)
-		return player->isLogicalRetaliationModeEnabled();
-	return TheAI->getAiData()->m_skirmishAIRetaliates && player->isSkirmishAIPlayer() && !player->isClassicSkirmishAI();
-}
-
-//-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 Bool ActiveBody::shouldRetaliateAgainstAggressor(Object *obj, Object *damager)
 {
@@ -762,8 +747,8 @@ Bool ActiveBody::shouldRetaliateAgainstAggressor(Object *obj, Object *damager)
 	if (distSqr > sqr(TheAI->getAiData()->m_maxRetaliateDistance)) {
 		return false;
 	}
-	// Only human players and skirmish AI players retaliate. [8/25/2003]
-	if (!canPlayerRetaliate(obj->getControllingPlayer())) {
+	// Only human players retaliate. [8/25/2003]
+	if (obj->getControllingPlayer()->getPlayerType() != PLAYER_HUMAN) {
 		return false;
 	}
 	// Drones never retaliate. [8/25/2003]

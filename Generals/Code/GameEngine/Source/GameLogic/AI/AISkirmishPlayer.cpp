@@ -190,16 +190,8 @@ void AISkirmishPlayer::processBaseBuilding()
 				continue;
 			}
 			if (info->isPriorityBuild()) {
-				// Always take priority build, unless we already have priority build. Waiting for the
-				// money is intended, but a priority build that lacks technology stopped all other
-				// building, so it is skipped.
-				Bool priorityBlocked = false;
-				Object *priorityDozer = findDozer(info->getLocation());
-				if (priorityDozer) {
-					const CanMakeType canMake = TheBuildAssistant->canMakeUnit(priorityDozer, curPlan);
-					priorityBlocked = canMake != CANMAKE_OK && canMake != CANMAKE_NO_MONEY;
-				}
-				if (!isPriority && !priorityBlocked) {
+				// Always take priority build, unless we already have priority build.
+				if (!isPriority) {
 					bldgPlan = curPlan;
 					bldgInfo = info;
 					isPriority = true;
@@ -266,15 +258,6 @@ void AISkirmishPlayer::processBaseBuilding()
 				}
 				m_frameLastBuildingBuilt = TheGameLogic->getFrame();
 				// only build one building per delay loop
-			}
-			else
-			{
-				// No place to build it. Try again in a while and build something else meanwhile,
-				// instead of retrying the same building forever.
-				const Int retryFrames = 10*LOGICFRAMES_PER_SECOND;
-				const Int rebuildFrames = TheAI->getAiData()->m_rebuildDelaySeconds*LOGICFRAMES_PER_SECOND;
-				const Int timestamp = (Int)TheGameLogic->getFrame() + retryFrames - rebuildFrames;
-				bldgInfo->setObjectTimestamp(timestamp > 1 ? timestamp : 1);
 			}
 
 #else
