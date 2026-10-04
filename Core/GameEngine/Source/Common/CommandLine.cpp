@@ -416,6 +416,15 @@ Int parseSkirmish(char *args[], int num)
 	return 1;
 }
 
+// At startup, -skirmish allows testing while the game is already running.
+Int parseSkirmishInstance(char *args[], int num)
+{
+	rts::ClientInstance::setMultiInstance(TRUE);
+	rts::ClientInstance::skipPrimaryInstance();
+	// Leave the argument for the engine init pass, which reads the map name.
+	return 0;
+}
+
 // -ai easy|medium|hard sets the difficulty of the -skirmish opponents.
 Int parseSkirmishAI(char *args[], int num)
 {
@@ -1208,6 +1217,7 @@ Int parseClearDebugLevel(char *args[], int num)
 // Note that except for TheGlobalData, no other global objects exist yet when these are parsed.
 static CommandLineParam paramsForStartup[] =
 {
+	{ "-skirmish", parseSkirmishInstance },
 	{ "-win", parseWin },
 	{ "-fullscreen", parseNoWin },
 
@@ -1450,6 +1460,12 @@ static void parseCommandLine(const CommandLineParam* params, int numParams, Bool
 				continue;
 
 			parsedArgCount = params[param].func(argv + arg, argc - arg);
+			if (parsedArgCount <= 0)
+			{
+				// The handler peeked at the option and leaves it to a later pass.
+				parsedArgCount = 1;
+				break;
+			}
 			for (int i = 0; i < parsedArgCount && arg + i < argc; ++i)
 				parsedArguments[arg + i] = TRUE;
 			break;
