@@ -1338,8 +1338,9 @@ BOOL EnumDisplaySettings(LPCSTR, DWORD mode, LPDEVMODE dm)
 		return FALSE;
 	memset(dm, 0, sizeof(*dm));
 	dm->dmSize = sizeof(*dm);
-	dm->dmPelsWidth = (DWORD)m->w;
-	dm->dmPelsHeight = (DWORD)m->h;
+	// Like Windows, report physical pixels; on Retina displays the mode size is in points.
+	dm->dmPelsWidth = (DWORD)(m->w * m->pixel_density + 0.5f);
+	dm->dmPelsHeight = (DWORD)(m->h * m->pixel_density + 0.5f);
 	dm->dmBitsPerPel = 32;
 	dm->dmDisplayFrequency = (DWORD)m->refresh_rate;
 	dm->dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL | DM_DISPLAYFREQUENCY;

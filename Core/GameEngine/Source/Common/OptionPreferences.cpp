@@ -751,8 +751,8 @@ void OptionPreferences::getResolution(Int *xres, Int *yres)
 	*yres = TheGlobalData->m_yResolution;
 
 #if defined(__APPLE__)
-	// Without a chosen resolution, use the size of the desktop in points, so the game fills the
-	// screen with the right aspect ratio.
+	// Without a chosen resolution, use the native pixel size of the display, so the game fills the
+	// screen sharply with the right aspect ratio.
 	DEVMODE desktop;
 	if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &desktop) && desktop.dmPelsWidth >= 800 && desktop.dmPelsHeight >= 600)
 	{
