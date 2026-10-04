@@ -814,6 +814,23 @@ Int OptionPreferences::getNetworkLatencyFontSize()
 	return fontSize;
 }
 
+// CameraZoomOutFactor lets the player zoom out further than the map allows, for example 1.5 for
+// 50% further. The default view stays the same.
+Real OptionPreferences::getCameraZoomOutFactor()
+{
+#if defined(__APPLE__)
+	const Real defaultFactor = 2.0f;
+#else
+	const Real defaultFactor = 1.0f;
+#endif
+	OptionPreferences::const_iterator it = find("CameraZoomOutFactor");
+	if (it == end())
+		return defaultFactor;
+
+	Real factor = (Real)atof(it->second.str());
+	return clamp(1.0f, factor, 4.0f);
+}
+
 Int OptionPreferences::getRenderFpsFontSize()
 {
 	OptionPreferences::const_iterator it = find("RenderFpsFontSize");

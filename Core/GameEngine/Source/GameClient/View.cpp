@@ -202,7 +202,7 @@ void View::setHeightAboveGround(Real z)
 	// if our zoom is limited, we will stay within a predefined distance from the terrain
 	if( m_zoomLimited )
 	{
-		m_heightAboveGround = clamp(m_minHeightAboveGround, z, m_maxHeightAboveGround);
+		m_heightAboveGround = clamp(m_minHeightAboveGround, z, m_maxHeightAboveGround * TheGlobalData->m_cameraZoomOutFactor);
 	}
 	else
 	{

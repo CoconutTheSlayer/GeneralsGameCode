@@ -633,7 +633,7 @@ Bool W3DView::isWithinCameraAreaConstraints() const
 Bool W3DView::isWithinCameraHeightConstraints() const
 {
 	const Bool isAboveMinHeight = m_currentHeightAboveGround >= m_minHeightAboveGround;
-	const Bool isBelowMaxHeight = m_currentHeightAboveGround <= m_maxHeightAboveGround;
+	const Bool isBelowMaxHeight = m_currentHeightAboveGround <= m_maxHeightAboveGround * TheGlobalData->m_cameraZoomOutFactor;
 	return isAboveMinHeight && (isBelowMaxHeight || !TheGlobalData->m_enforceMaxCameraHeight);
 }
 

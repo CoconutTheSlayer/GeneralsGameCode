@@ -193,6 +193,7 @@ public:
 	Real m_cameraHeight;
 #endif
 	Real m_maxCameraHeight;
+	Real m_cameraZoomOutFactor;	///< How much further than the max camera height the player may zoom out
 	Real m_minCameraHeight;
 	Real m_terrainHeightAtEdgeOfMap;
 	Real m_unitDamagedThresh;

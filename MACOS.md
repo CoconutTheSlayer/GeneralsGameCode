@@ -78,6 +78,15 @@ Command line options are the same as on Windows, for example `-win` for windowed
 for the resolution or `-quickstart` to skip the intro movies. In fullscreen mode the game uses a borderless window
 on the current display and scales the image to fit.
 
+## Testing and camera options
+
+- `-skirmish [map name]` skips the intro and menus and starts a skirmish with the settings of the last
+  skirmish, for example `generalszh -skirmish "Alpine Assault"`. `-ai easy|medium|hard` and `-opponents N`
+  choose other AI opponents.
+- The camera can zoom out twice as far as on Windows. Set `CameraZoomOutFactor` in `Options.ini` (1 to 4) to
+  change this; the default view when a game starts is unchanged.
+- The game renders at the display refresh rate while the simulation keeps its normal speed.
+
 ## Limitations
 
 - The Mac build cannot play multiplayer games or replays together with the Windows version. The game logic
