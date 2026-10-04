@@ -653,8 +653,14 @@ Bool MapCache::addMap(
 	if (!exists || nameLookupTag.isEmpty())
 	{
 		DEBUG_LOG(("Missing TheKey_mapName!"));
+		// TheSuperHackers @bugfix Accept either path separator and a name without one; on platforms that
+		// use '/', searching only for '\\' found nothing and the null result crashed.
+		const char *slash = fname.reverseFind('\\');
+		const char *forwardSlash = fname.reverseFind('/');
+		if (forwardSlash && (!slash || forwardSlash > slash))
+			slash = forwardSlash;
 		AsciiString tempdisplayname;
-		tempdisplayname = fname.reverseFind('\\') + 1;
+		tempdisplayname = slash ? slash + 1 : fname.str();
 		md.m_displayName.translate(tempdisplayname);
 		if (md.m_numPlayers >= 2)
 		{
