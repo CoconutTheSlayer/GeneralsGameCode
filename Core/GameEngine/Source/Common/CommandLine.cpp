@@ -27,6 +27,7 @@
 
 #include "Common/ArchiveFileSystem.h"
 #include "Common/CommandLine.h"
+#include "GameNetwork/GameInfo.h"
 #include "Common/CRCDebug.h"
 #include "Common/LocalFileSystem.h"
 #include "Common/version.h"
@@ -395,6 +396,50 @@ Int parseNoShadows(char *args[], int)
 	TheWritableGlobalData->m_useShadowVolumes = false;
 	TheWritableGlobalData->m_useShadowDecals = false;
 
+	return 1;
+}
+
+
+// -skirmish [map name] starts a skirmish against AI opponents right away, skipping the intro and menus.
+// Without a map name it uses the map and players of the last skirmish.
+Int parseSkirmish(char *args[], int num)
+{
+	TheWritableGlobalData->m_quickSkirmish = TRUE;
+	TheWritableGlobalData->m_playIntro = FALSE;
+	TheWritableGlobalData->m_playSizzle = FALSE;
+	TheWritableGlobalData->m_shellMapOn = FALSE;
+	if (num > 1 && args[1][0] != '-')
+	{
+		TheWritableGlobalData->m_quickSkirmishMap = args[1];
+		return 2;
+	}
+	return 1;
+}
+
+// -ai easy|medium|hard sets the difficulty of the -skirmish opponents.
+Int parseSkirmishAI(char *args[], int num)
+{
+	if (num > 1)
+	{
+		if (stricmp(args[1], "easy") == 0)
+			TheWritableGlobalData->m_quickSkirmishAI = SLOT_EASY_AI;
+		else if (stricmp(args[1], "medium") == 0)
+			TheWritableGlobalData->m_quickSkirmishAI = SLOT_MED_AI;
+		else if (stricmp(args[1], "hard") == 0 || stricmp(args[1], "brutal") == 0)
+			TheWritableGlobalData->m_quickSkirmishAI = SLOT_BRUTAL_AI;
+		return 2;
+	}
+	return 1;
+}
+
+// -opponents N sets the number of -skirmish AI opponents.
+Int parseSkirmishOpponents(char *args[], int num)
+{
+	if (num > 1)
+	{
+		TheWritableGlobalData->m_quickSkirmishOpponents = atoi(args[1]);
+		return 2;
+	}
 	return 1;
 }
 
@@ -1192,6 +1237,9 @@ static CommandLineParam paramsForStartup[] =
 // These Params are parsed during Engine Init before INI data is loaded
 static CommandLineParam paramsForEngineInit[] =
 {
+	{ "-skirmish", parseSkirmish },
+	{ "-ai", parseSkirmishAI },
+	{ "-opponents", parseSkirmishOpponents },
 	{ "-nologo", parseNoLogo }, // TheSuperHackers @tweak Is now available in Release builds.
 	{ "-noshellmap", parseNoShellMap },
 	{ "-noShellAnim", parseNoWindowAnimation }, // TheSuperHackers @tweak Is now available in Release builds.

@@ -987,6 +987,10 @@ GlobalData::GlobalData()
 
 	m_buildMapCache = FALSE;
 	m_initialFile.clear();
+	m_quickSkirmish = FALSE;
+	m_quickSkirmishMap.clear();
+	m_quickSkirmishAI = -1;
+	m_quickSkirmishOpponents = 0;
 	m_pendingFile.clear();
 
 	m_simulateReplays.clear();

@@ -714,6 +714,14 @@ void GameEngine::init()
 		// load the initial shell screen
 		//TheShell->push( "Menus/MainMenu.wnd" );
 
+		// -skirmish starts a skirmish right away, for testing.
+		if (TheGlobalData->m_quickSkirmish)
+		{
+			extern Bool startQuickSkirmish();
+			if (!startQuickSkirmish())
+				TheWritableGlobalData->m_quickSkirmish = FALSE;
+		}
+
 		// This allows us to run a map from the command line
 		if (TheGlobalData->m_initialFile.isEmpty() == FALSE)
 		{

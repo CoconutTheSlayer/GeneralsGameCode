@@ -450,6 +450,109 @@ void reallyDoStart()
 	}
 }
 
+
+//-------------------------------------------------------------------------------------------------
+/** Starts a skirmish without going through the menus, for -skirmish on the command line. Uses the
+	* settings of the last skirmish, optionally with another map and other AI opponents. */
+//-------------------------------------------------------------------------------------------------
+Bool startQuickSkirmish()
+{
+	if (TheMapCache == nullptr)
+		return FALSE;
+	TheMapCache->updateCache();
+
+	if (TheSkirmishGameInfo == nullptr)
+		TheSkirmishGameInfo = NEW SkirmishGameInfo;
+	TheSkirmishGameInfo->init();
+	TheSkirmishGameInfo->clearSlotList();
+	TheSkirmishGameInfo->reset();
+	TheSkirmishGameInfo->setLocalIP(TheSkirmishGameInfo->getSlot(0)->getIP());
+	TheSkirmishGameInfo->enterGame();
+
+	SkirmishPreferences prefs;
+	GameSlot player;
+	player.setName(prefs.getUserName());
+	player.setState(SLOT_PLAYER, prefs.getUserName());
+	player.setColor(prefs.getPreferredColor());
+	player.setPlayerTemplate(prefs.getPreferredFaction());
+	TheSkirmishGameInfo->setSlot(0, player);
+
+	// Find the map: a name like "Alpine Assault" matches the map folder or file name.
+	AsciiString mapPath = prefs.getPreferredMap();
+	if (TheGlobalData->m_quickSkirmishMap.isNotEmpty())
+	{
+		AsciiString wanted = TheGlobalData->m_quickSkirmishMap;
+		wanted.toLower();
+		mapPath.clear();
+		for (MapCache::iterator it = TheMapCache->begin(); it != TheMapCache->end(); ++it)
+		{
+			AsciiString path = it->first;
+			AsciiString folder;
+			folder.format("\\%s\\", wanted.str());
+			AsciiString file;
+			file.format("\\%s.map", wanted.str());
+			if (path == wanted || strstr(path.str(), folder.str()) || path.endsWith(file.str()))
+			{
+				mapPath = it->first;
+				break;
+			}
+		}
+		if (mapPath.isEmpty())
+		{
+			DEBUG_LOG(("startQuickSkirmish - map '%s' not found", TheGlobalData->m_quickSkirmishMap.str()));
+			fprintf(stderr, "-skirmish: map '%s' not found\n", TheGlobalData->m_quickSkirmishMap.str());
+			return FALSE;
+		}
+	}
+	const MapMetaData *md = TheMapCache->findMap(mapPath);
+	if (md == nullptr)
+	{
+		fprintf(stderr, "-skirmish: no map selected, play a skirmish once or pass a map name\n");
+		return FALSE;
+	}
+	TheSkirmishGameInfo->setMap(mapPath);
+	TheSkirmishGameInfo->setMapCRC(md->m_CRC);
+	TheSkirmishGameInfo->setMapSize(md->m_filesize);
+
+	// Opponents: the last skirmish setup, unless -ai or -opponents ask for something else.
+	if (TheGlobalData->m_quickSkirmishAI < 0 && TheGlobalData->m_quickSkirmishOpponents <= 0 && prefs.getSlotList().isNotEmpty())
+	{
+		ParseAsciiStringToGameInfo(TheSkirmishGameInfo, prefs.getSlotList());
+		TheSkirmishGameInfo->setSlot(0, player);
+	}
+	else
+	{
+		Int opponents = TheGlobalData->m_quickSkirmishOpponents > 0 ? TheGlobalData->m_quickSkirmishOpponents : 1;
+		opponents = min(opponents, md->m_numPlayers - 1);
+		SlotState ai = TheGlobalData->m_quickSkirmishAI >= 0 ? (SlotState)TheGlobalData->m_quickSkirmishAI : SLOT_EASY_AI;
+		for (Int i = 1; i < MAX_SLOTS; ++i)
+		{
+			GameSlot slot;
+			slot.setState(i <= opponents ? ai : SLOT_OPEN);
+			TheSkirmishGameInfo->setSlot(i, slot);
+		}
+	}
+	// Every player needs a start position; the menu would let the player choose them.
+	for (Int i = 0; i < MAX_SLOTS; ++i)
+	{
+		GameSlot *slot = TheSkirmishGameInfo->getSlot(i);
+		if (slot && slot->getStartPos() >= md->m_numPlayers)
+			slot->setStartPos(-1);
+	}
+	TheSkirmishGameInfo->setSeed(GetTickCount());
+
+	TheWritableGlobalData->m_mapName = mapPath;
+	TheSkirmishGameInfo->startGame(0);
+	InitRandom(TheSkirmishGameInfo->getSeed());
+
+	GameMessage *msg = TheMessageStream->appendMessage(GameMessage::MSG_NEW_GAME);
+	msg->appendIntegerArgument(md->m_isMultiplayer ? GAME_SKIRMISH : GAME_SINGLE_PLAYER);
+	msg->appendIntegerArgument(DIFFICULTY_NORMAL);
+	msg->appendIntegerArgument(0);
+	msg->appendIntegerArgument(LOGICFRAMES_PER_SECOND);
+	return TRUE;
+}
+
 Bool sandboxOk = FALSE;
 static void startPressed()
 {

@@ -353,6 +353,10 @@ public:
 	Bool m_enforceMaxCameraHeight;		///< Enforce max camera height while scrolling?
 	Bool m_buildMapCache;
 	AsciiString m_initialFile;				///< If this is specified, load a specific map from the command-line
+	Bool m_quickSkirmish;							///< Start a skirmish right away, for testing (-skirmish)
+	AsciiString m_quickSkirmishMap;		///< Map name for -skirmish, empty for the last skirmish map
+	Int m_quickSkirmishAI;						///< SlotState of the AI opponents, or -1 for the last skirmish setup
+	Int m_quickSkirmishOpponents;			///< Number of AI opponents, or 0 for the last skirmish setup
 	AsciiString m_pendingFile;				///< If this is specified, use this map at the next game start
 	AsciiString m_loadSaveGame;				///< If this is specified, load a save game file from the command-line
 	AsciiString m_loadReplayGame;			///< If this is specified, play a replay file from the command-line
