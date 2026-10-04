@@ -1450,14 +1450,16 @@ void ControlBar::update()
 	}*/
 
 	// The client updates once per rendered frame, which can be several times per logic frame.
-	// Command availability only changes with the logic or the selection, so the costly
-	// refreshes below only run when either of those has changed.
+	// The beacon count only changes with the logic, so that refresh is skipped on frames
+	// where neither the logic nor the UI has changed.
+	// The command buttons are NOT skipped: their progress clock is drawn once and then
+	// cleared by the button draw (W3DPushButton), so it must be set again every frame or
+	// the special power and superweapon buttons flicker and show no progress.
 	const UnsignedInt logicFrame = TheGameLogic->getFrame();
 	const Bool refreshCommands = m_UIDirty || logicFrame != m_lastLogicRefreshFrame;
 	m_lastLogicRefreshFrame = logicFrame;
 
-	if (refreshCommands)
-		updateSpecialPowerShortcut();
+	updateSpecialPowerShortcut();
 	// if we're an observer, don't do the complete update
 	if( m_isObserverCommandBar)
 	{
@@ -1569,8 +1571,7 @@ void ControlBar::update()
 	if( m_currContext == CB_CONTEXT_MULTI_SELECT )
 	{
 
-		if (refreshCommands)
-			updateContextMultiSelect();
+		updateContextMultiSelect();
 		return;
 
 	}
