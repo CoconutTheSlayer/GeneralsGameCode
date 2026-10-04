@@ -463,8 +463,7 @@ Int PingThreadClass::doPing(UnsignedInt IP, Int timeout)
     */
    lpfnIcmpCreateFile = (void * (__stdcall *)())GetProcAddress( (HINSTANCE)hICMP_DLL, "IcmpCreateFile");
    lpfnIcmpCloseHandle = (int (__stdcall *)(void *))GetProcAddress( (HINSTANCE)hICMP_DLL, "IcmpCloseHandle");
-   lpfnIcmpSendEcho = (unsigned long (__stdcall *)(void *, unsigned long, void *, unsigned short,
-                       void *, void *, unsigned long, unsigned long))GetProcAddress( (HINSTANCE)hICMP_DLL, "IcmpSendEcho" );
+   lpfnIcmpSendEcho = (decltype(lpfnIcmpSendEcho))GetProcAddress( (HINSTANCE)hICMP_DLL, "IcmpSendEcho" );
 
    if ((!lpfnIcmpCreateFile) ||
          (!lpfnIcmpCloseHandle) ||

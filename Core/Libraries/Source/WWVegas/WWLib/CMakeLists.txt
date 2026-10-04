@@ -146,6 +146,13 @@ set(WWLIB_SRC
     XSTRAW.h
 )
 
+if(APPLE)
+    list(APPEND WWLIB_SRC
+        registry.cpp
+        registry.h
+    )
+endif()
+
 if(WIN32)
     list(APPEND WWLIB_SRC
         mpu.cpp

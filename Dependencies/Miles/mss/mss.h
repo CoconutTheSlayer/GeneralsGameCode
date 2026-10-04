@@ -267,6 +267,14 @@ void __stdcall AIL_set_stream_volume_pan(HSTREAM stream, F32 volume, F32 pan);
 void __stdcall AIL_stream_volume_pan(HSTREAM stream, F32 *volume, F32 *pan);
 U32 __stdcall AIL_get_timer_highest_delay(void);
 
+#if defined(__APPLE__)
+/* macOS extension: a voice playing PCM that is supplied incrementally. */
+HSTREAM MilesMac_OpenPCMStream(int channels, int rate);
+void MilesMac_QueuePCM(HSTREAM stream, const float* interleaved, int frames, int channels);
+void MilesMac_SetPCMVolume(HSTREAM stream, float volume);
+void MilesMac_ClosePCMStream(HSTREAM stream);
+#endif
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

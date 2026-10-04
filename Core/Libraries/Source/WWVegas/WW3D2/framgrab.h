@@ -70,7 +70,7 @@ public:
 	void ConvertGrab(void *BitmapPointer);
 	void Grab(void *BitmapPointer);
 
-	long * GetBuffer()			{ return Bitmap; }
+	int * GetBuffer()			{ return Bitmap; }
 	float	GetFrameRate()			{ return FrameRate; }
 
 protected:
@@ -85,7 +85,7 @@ protected:
 
 	// avi settings
 	PAVIFILE				AVIFile;
-	long					*Bitmap;
+	int					*Bitmap;
 	PAVISTREAM			Stream;
 	AVISTREAMINFO		AVIStreamInfo;
 	BITMAPINFOHEADER	BitmapInfoHeader;

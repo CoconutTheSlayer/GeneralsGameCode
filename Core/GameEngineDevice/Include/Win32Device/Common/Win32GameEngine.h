@@ -42,7 +42,9 @@
 #include "W3DDevice/Common/W3DModuleFactory.h"
 #include "W3DDevice/GameLogic/W3DGameLogic.h"
 #include "W3DDevice/GameClient/W3DGameClient.h"
+#if !defined(__APPLE__)
 #include "W3DDevice/GameClient/W3DWebBrowser.h"
+#endif
 #include "W3DDevice/Common/W3DFunctionLexicon.h"
 #include "W3DDevice/Common/W3DRadar.h"
 #include "W3DDevice/Common/W3DThingFactory.h"
@@ -108,7 +110,11 @@ inline Radar *Win32GameEngine::createRadar(Bool dummy)
 		return NEW RadarDummy;
 	return NEW W3DRadar;
 }
+#if defined(__APPLE__)
+inline WebBrowser *Win32GameEngine::createWebBrowser() { return nullptr; }
+#else
 inline WebBrowser *Win32GameEngine::createWebBrowser() { return NEW CComObject<W3DWebBrowser>; }
+#endif
 inline AudioManager *Win32GameEngine::createAudioManager(Bool dummy)
 {
 	if (dummy)

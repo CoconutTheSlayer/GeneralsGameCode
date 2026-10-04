@@ -134,7 +134,11 @@ DECLARE_PERF_TIMER(MemoryPoolInitFilling)
 
 #ifdef MEMORYPOOL_BOUNDINGWALL
 
+	#if defined(__LP64__) || defined(_WIN64)
+	#define WALLCOUNT (4)	// keeps user data 16 byte aligned
+	#else
 	#define WALLCOUNT (2)	// default setting of 8 requires 4*4*2==32 extra bytes PER BLOCK
+	#endif
 	#define WALLSIZE	(WALLCOUNT * sizeof(Int))
 
 #endif
@@ -200,7 +204,14 @@ static Bool theMainInitFlag = false;
 // ----------------------------------------------------------------------------
 
 /// @todo srj -- make this work for 8
+// TheSuperHackers @bugfix 64 bit platforms need 16 byte aligned allocations like
+// malloc provides; ARM64 faults on misaligned atomic operations.
+#if defined(__LP64__) || defined(_WIN64)
+#define MEM_BOUND_ALIGNMENT 16
+#else
 #define MEM_BOUND_ALIGNMENT 4
+#endif
+#define MEM_ALLOCATION_COUNT_MULTIPLE 4
 
 static Int roundUpMemBound(Int i);
 static void *sysAllocateDoNotZero(Int numBytes);
@@ -398,7 +409,11 @@ public:
 	Note also that we directly allocate/free these with sysAllocate/sysFree, so ctors/dtors
 	are never executed, nor would virtual functions work -- I know, it's a little evil.
 */
-class MemoryPoolSingleBlock
+class
+#if defined(__LP64__) || defined(_WIN64)
+alignas(MEM_BOUND_ALIGNMENT)
+#endif
+MemoryPoolSingleBlock
 {
 private:
 
@@ -1561,7 +1576,7 @@ MemoryPool::~MemoryPool()
 */
 MemoryPoolBlob* MemoryPool::createBlob(Int allocationCount)
 {
-	DEBUG_ASSERTCRASH(allocationCount > 0 && allocationCount%MEM_BOUND_ALIGNMENT==0, ("bad allocationCount (must be >0 and evenly divisible by %d)",MEM_BOUND_ALIGNMENT));
+	DEBUG_ASSERTCRASH(allocationCount > 0 && allocationCount%MEM_ALLOCATION_COUNT_MULTIPLE==0, ("bad allocationCount (must be >0 and evenly divisible by %d)",MEM_ALLOCATION_COUNT_MULTIPLE));
 
 	MemoryPoolBlob* blob = new (::sysAllocateDoNotZero(sizeof(MemoryPoolBlob))) MemoryPoolBlob;	// will throw on failure
 
@@ -2253,7 +2268,7 @@ void *DynamicMemoryAllocator::allocateBytesDoNotZeroImplementation(Int numBytes 
 
 #if defined(RTS_DEBUG)
   // check alignment
-  if (unsigned(result)&3)
+  if (uintptr_t(result)&(MEM_BOUND_ALIGNMENT-1))
     throw ERROR_OUT_OF_MEMORY;
 #endif
 
@@ -3245,7 +3260,8 @@ void MemoryPoolFactory::debugMemoryReport(Int flags, Int startCheckpoint, Int en
 static int theLinkTester = 0;
 void verifyLinkTester()
 {
-	char* linktest;
+	// volatile keeps optimizing compilers from eliding the new/delete pairs.
+	char* volatile linktest;
 
 	theLinkTester = 0;
 
@@ -3594,7 +3610,7 @@ void* createW3DMemPool(const char *poolName, int allocationSize)
 	LINK_TESTER_INCREMENT();
 	preMainInitMemoryManager();
 	MemoryPool* pool = TheMemoryPoolFactory->createMemoryPool(poolName, allocationSize, 0, 0);
-	DEBUG_ASSERTCRASH(pool && pool->getAllocationSize() == allocationSize, ("bad w3d pool"));
+	DEBUG_ASSERTCRASH(pool && pool->getAllocationSize() == ::roundUpMemBound(allocationSize), ("bad w3d pool"));
 	return pool;
 }
 
@@ -3602,7 +3618,7 @@ void* createW3DMemPool(const char *poolName, int allocationSize)
 void* allocateFromW3DMemPool(void* pool, int allocationSize)
 {
 	DEBUG_ASSERTCRASH(pool, ("pool is null"));
-	DEBUG_ASSERTCRASH(pool && ((MemoryPool*)pool)->getAllocationSize() == allocationSize, ("bad w3d pool size %s",((MemoryPool*)pool)->getPoolName()));
+	DEBUG_ASSERTCRASH(pool && ((MemoryPool*)pool)->getAllocationSize() == ::roundUpMemBound(allocationSize), ("bad w3d pool size %s",((MemoryPool*)pool)->getPoolName()));
 	return ((MemoryPool*)pool)->allocateBlock("allocateFromW3DMemPool");
 }
 
@@ -3610,7 +3626,7 @@ void* allocateFromW3DMemPool(void* pool, int allocationSize)
 void* allocateFromW3DMemPool(void* pool, int allocationSize, const char* msg, int unused)
 {
 	DEBUG_ASSERTCRASH(pool, ("pool is null"));
-	DEBUG_ASSERTCRASH(pool && ((MemoryPool*)pool)->getAllocationSize() == allocationSize, ("bad w3d pool size %s",((MemoryPool*)pool)->getPoolName()));
+	DEBUG_ASSERTCRASH(pool && ((MemoryPool*)pool)->getAllocationSize() == ::roundUpMemBound(allocationSize), ("bad w3d pool size %s",((MemoryPool*)pool)->getPoolName()));
 	return ((MemoryPool*)pool)->allocateBlock(msg);
 }
 

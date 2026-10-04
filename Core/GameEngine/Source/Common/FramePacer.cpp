@@ -88,6 +88,24 @@ void FramePacer::setFramesPerSecondLimit( Int fps )
 	m_maxFPS = fps;
 }
 
+void FramePacer::setDecoupledFramesPerSecond( Int logicFps )
+{
+#if defined(__APPLE__)
+	// Render as fast as the display refreshes. The simulation keeps its own rate through the
+	// logic time scale and drawables are interpolated between logic frames.
+	Int renderFps = 60;
+	DEVMODE mode;
+	if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &mode) && mode.dmDisplayFrequency >= 30)
+		renderFps = (Int)mode.dmDisplayFrequency;
+	renderFps = max(renderFps, logicFps);
+	setFramesPerSecondLimit(renderFps);
+	setLogicTimeScaleFps(logicFps);
+	enableLogicTimeScale(logicFps < renderFps);
+#else
+	setFramesPerSecondLimit(logicFps);
+#endif
+}
+
 Int FramePacer::getFramesPerSecondLimit()  const
 {
 	return m_maxFPS;

@@ -16,6 +16,13 @@ set(PROFILE_SRC
     "profile.h"
 )
 
+if(APPLE)
+    add_library(core_profile_legacy STATIC profile_macos.cpp)
+    target_include_directories(core_profile_legacy INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(core_profile_legacy PRIVATE core_wwcommon corei_always)
+    return()
+endif()
+
 add_library(core_profile_legacy STATIC)
 
 target_sources(core_profile_legacy PRIVATE ${PROFILE_SRC})

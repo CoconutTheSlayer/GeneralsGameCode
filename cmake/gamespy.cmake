@@ -8,3 +8,8 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(gamespy)
+
+if(APPLE)
+    # GameSpy detects _UNIX itself but needs _MACOSX for the Darwin specific paths.
+    target_compile_definitions(gsinterface INTERFACE _MACOSX)
+endif()

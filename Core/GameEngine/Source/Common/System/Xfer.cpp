@@ -31,6 +31,8 @@
 
 // USER INCLUDES //////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+
+#include "Common/UTF16.h"
 #include "Common/Upgrade.h"
 #include "Common/GameState.h"
 #include "Common/Xfer.h"
@@ -210,7 +212,11 @@ void Xfer::xferMarkerLabel( AsciiString asciiStringData )
 void Xfer::xferUnicodeString( UnicodeString *unicodeStringData )
 {
 
-	xferImplementation( (void *)unicodeStringData->str(), sizeof( WideChar ) * unicodeStringData->getLength() );
+	// Strings are transferred as UTF-16 code units on every platform.
+	Int len = unicodeStringData->getLength();
+	std::vector<UnsignedShort> utf16( len );
+	WideCharToUTF16( unicodeStringData->str(), utf16.data(), len );
+	xferImplementation( utf16.data(), sizeof( UnsignedShort ) * len );
 
 }
 

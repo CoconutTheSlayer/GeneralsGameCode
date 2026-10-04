@@ -514,6 +514,14 @@ StaticGameLODLevel GameLODManager::getRecommendedStaticLODLevel()
 
 		Int numMBRam=m_numRAM/(1024*1024);
 
+		// The Metal renderer identifies itself as an old fixed function card so that the game
+		// avoids pixel shaders, but any Mac it runs on is far faster than the presets assume.
+		ChipsetType presetChipType = m_videoChipType;
+#ifdef __APPLE__
+		if (presetChipType < DC_GEFORCE4)
+			presetChipType = DC_GEFORCE4;
+#endif
+
 		for (Int i=STATIC_GAME_LOD_LAST; i >= STATIC_GAME_LOD_FIRST; i--)
 		{
 				LODPresetInfo *preset=&m_lodPresets[i][0];	//pointer to first preset at this LOD level.
@@ -522,7 +530,7 @@ StaticGameLODLevel GameLODManager::getRecommendedStaticLODLevel()
 
 					if(	m_cpuType == preset->m_cpuType &&
 							((Real)m_cpuFreq/(Real)preset->m_mhz >= PROFILE_ERROR_LIMIT) &&//make sure we're within 5% or higher
-							m_videoChipType >= preset->m_videoType &&
+							presetChipType >= preset->m_videoType &&
 							((Real)numMBRam/(Real)preset->m_memory >= PROFILE_ERROR_LIMIT)
 						)
 					{	m_idealDetailLevel = (StaticGameLODLevel)i;

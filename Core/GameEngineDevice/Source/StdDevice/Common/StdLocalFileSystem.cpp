@@ -67,7 +67,7 @@ static std::filesystem::path fixFilenameFromWindowsPath(const Char *filename, In
 
 		std::filesystem::path pathFixed;
 		std::filesystem::path pathCurrent;
-		for (auto& p : path)
+		for (const auto& p : path)
 		{
 			std::filesystem::path pathFixedPart;
 			if (pathCurrent.empty())
@@ -104,7 +104,7 @@ static std::filesystem::path fixFilenameFromWindowsPath(const Char *filename, In
 				// Required to allow creation of new files
 				if (!(access & File::WRITE))
 				{
-					DEBUG_LOG(("StdLocalFileSystem::fixFilenameFromWindowsPath - Error finding file %s", filename.string().c_str()));
+					DEBUG_LOG(("StdLocalFileSystem::fixFilenameFromWindowsPath - Error finding file %s", filename));
 					DEBUG_LOG(("StdLocalFileSystem::fixFilenameFromWindowsPath - Got so far %s", pathCurrent.string().c_str()));
 
 					return std::filesystem::path();

@@ -53,6 +53,11 @@ extern "C" {
 
 #include <chrono>
 
+#if defined(__APPLE__)
+#include <mss.h>
+#include <vector>
+#endif
+
 //----------------------------------------------------------------------------
 //         Externals
 //----------------------------------------------------------------------------
@@ -335,6 +340,9 @@ FFmpegVideoStream::FFmpegVideoStream(FFmpegFile* file)
 
 FFmpegVideoStream::~FFmpegVideoStream()
 {
+#if defined(__APPLE__)
+	MilesMac_ClosePCMStream((HSTREAM)m_pcmStream);
+#endif
 	av_freep(&m_audioBuffer);
 	av_frame_free(&m_frame);
 	sws_freeContext(m_swsContext);
@@ -349,7 +357,44 @@ void FFmpegVideoStream::onFrame(AVFrame *frame, int stream_idx, int stream_type,
 		videoStream->m_frame = av_frame_clone(frame);
 		videoStream->m_gotFrame = true;
 	}
-#ifdef RTS_USE_OPENAL
+#if defined(__APPLE__)
+	else if (stream_type == AVMEDIA_TYPE_AUDIO) {
+		// Convert the decoded samples to interleaved float and queue them on a Miles PCM voice.
+		const int channels = frame->ch_layout.nb_channels;
+		const int samples = frame->nb_samples;
+		if (channels <= 0 || samples <= 0)
+			return;
+		if (videoStream->m_pcmStream == nullptr)
+			videoStream->m_pcmStream = MilesMac_OpenPCMStream(channels, frame->sample_rate);
+		if (videoStream->m_pcmStream == nullptr)
+			return;
+		std::vector<float> pcm((size_t)samples * channels);
+		const AVSampleFormat sampleFmt = static_cast<AVSampleFormat>(frame->format);
+		const bool planar = av_sample_fmt_is_planar(sampleFmt) != 0;
+		const AVSampleFormat packedFmt = av_get_packed_sample_fmt(sampleFmt);
+		for (int i = 0; i < samples; ++i)
+		{
+			for (int c = 0; c < channels; ++c)
+			{
+				const uint8_t* plane = frame->data[planar ? c : 0];
+				const int index = planar ? i : i * channels + c;
+				float v = 0.0f;
+				switch (packedFmt)
+				{
+				case AV_SAMPLE_FMT_FLT: v = ((const float*)plane)[index]; break;
+				case AV_SAMPLE_FMT_DBL: v = (float)((const double*)plane)[index]; break;
+				case AV_SAMPLE_FMT_S16: v = ((const int16_t*)plane)[index] / 32768.0f; break;
+				case AV_SAMPLE_FMT_S32: v = (float)(((const int32_t*)plane)[index] / 2147483648.0); break;
+				case AV_SAMPLE_FMT_U8: v = (((const uint8_t*)plane)[index] - 128) / 128.0f; break;
+				default: break;
+				}
+				pcm[(size_t)i * channels + c] = v;
+			}
+		}
+		MilesMac_SetPCMVolume((HSTREAM)videoStream->m_pcmStream, TheAudio ? TheAudio->getVolume(AudioAffect_Speech) : 1.0f);
+		MilesMac_QueuePCM((HSTREAM)videoStream->m_pcmStream, pcm.data(), samples, channels);
+	}
+#elif defined(RTS_USE_OPENAL)
 	else if (stream_type == AVMEDIA_TYPE_AUDIO) {
 		OpenALAudioStream* audioStream = (OpenALAudioStream*)TheAudio->getHandleForBink();
 		audioStream->update();

@@ -292,12 +292,17 @@ bool DX8Wrapper::Init(void * hwnd, bool lite)
 	Invalidate_Cached_Render_States();
 
 	if (!lite) {
+#if defined(__APPLE__)
+		// Direct3D 8 is implemented by the statically linked Metal backend.
+		Direct3DCreate8Ptr = Direct3DCreate8;
+#else
 		D3D8Lib = LoadLibrary("D3D8.DLL");
 
 		if (D3D8Lib == nullptr) return false;	// Return false at this point if init failed
 
 		Direct3DCreate8Ptr = (Direct3DCreate8Type) GetProcAddress(D3D8Lib, "Direct3DCreate8");
 		if (Direct3DCreate8Ptr == nullptr) return false;
+#endif
 
 		/*
 		** Create the D3D interface object
@@ -956,7 +961,7 @@ bool DX8Wrapper::Set_Render_Device(int dev, int width, int height, int bits, int
 		_RenderDeviceNameTable[CurRenderDevice].str(),_RenderDeviceDescriptionTable[CurRenderDevice].Get_Driver_Name(),
 		_RenderDeviceDescriptionTable[CurRenderDevice].Get_Driver_Version(),ResolutionWidth,ResolutionHeight,(IsWindowed ? 1 : 0)));
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 	// PWG 4/13/2000 - changed so that if you say to resize the window it resizes
 	// regardless of whether its windowed or not as OpenGL resizes its self around
 	// the caption and edges of the window type you provide, so its important to
@@ -2028,7 +2033,7 @@ void DX8Wrapper::Draw(
 
 #ifdef DEBUG_LOGGING
 	if (WW3D::Is_Snapshot_Activated()) {
-		unsigned long passes=0;
+		DWORD passes=0;
 		SNAPSHOT_SAY(("ValidateDevice:"));
 		HRESULT res=D3DDevice->ValidateDevice(&passes);
 		switch (res) {

@@ -74,6 +74,20 @@ WorkerProcess::WorkerProcess()
 	m_isDone = false;
 }
 
+#if defined(__APPLE__)
+
+// Replay simulation in worker processes is not supported on macOS.
+bool WorkerProcess::startProcess(UnicodeString command) { return false; }
+bool WorkerProcess::isRunning() const { return false; }
+bool WorkerProcess::isDone() const { return m_isDone; }
+DWORD WorkerProcess::getExitCode() const { return m_exitcode; }
+AsciiString WorkerProcess::getStdOutput() const { return m_stdOutput; }
+bool WorkerProcess::fetchStdOutput() { return false; }
+void WorkerProcess::update() {}
+void WorkerProcess::kill() {}
+
+#else
+
 bool WorkerProcess::startProcess(UnicodeString command)
 {
 	m_stdOutput.clear();
@@ -229,3 +243,4 @@ void WorkerProcess::kill()
 	m_isDone = false;
 }
 
+#endif // __APPLE__

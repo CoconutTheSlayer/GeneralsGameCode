@@ -369,7 +369,8 @@ Bool FileSystem::isPathInDirectory(const AsciiString& testPath, const AsciiStrin
 		basePathNormalized.concat(pathSep);
 	}
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
+	// Windows and (by default) macOS file systems are case insensitive.
 	if (!testPathNormalized.startsWithNoCase(basePathNormalized))
 #else
 	if (!testPathNormalized.startsWith(basePathNormalized))

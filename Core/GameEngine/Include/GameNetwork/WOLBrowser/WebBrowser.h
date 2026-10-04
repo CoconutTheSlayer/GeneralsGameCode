@@ -43,6 +43,49 @@
 #pragma once
 
 #include "Common/SubsystemInterface.h"
+
+#if defined(__APPLE__)
+// The embedded browser is an ATL/COM component that is never instantiated by the
+// game. On macOS only the interface remains so callers compile; TheWebBrowser is
+// always null.
+#include <Common/GameMemory.h>
+
+class GameWindow;
+
+class WebBrowserURL : public MemoryPoolObject
+{
+	MEMORY_POOL_GLUE_WITH_USERLOOKUP_CREATE( WebBrowserURL, "WebBrowserURL" )
+
+public:
+
+	WebBrowserURL();
+
+	const FieldParse *getFieldParse() const { return m_URLFieldParseTable; }
+
+	AsciiString m_tag;
+	AsciiString m_url;
+
+	WebBrowserURL *m_next;
+
+	static const FieldParse m_URLFieldParseTable[];
+};
+
+class WebBrowser : public SubsystemInterface
+{
+public:
+	virtual void init() override {}
+	virtual void reset() override {}
+	virtual void update() override {}
+	virtual Bool createBrowserWindow(const char *tag, GameWindow *win) { return FALSE; }
+	virtual void closeBrowserWindow(GameWindow *win) {}
+	WebBrowserURL *makeNewURL(AsciiString tag) { return nullptr; }
+	WebBrowserURL *findURL(AsciiString tag) { return nullptr; }
+};
+
+inline WebBrowser *TheWebBrowser = nullptr;
+
+#else
+
 #include <atlbase.h>
 #include <windows.h>
 #include <Common/GameMemory.h>
@@ -121,3 +164,5 @@ class WebBrowser :
 	};
 
 extern CComObject<WebBrowser> *TheWebBrowser;
+
+#endif // __APPLE__

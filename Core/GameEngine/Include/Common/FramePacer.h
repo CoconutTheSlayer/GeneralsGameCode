@@ -42,6 +42,7 @@ public:
 	void reset(); ///< Move the frame timing anchor to now and predict the next update time from the target frame rate. Call after a long blocking operation so its duration does not leak into the next frame delta.
 
 	void setFramesPerSecondLimit( Int fps ); ///< Set the update fps limit.
+	void setDecoupledFramesPerSecond( Int logicFps ); ///< On macOS, render at the display refresh rate and run the simulation at logicFps.
 	Int  getFramesPerSecondLimit() const; ///< Get the update fps limit.
 	void enableFramesPerSecondLimit( Bool enable ); ///< Enable or disable the update fps limit.
 	Bool isFramesPerSecondLimitEnabled() const; ///< Returns whether the fps limit is enabled here.

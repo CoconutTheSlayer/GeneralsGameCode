@@ -28,6 +28,8 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#include "Common/UTF16.h"
+
 #include "stdlib.h"
 #include "Compression.h"
 #include "Common/DataChunk.h"
@@ -357,7 +359,9 @@ void DataChunkOutput::writeUnicodeString( UnicodeString theString )
 {
 	UnsignedShort len = theString.getLength();
 	::fwrite( (const char *)&len, sizeof(UnsignedShort) , 1, m_tmp_file );
-	::fwrite( theString.str(), len*sizeof(WideChar) , 1, m_tmp_file );
+	std::vector<UnsignedShort> utf16(len);
+	WideCharToUTF16( theString.str(), utf16.data(), len );
+	::fwrite( utf16.data(), len*sizeof(UnsignedShort) , 1, m_tmp_file );
 }
 
 void DataChunkOutput::writeNameKey( const NameKeyType key )
@@ -972,8 +976,10 @@ UnicodeString DataChunkInput::readUnicodeString()
 	UnicodeString theString;
 	if (len>0) {
 		WideChar *str = theString.getBufferForRead(len);
-		m_file->read( (char*)str, len*sizeof(WideChar) );
-		decrementDataLeft( len*sizeof(WideChar) );
+		std::vector<UnsignedShort> utf16(len);
+		m_file->read( (char*)utf16.data(), len*sizeof(UnsignedShort) );
+		UTF16ToWideChar( utf16.data(), str, len );
+		decrementDataLeft( len*sizeof(UnsignedShort) );
 		// add null delimiter to string.  Note that getBufferForRead allocates space for terminating null.
 		str[len] = '\000';
 	}

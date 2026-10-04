@@ -25,6 +25,12 @@
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
 #include "GameNetwork/IPEnumeration.h"
+
+#ifdef __APPLE__
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#endif
 #include "GameNetwork/networkutil.h"
 #include "GameClient/ClientInstance.h"
 
@@ -72,6 +78,38 @@ EnumeratedIP * IPEnumeration::getAddresses()
 		}
 		m_isWinsockInitialized = true;
 	}
+
+#ifdef __APPLE__
+	// The host name does not always resolve on macOS, for example without a network
+	// connection, so list the IPv4 addresses of the active network interfaces instead.
+	{
+		struct ifaddrs* interfaces = nullptr;
+		if (getifaddrs(&interfaces) == 0)
+		{
+			if (rts::ClientInstance::isMultiInstance())
+			{
+				const UnsignedInt id = rts::ClientInstance::getInstanceId();
+				addNewIP(127, (UnsignedByte)(id >> 16), (UnsignedByte)(id >> 8), (UnsignedByte)(id));
+			}
+			for (struct ifaddrs* it = interfaces; it != nullptr; it = it->ifa_next)
+			{
+				if (it->ifa_addr == nullptr || it->ifa_addr->sa_family != AF_INET)
+					continue;
+				if (!(it->ifa_flags & IFF_UP) || (it->ifa_flags & IFF_LOOPBACK))
+					continue;
+				const UnsignedByte* b = (const UnsignedByte*)&((const struct sockaddr_in*)it->ifa_addr)->sin_addr.s_addr;
+				Bool known = FALSE;
+				for (EnumeratedIP* ip = m_IPlist; ip != nullptr; ip = ip->getNext())
+					known = known || ip->getIP() == AssembleIp(b[0], b[1], b[2], b[3]);
+				if (!known)
+					addNewIP(b[0], b[1], b[2], b[3]);
+			}
+			freeifaddrs(interfaces);
+			if (m_IPlist)
+				return m_IPlist;
+		}
+	}
+#endif
 
 	// get the local machine's host name
 	char hostname[256];

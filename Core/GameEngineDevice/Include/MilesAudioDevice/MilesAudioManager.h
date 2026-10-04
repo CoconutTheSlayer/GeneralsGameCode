@@ -93,7 +93,7 @@ struct PlayingAudio
 		return m_status == PS_Playing || m_rerequestOnNextUpdate;
 	}
 
-	static_assert(sizeof(m_status) == sizeof(long), "Must be size of long, because it is used with Interlocked functions");
+	static_assert(sizeof(m_status) == sizeof(LONG), "Must be size of LONG, because it is used with Interlocked functions");
 };
 
 struct ProviderInfo
@@ -188,8 +188,8 @@ class MilesAudioManager : public AudioManager
 		///< NOTE NOTE NOTE !!DO NOT USE THIS IN FOR GAMELOGIC PURPOSES!! NOTE NOTE NOTE
 		virtual Bool isCurrentlyPlaying( AudioHandle handle ) override;
 
-		virtual void notifyOfAudioCompletion( UnsignedInt handle, UnsignedInt flags ) override; ///< Is called on MSS Timer thread
-		virtual PlayingAudio *findPlayingAudioFrom( UnsignedInt handle, UnsignedInt flags );
+		virtual void notifyOfAudioCompletion( uintptr_t handle, UnsignedInt flags ) override; ///< Is called on MSS Timer thread
+		virtual PlayingAudio *findPlayingAudioFrom( uintptr_t handle, UnsignedInt flags );
 
 		virtual UnsignedInt getProviderCount() const override;
 		virtual AsciiString getProviderName( UnsignedInt providerNum ) const override;
@@ -372,7 +372,7 @@ class MilesAudioManagerDummy : public MilesAudioManager
 	//virtual void openDevice() override {}
 	//virtual void closeDevice() override {}
 	//virtual void* getDevice() override { return nullptr; }
-	virtual void notifyOfAudioCompletion(UnsignedInt audioCompleted, UnsignedInt flags) override {}
+	virtual void notifyOfAudioCompletion(uintptr_t audioCompleted, UnsignedInt flags) override {}
 	virtual UnsignedInt getProviderCount() const override { return 0; };
 	virtual AsciiString getProviderName(UnsignedInt providerNum) const override { return AsciiString::TheEmptyString; }
 	virtual UnsignedInt getProviderIndex(AsciiString providerName) const override { return 0; }

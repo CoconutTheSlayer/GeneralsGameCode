@@ -263,3 +263,10 @@ target_link_libraries(z_ww3d2 PRIVATE
     z_wwcommon
     zi_always
 )
+
+if(APPLE)
+    # Integration test of WW3D on the Metal backend.
+    add_executable(z_ww3d_test EXCLUDE_FROM_ALL tests/ww3dtest.cpp tests/soundstub.cpp)
+    target_link_libraries(z_ww3d_test PRIVATE z_ww3d2 core_wwstub core_wwdebug corei_ww3d2 z_wwcommon zi_always stb)
+    target_include_directories(z_ww3d_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+endif()

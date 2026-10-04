@@ -807,11 +807,13 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		// default in a DevStudio project
 		//
 
+#if !defined(__APPLE__)
 		TheAsciiStringCriticalSection = &critSec1;
 		TheUnicodeStringCriticalSection = &critSec2;
 		TheDmaCriticalSection = &critSec3;
 		TheMemoryPoolCriticalSection = &critSec4;
 		TheDebugLogCriticalSection = &critSec5;
+#endif
 
 		// initialize the memory manager early
 		initMemoryManager();
@@ -913,10 +915,12 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #ifdef RTS_ENABLE_CRASHDUMP
 	MiniDumper::shutdownMiniDumper();
 #endif
+#if !defined(__APPLE__)
 	TheAsciiStringCriticalSection = nullptr;
 	TheUnicodeStringCriticalSection = nullptr;
 	TheDmaCriticalSection = nullptr;
 	TheMemoryPoolCriticalSection = nullptr;
+#endif
 
 	return exitcode;
 
@@ -937,3 +941,31 @@ GameEngine *CreateGameEngine()
 	return engine;
 
 }
+
+#if defined(__APPLE__)
+#include <win32shim.h>
+
+// macOS entry point: set up the Win32 shim and run the regular WinMain.
+//
+// System frameworks share the game's operator new on macOS and allocate from their own threads,
+// so the memory manager locks must exist before any thread starts and must stay valid until the
+// process ends, including during static destruction.
+static void installCriticalSections()
+{
+	alignas(CriticalSection) static unsigned char storage[5][sizeof(CriticalSection)];
+	TheAsciiStringCriticalSection = new (storage[0]) CriticalSection;
+	TheUnicodeStringCriticalSection = new (storage[1]) CriticalSection;
+	TheDmaCriticalSection = new (storage[2]) CriticalSection;
+	TheMemoryPoolCriticalSection = new (storage[3]) CriticalSection;
+	TheDebugLogCriticalSection = new (storage[4]) CriticalSection;
+}
+
+int main(int argc, char** argv)
+{
+	installCriticalSections();
+	Win32Shim_SetCommandLine(argc, argv);
+	Win32Shim_Initialize();
+	Win32Shim_LocateGameData(false);
+	return WinMain(GetModuleHandle(nullptr), nullptr, GetCommandLine(), SW_SHOW);
+}
+#endif

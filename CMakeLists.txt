@@ -35,7 +35,11 @@ endif()
 include(cmake/config-vcpkg.cmake)
 
 # Top level project, doesn't really affect anything.
-project(genzh LANGUAGES C CXX)
+if(APPLE)
+    project(genzh LANGUAGES C CXX OBJCXX)
+else()
+    project(genzh LANGUAGES C CXX)
+endif()
 
 # This file handles extra settings wanted/needed for different compilers.
 include(cmake/compilers.cmake)
@@ -50,6 +54,10 @@ if(MINGW)
     include(cmake/mingw.cmake)
     include(cmake/reactos-atl.cmake)
     include(cmake/widl.cmake)
+endif()
+
+if(APPLE)
+    include(cmake/macos.cmake)
 endif()
 
 # Find/Add build dependencies and stubs shared by all projects

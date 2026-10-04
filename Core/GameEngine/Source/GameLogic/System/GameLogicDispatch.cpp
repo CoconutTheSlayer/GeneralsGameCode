@@ -883,7 +883,7 @@ bool GameLogic::onNewGame(MAYBE_UNUSED GameMessage *msg)
 		if (maxFPS < 1 || maxFPS > 1000)
 			maxFPS = TheGlobalData->m_framesPerSecondLimit;
 		DEBUG_LOG(("Setting max FPS limit to %d FPS", maxFPS));
-		TheFramePacer->setFramesPerSecondLimit(maxFPS);
+		TheFramePacer->setDecoupledFramesPerSecond(maxFPS);
 		TheWritableGlobalData->m_useFpsLimit = true;
 	}
 

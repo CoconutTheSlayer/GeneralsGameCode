@@ -24,12 +24,17 @@ typedef const char* LPCSTR;
 typedef char* LPSTR;
 
 // String functions
+#if defined(__APPLE__)
+// Declared with C linkage by the Win32 shim (GameSpy defines the same function).
+extern "C" char *_strlwr(char *str);
+#else
 inline char *_strlwr(char *str) {
   for (int i = 0; str[i] != '\0'; i++) {
     str[i] = tolower(str[i]);
   }
   return str;
 }
+#endif
 
 #define strlwr _strlwr
 #define stricmp strcasecmp

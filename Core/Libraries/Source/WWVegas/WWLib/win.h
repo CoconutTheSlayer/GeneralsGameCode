@@ -45,7 +45,7 @@
 **	4069, 4200, 4237, 4103, 4001, 4035, 4164. Makes you wonder, eh?
 */
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 
 // When including windows, lets just bump the warning level back to 3...
 #if (_MSC_VER >= 1200)

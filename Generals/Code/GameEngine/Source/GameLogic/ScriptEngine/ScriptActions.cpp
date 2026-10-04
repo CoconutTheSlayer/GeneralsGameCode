@@ -6587,7 +6587,7 @@ void ScriptActions::executeAction( ScriptAction *pAction )
 		case ScriptAction::SET_FPS_LIMIT:
 			if (!pAction->getParameter(0)->getInt())
 			{
-				TheFramePacer->setFramesPerSecondLimit(TheGlobalData->m_framesPerSecondLimit);
+				TheFramePacer->setDecoupledFramesPerSecond(TheGlobalData->m_framesPerSecondLimit);
 			}
 			else
 			{

@@ -33,3 +33,7 @@ target_sources(deps_utility PRIVATE ${UTILITY_SRC})
 target_link_libraries(deps_utility INTERFACE
     deps_precompiled # Gives force included headers. Link early.
 )
+
+if(APPLE)
+    target_link_libraries(deps_utility INTERFACE deps_win32shim)
+endif()

@@ -171,7 +171,9 @@ void initSubsystem(
 
 //-------------------------------------------------------------------------------------------------
 extern HINSTANCE ApplicationHInstance;  ///< our application instance
+#if !defined(__APPLE__)
 extern CComModule _Module;
+#endif
 
 //-------------------------------------------------------------------------------------------------
 static void updateTGAtoDDS();
@@ -253,7 +255,9 @@ GameEngine::GameEngine()
 	m_quitting = FALSE;
 	m_isActive = FALSE;
 
+#if !defined(__APPLE__)
 	_Module.Init(nullptr, ApplicationHInstance, nullptr);
+#endif
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -295,7 +299,9 @@ GameEngine::~GameEngine()
 
 	Drawable::killStaticImages();
 
+#if !defined(__APPLE__)
 	_Module.Term();
+#endif
 
 #ifdef PERF_TIMERS
 	PerfGather::termPerfDump();
@@ -512,7 +518,7 @@ void GameEngine::init()
 
 		TheSubsystemList->postProcessLoadAll();
 
-		TheFramePacer->setFramesPerSecondLimit(TheGlobalData->m_framesPerSecondLimit);
+		TheFramePacer->setDecoupledFramesPerSecond(TheGlobalData->m_framesPerSecondLimit);
 
 		TheAudio->setOn(TheGlobalData->m_audioOn && TheGlobalData->m_musicOn, AudioAffect_Music);
 		TheAudio->setOn(TheGlobalData->m_audioOn && TheGlobalData->m_soundsOn, AudioAffect_Sound);

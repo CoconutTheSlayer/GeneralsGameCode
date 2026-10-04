@@ -27,6 +27,9 @@
 // Author: Matthew D. Campbell, July 2002
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+#if defined(__APPLE__)
+#include <winsock.h>
+#endif
 
 #include "Common/GameState.h"
 #include "Common/Player.h"
@@ -65,6 +68,43 @@ GameSpyGameSlot::GameSpyGameSlot()
 	m_profileID = 0;
 	m_pingStr.clear();
 }
+
+#if defined(__APPLE__)
+
+// macOS: SNMP (inetmib1.dll) is unavailable. Ask the network stack which local
+// address it would use to reach the chat server by "connecting" a UDP socket.
+Bool GetLocalChatConnectionAddress(AsciiString serverName, UnsignedShort serverPort, UnsignedInt& localIP)
+{
+	struct hostent *host_info = gethostbyname(serverName.str());
+	if (!host_info)
+		return false;
+
+	SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
+	if (s == INVALID_SOCKET)
+		return false;
+
+	struct sockaddr_in server;
+	memset(&server, 0, sizeof(server));
+	server.sin_family = AF_INET;
+	server.sin_port = htons(serverPort);
+	memcpy(&server.sin_addr, host_info->h_addr_list[0], 4);
+
+	Bool ok = false;
+	if (connect(s, (struct sockaddr *)&server, sizeof(server)) == 0)
+	{
+		struct sockaddr_in local;
+		int len = sizeof(local);
+		if (getsockname(s, (struct sockaddr *)&local, &len) == 0)
+		{
+			localIP = ntohl(local.sin_addr.s_addr);
+			ok = true;
+		}
+	}
+	closesocket(s);
+	return ok;
+}
+
+#else
 
 // Helper Functions ----------------------------------------
 /*
@@ -432,6 +472,8 @@ Bool GetLocalChatConnectionAddress(AsciiString serverName, UnsignedShort serverP
 	FreeLibrary(mib_ii_dll);
 	return(found);
 }
+
+#endif // __APPLE__
 
 // GameSpyGameSlot ----------------------------------------
 
