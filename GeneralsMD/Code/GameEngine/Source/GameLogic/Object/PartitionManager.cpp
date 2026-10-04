@@ -3308,7 +3308,8 @@ Object *PartitionManager::getClosestObjects(
 	PartitionFilter **filters,
 	SimpleObjectIterator *iterArg,	// if nonnull, append ALL satisfactory objects to the iterator (not just the single closest)
 	Real *closestDistArg,
-	Coord3D *closestVecArg
+	Coord3D *closestVecArg,
+	Bool stopAtFirst
 )
 {
 	//USE_PERF_TIMER(getClosestObjects)
@@ -3396,12 +3397,13 @@ Object *PartitionManager::getClosestObjects(
 		m_radiusVec[curRadius] contains a list of the cells (foo) that could
 		contain objects that are <= (curRadius * cellSize) distance away from cell (0,0).
 	*/
-  for (Int curRadius = 0; curRadius <= maxRadiusLimit; ++curRadius)
+	Bool stopNow = false;
+  for (Int curRadius = 0; curRadius <= maxRadiusLimit && !stopNow; ++curRadius)
   {
     const OffsetVec& offsets = m_radiusVec[curRadius];
 		if (offsets.empty())
 			continue;
-    for (OffsetVec::const_iterator it = offsets.begin(); it != offsets.end(); ++it)
+    for (OffsetVec::const_iterator it = offsets.begin(); it != offsets.end() && !stopNow; ++it)
 		{
 			PartitionCell* thisCell = getCellAt(cellCenterX + it->x, cellCenterY + it->y);
 			if (thisCell == nullptr)
@@ -3451,6 +3453,12 @@ Object *PartitionManager::getClosestObjects(
 						maxRadiusLimit = curRadius;
 					}
 					foundAny = true;
+
+					if (stopAtFirst)
+					{
+						stopNow = true;
+						break;
+					}
 				}
 
 			}
@@ -3581,6 +3589,17 @@ Object *PartitionManager::getClosestObject(
 )
 {
 	return getClosestObjects(nullptr, pos, maxDist, dc, filters, nullptr, closestDist, closestDistVec);
+}
+
+//-----------------------------------------------------------------------------
+Object *PartitionManager::getAnyObjectInRange(
+	const Object *obj,
+	Real maxDist,
+	DistanceCalculationType dc,
+	PartitionFilter **filters
+)
+{
+	return getClosestObjects(obj, nullptr, maxDist, dc, filters, nullptr, nullptr, nullptr, true);
 }
 
 //-----------------------------------------------------------------------------
