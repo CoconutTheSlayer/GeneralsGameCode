@@ -286,19 +286,27 @@ typedef UnsignedInt VeterancyLevelFlags;
 const VeterancyLevelFlags VETERANCY_LEVEL_FLAGS_ALL = 0xffffffff;
 const VeterancyLevelFlags VETERANCY_LEVEL_FLAGS_NONE = 0x00000000;
 
+// Bit of a veterancy level in VeterancyLevelFlags. LEVEL_REGULAR (0) maps to bit 31: the original
+// code shifted 1 by -1, which 32 bit x86 masks to 31. A 64 bit unsigned long shifted by 63 is cut
+// off and the flag tested as never set, so no die module ran for regular units.
+inline VeterancyLevelFlags veterancyLevelFlagBit(VeterancyLevel dt)
+{
+	return (VeterancyLevelFlags)1 << (((UnsignedInt)dt - 1) & 31);
+}
+
 inline Bool getVeterancyLevelFlag(VeterancyLevelFlags flags, VeterancyLevel dt)
 {
-	return (flags & (1UL << (dt - 1))) != 0;
+	return (flags & veterancyLevelFlagBit(dt)) != 0;
 }
 
 inline VeterancyLevelFlags setVeterancyLevelFlag(VeterancyLevelFlags flags, VeterancyLevel dt)
 {
-	return (flags | (1UL << (dt - 1)));
+	return (flags | veterancyLevelFlagBit(dt));
 }
 
 inline VeterancyLevelFlags clearVeterancyLevelFlag(VeterancyLevelFlags flags, VeterancyLevel dt)
 {
-	return (flags & ~(1UL << (dt - 1)));
+	return (flags & ~veterancyLevelFlagBit(dt));
 }
 
 // ----------------------------------------------------------------------------------------------

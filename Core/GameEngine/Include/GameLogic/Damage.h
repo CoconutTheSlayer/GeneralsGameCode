@@ -236,19 +236,27 @@ typedef UnsignedInt DeathTypeFlags;
 const DeathTypeFlags DEATH_TYPE_FLAGS_ALL = 0xffffffff;
 const DeathTypeFlags DEATH_TYPE_FLAGS_NONE = 0x00000000;
 
+// Bit of a death type in DeathTypeFlags. DEATH_NORMAL (0) maps to bit 31: the original code shifted
+// 1 by -1, which 32 bit x86 masks to 31. A 64 bit unsigned long shifted by 63 is cut off and the
+// flag tested as never set, so no die module ran for normal deaths.
+inline DeathTypeFlags deathTypeFlagBit(DeathType dt)
+{
+	return (DeathTypeFlags)1 << (((UnsignedInt)dt - 1) & 31);
+}
+
 inline Bool getDeathTypeFlag(DeathTypeFlags flags, DeathType dt)
 {
-	return (flags & (1UL << (dt - 1))) != 0;
+	return (flags & deathTypeFlagBit(dt)) != 0;
 }
 
 inline DeathTypeFlags setDeathTypeFlag(DeathTypeFlags flags, DeathType dt)
 {
-	return (flags | (1UL << (dt - 1)));
+	return (flags | deathTypeFlagBit(dt));
 }
 
 inline DeathTypeFlags clearDeathTypeFlag(DeathTypeFlags flags, DeathType dt)
 {
-	return (flags & ~(1UL << (dt - 1)));
+	return (flags & ~deathTypeFlagBit(dt));
 }
 
 //-------------------------------------------------------------------------------------------------
