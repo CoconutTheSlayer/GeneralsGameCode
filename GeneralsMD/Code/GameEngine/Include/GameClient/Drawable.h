@@ -175,6 +175,7 @@ public:
 	void sustain() { m_envState = ENVELOPE_STATE_SUSTAIN; }
 	void release() { m_envState = ENVELOPE_STATE_DECAY; }
 	void rest()    { m_envState = ENVELOPE_STATE_REST; } // goes away now!
+	Bool isResting() const { return m_envState == ENVELOPE_STATE_REST; }
 	Bool isEffective() const { return m_affect; }
 	const Vector3* getColor() const { return &m_currentColor; }
 

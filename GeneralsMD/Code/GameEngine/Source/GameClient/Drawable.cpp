@@ -1334,6 +1334,15 @@ void Drawable::flashAsSelected( const RGBColor *color ) ///< drawable takes care
 {
 	if (m_selectionFlashEnvelope == nullptr)
 		m_selectionFlashEnvelope = newInstance(TintEnvelope);
+	else if (!m_selectionFlashEnvelope->isResting())
+	{
+		// TheSuperHackers @bugfix Settle a flash that is still running before starting the next one.
+		// Its decay steps are derived from the new peak color, so decaying what is left of a different
+		// color drove the tint negative and drew the object black, for example clicking an oil derrick
+		// that flashes while being captured (see #2801).
+		m_selectionFlashEnvelope->rest();
+		m_selectionFlashEnvelope->update();
+	}
 
 	if ( color )
 	{
