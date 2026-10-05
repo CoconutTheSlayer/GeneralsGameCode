@@ -3463,6 +3463,19 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 			TheInGameUI->toggleAttackMoveToMode();
 			break;
 
+		case GameMessage::MSG_META_ADD_CASH:
+		{
+			// TheSuperHackers @feature Money cheat for skirmish and campaign games.
+			if (!TheGameLogic->isInMultiplayerGame())
+			{
+				GameMessage *cash = TheMessageStream->appendMessage(GameMessage::MSG_ADD_CASH);
+				cash->appendIntegerArgument(100000);
+				TheInGameUI->message(UnicodeString(L"+$100,000"));
+			}
+			disp = DESTROY_MESSAGE;
+			break;
+		}
+
 		case GameMessage::MSG_META_CYCLE_HEALTH_BARS:
 		{
 			// TheSuperHackers @feature Cycle which units and buildings show a health bar, and remember it.

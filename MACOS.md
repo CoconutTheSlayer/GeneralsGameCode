@@ -102,6 +102,8 @@ on the current display and scales the image to fit.
 - **Production queue** (Zero Hour): factories queue up to 30 units; the queue shows the first 9 and "+N" for the rest.
 - **Unit stance** (Zero Hour): the Stance button on the command bar, or Ctrl+A, switches the selected units between
   Guard (the original behavior: fire at enemies in range) and Aggressive (attack anything in sight and chase it).
+- **Money cheat** (Zero Hour): Ctrl+Shift+M gives the player $100,000 in skirmish and campaign games, for example to
+  test the AI. It does nothing in multiplayer games.
 - **Balance changes** (Zero Hour, optional): `scripts/balance/apply_balance.py` narrows the gap between the twelve
   factions (1v1 win rates of 1.04 range from 39% for China to 59% for the Infantry General) and adds general ranks 6
   to 16, so a general can eventually buy every promotion. It reads the original INI files from your `INIZH.big` and
@@ -115,8 +117,6 @@ on the current display and scales the image to fit.
   depends on exact floating point behavior, which differs between compilers and CPU architectures, and network
   packets use a different wide character size. Multiplayer between Macs running the same build works.
 - Save games are not compatible with Windows save games.
-- The renderer identifies itself as a GeForce2 class card without programmable shaders, so the game uses its
-  fixed function rendering paths (for example for water and terrain). Pixel shader effects are not available yet.
 - The embedded web browser, crash dumps and the patch downloader are not available.
 
 ## Troubleshooting

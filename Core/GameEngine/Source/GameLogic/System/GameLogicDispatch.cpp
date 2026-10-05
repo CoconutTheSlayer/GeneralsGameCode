@@ -490,6 +490,17 @@ void GameLogic::logicMessageDispatcher( GameMessage *msg, void *userData )
 			onEnableRetaliationMode(msg);
 			break;
 		}
+		case GameMessage::MSG_ADD_CASH:
+		{
+			// TheSuperHackers @feature Money cheat, ignored in multiplayer games.
+			if (!isInMultiplayerGame() && msgPlayer && msg->getArgumentCount() >= 1)
+			{
+				const Int amount = msg->getArgument(0)->integer;
+				if (amount > 0)
+					msgPlayer->getMoney()->deposit((UnsignedInt)amount);
+			}
+			break;
+		}
 		case GameMessage::MSG_SET_STANCE:
 		{
 #if !RTS_GENERALS

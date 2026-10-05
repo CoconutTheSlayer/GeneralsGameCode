@@ -280,7 +280,8 @@ public:
 		MSG_META_STEP_FRAME_ALT,										///< TheSuperHackers @feature Step one frame (alternative mapping)
 		MSG_META_DEMO_INSTANT_QUIT,									///< bail out of game immediately
 		MSG_META_TOGGLE_STANCE,
-		MSG_META_CYCLE_HEALTH_BARS,									///< TheSuperHackers @feature cycle the HealthBars option (Selected, Damaged, All)											///< TheSuperHackers @feature switch the selected units between Guard and Aggressive stance
+		MSG_META_CYCLE_HEALTH_BARS,
+		MSG_META_ADD_CASH,													///< TheSuperHackers @feature give the player $100000 (not in multiplayer)									///< TheSuperHackers @feature cycle the HealthBars option (Selected, Damaged, All)											///< TheSuperHackers @feature switch the selected units between Guard and Aggressive stance
 
 
 #if defined(_ALLOW_DEBUG_CHEATS_IN_RELEASE)//may be defined in GameCommon.h
@@ -606,7 +607,8 @@ public:
 		MSG_LOGIC_CRC,															///< CRC from the logic passed around in a network game :)
 		MSG_SET_MINE_CLEARING_DETAIL,								///< CRC from the logic passed around in a network game :)
 		MSG_ENABLE_RETALIATION_MODE,								///< Turn retaliation mode on or off.
-		MSG_SET_STANCE,															///< TheSuperHackers @feature (Bool aggressive) Set the stance of the selected units.
+		MSG_SET_STANCE,
+		MSG_ADD_CASH,																///< TheSuperHackers @feature (Int amount) give the player money, ignored in multiplayer games															///< TheSuperHackers @feature (Bool aggressive) Set the stance of the selected units.
 
 		MSG_BEGIN_DEBUG_NETWORK_MESSAGES = 1900,		///< network messages that exist only in debug/internal builds. all grouped separately.
 

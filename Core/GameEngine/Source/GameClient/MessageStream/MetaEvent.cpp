@@ -192,6 +192,7 @@ static const LookupListRec GameMessageMetaTypeNames[] =
 	{ "DEMO_INSTANT_QUIT",												GameMessage::MSG_META_DEMO_INSTANT_QUIT },
 	{ "TOGGLE_STANCE",														GameMessage::MSG_META_TOGGLE_STANCE },
 	{ "CYCLE_HEALTH_BARS",												GameMessage::MSG_META_CYCLE_HEALTH_BARS },
+	{ "ADD_CASH",																	GameMessage::MSG_META_ADD_CASH },
 
 #if defined(_ALLOW_DEBUG_CHEATS_IN_RELEASE)//may be defined in GameCommon.h
 	{ "CHEAT_RUNSCRIPT1",								        	GameMessage::MSG_CHEAT_RUNSCRIPT1 },
@@ -871,6 +872,17 @@ void MetaMap::generateMetaMap()
 			map->m_transition = DOWN;
 			map->m_modState = NONE;
 			map->m_usableIn = COMMANDUSABLE_GAME; // @todo COMMANDUSABLE_OBSERVER
+		}
+	}
+	{
+		// TheSuperHackers @feature Ctrl+Shift+M gives the player $100000 outside multiplayer games.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_ADD_CASH);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_M;
+			map->m_transition = DOWN;
+			map->m_modState = SHIFT_CTRL;
+			map->m_usableIn = COMMANDUSABLE_GAME;
 		}
 	}
 	{
