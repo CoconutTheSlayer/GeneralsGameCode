@@ -4643,7 +4643,7 @@ void Object::onDie( DamageInfo *damageInfo )
 			die->onDie(damageInfo);
 	}
 
-	// TheSuperHackers @feature Blood when infantry dies, more of it when run over or blown up. Deaths that are
+	// TheSuperHackers @feature Blood when infantry dies, more of it when run over and a mess when blown up. Deaths that are
 	// shown otherwise (burned, poisoned, lasered, drowned) and infantry inside buildings or vehicles get none.
 	if (TheGlobalData->m_bloodLevel > 0 && isKindOf(KINDOF_INFANTRY) && getContainedBy() == nullptr && TheFXListStore)
 	{
@@ -4653,7 +4653,11 @@ void Object::onDie( DamageInfo *damageInfo )
 			case DEATH_BURNED: case DEATH_POISONED: case DEATH_POISONED_BETA: case DEATH_POISONED_GAMMA:
 			case DEATH_LASERED: case DEATH_FLOODED: case DEATH_NONE:
 				break;
-			case DEATH_CRUSHED: case DEATH_EXPLODED: case DEATH_SPLATTED: case DEATH_DETONATED: case DEATH_SUICIDED:
+			case DEATH_EXPLODED: case DEATH_DETONATED: case DEATH_SUICIDED:
+				// Blown apart: chunks, a red mist and splatters thrown wide.
+				fxName = TheGlobalData->m_bloodLevel >= 2 ? "FX_InfantryBloodExplosion" : "FX_InfantryBlood";
+				break;
+			case DEATH_CRUSHED: case DEATH_SPLATTED:
 				fxName = TheGlobalData->m_bloodLevel >= 2 ? "FX_InfantryBloodHeavy" : "FX_InfantryBlood";
 				break;
 			default:

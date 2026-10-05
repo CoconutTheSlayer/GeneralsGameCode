@@ -92,8 +92,9 @@ on the current display and scales the image to fit.
 - **Health bars**: `HealthBars` in `Options.ini` is `Selected` (default, as on Windows), `Damaged` (also every damaged
   unit and building of the players) or `All`. Alt+H cycles through them in a game and saves the choice. Health bars
   get thicker at high resolutions.
-- **Blood** (Zero Hour): infantry bleeds when shot and leaves pools and splatters when killed, more when run over or
-  blown up (not when burned, poisoned or lasered). The pools fade after a minute or so. `Blood` in `Options.ini` is
+- **Blood** (Zero Hour): infantry bleeds when shot and leaves pools and splatters when killed, more when run over, and
+  is torn apart by explosions (chunks, a red mist and splatters thrown wide). Burned, poisoned or lasered infantry
+  does not bleed. The pools fade after a minute or so. `Blood` in `Options.ini` is
   `High` (default), `Low` (no heavy effects) or `Off`. The effects are defined in
   `resources/macos/GameData/Data/INI/Blood.ini`.
 - **Rally points** (Zero Hour): new combat units attack-move to a factory's rally point, fighting what they meet on
