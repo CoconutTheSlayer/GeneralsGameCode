@@ -831,6 +831,20 @@ Real OptionPreferences::getCameraZoomOutFactor()
 	return clamp(1.0f, factor, 4.0f);
 }
 
+// HealthBars = Selected (default), Damaged or All: which units and buildings show a health bar. Selected
+// shows it for selected objects and the one under the cursor, Damaged also for every damaged one, All for all.
+Int OptionPreferences::getHealthBarMode()
+{
+	OptionPreferences::const_iterator it = find("HealthBars");
+	if (it == end())
+		return 0;
+	if (it->second.compareNoCase("All") == 0)
+		return 2;
+	if (it->second.compareNoCase("Damaged") == 0)
+		return 1;
+	return 0;
+}
+
 Int OptionPreferences::getRenderFpsFontSize()
 {
 	OptionPreferences::const_iterator it = find("RenderFpsFontSize");

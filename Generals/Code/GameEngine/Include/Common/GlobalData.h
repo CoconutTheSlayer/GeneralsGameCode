@@ -193,6 +193,7 @@ public:
 	Real m_cameraHeight;
 #endif
 	Real m_maxCameraHeight;
+	Int m_healthBarMode;	///< 0 health bars for selected objects, 1 also for damaged ones, 2 for all (OptionPreferences HealthBars)
 	Real m_cameraZoomOutFactor;	///< How much further than the max camera height the player may zoom out
 	Real m_minCameraHeight;
 	Real m_terrainHeightAtEdgeOfMap;

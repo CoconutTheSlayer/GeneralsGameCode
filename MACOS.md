@@ -87,6 +87,14 @@ on the current display and scales the image to fit.
   change this; the default view when a game starts is unchanged.
 - The game renders at the display refresh rate while the simulation keeps its normal speed.
 
+## Gameplay additions
+
+- **Health bars**: `HealthBars` in `Options.ini` is `Selected` (default, as on Windows), `Damaged` (also every damaged
+  unit and building of the players) or `All`. Alt+H cycles through them in a game and saves the choice. Health bars
+  get thicker at high resolutions.
+- **Unit stance** (Zero Hour): the Stance button on the command bar, or Ctrl+A, switches the selected units between
+  Guard (the original behavior: fire at enemies in range) and Aggressive (attack anything in sight and chase it).
+
 ## Limitations
 
 - The Mac build cannot play multiplayer games or replays together with the Windows version. The game logic

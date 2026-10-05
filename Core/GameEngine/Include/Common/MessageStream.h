@@ -279,7 +279,8 @@ public:
 		MSG_META_STEP_FRAME,												///< TheSuperHackers @feature Step one frame
 		MSG_META_STEP_FRAME_ALT,										///< TheSuperHackers @feature Step one frame (alternative mapping)
 		MSG_META_DEMO_INSTANT_QUIT,									///< bail out of game immediately
-		MSG_META_TOGGLE_STANCE,											///< TheSuperHackers @feature switch the selected units between Guard and Aggressive stance
+		MSG_META_TOGGLE_STANCE,
+		MSG_META_CYCLE_HEALTH_BARS,									///< TheSuperHackers @feature cycle the HealthBars option (Selected, Damaged, All)											///< TheSuperHackers @feature switch the selected units between Guard and Aggressive stance
 
 
 #if defined(_ALLOW_DEBUG_CHEATS_IN_RELEASE)//may be defined in GameCommon.h

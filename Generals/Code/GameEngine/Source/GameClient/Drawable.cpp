@@ -2717,7 +2717,8 @@ static Bool computeHealthRegion( const Drawable *draw, IRegion2D& region )
 
 	// do this so health bar doesn't get too skinny or fat after scaling
 	//healthBoxHeight = max(3.0f, healthBoxHeight);
-	healthBoxHeight = 3.0f;
+	// TheSuperHackers @tweak Thicker at high resolutions, where 3 pixels are hard to see: 3 up to 1200 lines.
+	healthBoxHeight = max(3.0f, (Real)TheDisplay->getHeight() / 400.0f);
 
 	// figure out the final region for the health box
 	region.lo.x = screenCenter.x - healthBoxWidth * 0.45f;
@@ -3802,6 +3803,26 @@ void Drawable::drawVeterancy( const IRegion2D *healthBarRegion )
 // ------------------------------------------------------------------------------------------------
 /** Draw health bar information for drawable */
 // ------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature Health bars for unselected objects, depending on the HealthBars option: the
+// units and buildings of the players (not civilians or neutral things), all of them or only damaged ones.
+Bool Drawable::showsHealthBarByOption() const
+{
+	if (TheGlobalData->m_healthBarMode == 0)
+		return FALSE;
+	const Object *obj = getObject();
+	if (obj == nullptr || obj->isEffectivelyDead() || obj->isKindOf(KINDOF_IGNORED_IN_GUI))
+		return FALSE;
+	if (!obj->isKindOf(KINDOF_STRUCTURE) && !obj->isKindOf(KINDOF_SELECTABLE))
+		return FALSE;
+	const Player *player = obj->getControllingPlayer();
+	if (player == nullptr || !player->isPlayableSide())
+		return FALSE;
+	if (TheGlobalData->m_healthBarMode >= 2)
+		return TRUE;
+	const BodyModuleInterface *body = obj->getBodyModule();
+	return body && body->getHealth() < body->getMaxHealth();
+}
+
 void Drawable::drawHealthBar(const IRegion2D* healthBarRegion)
 {
 	if (!healthBarRegion)
@@ -3812,7 +3833,7 @@ void Drawable::drawHealthBar(const IRegion2D* healthBarRegion)
 	// by the cursor
 	//
 	if( TheGlobalData->m_showObjectHealth &&
-			(isSelected() || (TheInGameUI && (TheInGameUI->getMousedOverDrawableID() == getID()))) )
+			(isSelected() || (TheInGameUI && (TheInGameUI->getMousedOverDrawableID() == getID())) || showsHealthBarByOption()) )
 	{
 		Object *obj = getObject();
 

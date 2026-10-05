@@ -63,6 +63,7 @@
 #include "GameClient/GUICallbacks.h"
 #include "GameClient/Shell.h"
 #include "GameClient/ControlBar.h"
+#include "Common/OptionPreferences.h"
 #include "GameClient/SelectionInfo.h"
 #include "GameClient/SelectionXlat.h"
 
@@ -3459,6 +3460,22 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 		case GameMessage::MSG_META_TOGGLE_ATTACKMOVE:
 			TheInGameUI->toggleAttackMoveToMode();
 			break;
+
+		case GameMessage::MSG_META_CYCLE_HEALTH_BARS:
+		{
+			// TheSuperHackers @feature Cycle which units and buildings show a health bar, and remember it.
+			const Int mode = (TheGlobalData->m_healthBarMode + 1) % 3;
+			TheWritableGlobalData->m_healthBarMode = mode;
+			static const char *const names[] = { "Selected", "Damaged", "All" };
+			static const wchar_t *const descriptions[] = { L"Health bars: selected units", L"Health bars: damaged units and buildings",
+				L"Health bars: all units and buildings" };
+			OptionPreferences prefs;
+			prefs["HealthBars"] = names[mode];
+			prefs.write();
+			TheInGameUI->message( UnicodeString( descriptions[mode] ) );
+			disp = DESTROY_MESSAGE;
+			break;
+		}
 
 		case GameMessage::MSG_META_TOGGLE_STANCE:
 			// TheSuperHackers @feature Switch the selected units between Guard and Aggressive stance.

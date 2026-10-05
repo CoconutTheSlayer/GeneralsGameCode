@@ -123,6 +123,7 @@ public:
 	Int getNetworkLatencyFontSize();
 	Int getRenderFpsFontSize();
 	Real getCameraZoomOutFactor();
+	Int getHealthBarMode();
 	Int getSystemTimeFontSize();
 	Int getGameTimeFontSize();
 	Int getPlayerInfoListFontSize();

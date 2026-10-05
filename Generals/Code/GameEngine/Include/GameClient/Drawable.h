@@ -777,6 +777,7 @@ private:
 	void drawVeterancy( const IRegion2D *healthBarRegion );					///< draw veterency information
 
 	void drawEmoticon( const IRegion2D* healthBarRegion );
+	Bool showsHealthBarByOption() const;	///< health bar shown by the HealthBars option
 	void drawHealthBar( const IRegion2D* healthBarRegion );					///< draw heath bar
 	void drawHealing( const IRegion2D* healthBarRegion );						///< draw icons
 	void drawEnthusiastic( const IRegion2D* healthBarRegin );				///< draw icons

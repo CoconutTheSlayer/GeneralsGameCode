@@ -191,6 +191,7 @@ static const LookupListRec GameMessageMetaTypeNames[] =
 	{ "STEP_FRAME_ALT",														GameMessage::MSG_META_STEP_FRAME_ALT },
 	{ "DEMO_INSTANT_QUIT",												GameMessage::MSG_META_DEMO_INSTANT_QUIT },
 	{ "TOGGLE_STANCE",														GameMessage::MSG_META_TOGGLE_STANCE },
+	{ "CYCLE_HEALTH_BARS",												GameMessage::MSG_META_CYCLE_HEALTH_BARS },
 
 #if defined(_ALLOW_DEBUG_CHEATS_IN_RELEASE)//may be defined in GameCommon.h
 	{ "CHEAT_RUNSCRIPT1",								        	GameMessage::MSG_CHEAT_RUNSCRIPT1 },
@@ -870,6 +871,17 @@ void MetaMap::generateMetaMap()
 			map->m_transition = DOWN;
 			map->m_modState = NONE;
 			map->m_usableIn = COMMANDUSABLE_GAME; // @todo COMMANDUSABLE_OBSERVER
+		}
+	}
+	{
+		// TheSuperHackers @feature Alt+H cycles which units and buildings show a health bar.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_CYCLE_HEALTH_BARS);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_H;
+			map->m_transition = DOWN;
+			map->m_modState = ALT;
+			map->m_usableIn = (CommandUsableInType)(COMMANDUSABLE_GAME | COMMANDUSABLE_OBSERVER);
 		}
 	}
 	{
