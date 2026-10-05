@@ -1540,7 +1540,7 @@ void CommandLine::parseCommandLineForStartup()
 
 	if (TheGlobalData->m_commandLineData.m_hasParsedCommandLineForStartup)
 		return;
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	// On macOS the arguments are only known once main runs, but this can be called earlier from
 	// static constructors. Parse later then, or the startup options are ignored.
 	if (__argc == 0)
@@ -1551,7 +1551,7 @@ void CommandLine::parseCommandLineForStartup()
 	parseCommandLine(paramsForStartup, ARRAY_SIZE(paramsForStartup),
 		TheWritableGlobalData->m_commandLineData.m_parsedArguments);
 
-#if !defined(__APPLE__)
+#if !defined(RTS_POSIX_PORT)
 	// The executable does not live next to the game data on macOS; main() already changed to the
 	// game data directory. Restoring the startup directory, which static constructors captured
 	// before that, would go back to where the application was launched from (/ for a bundle).

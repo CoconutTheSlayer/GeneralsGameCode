@@ -24,13 +24,19 @@
 #include <algorithm>
 #include <dirent.h>
 #include <execinfo.h>
+#if defined(__APPLE__)
 #include <mach-o/dyld.h>
+#endif
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
 #include <string>
 #include <sys/stat.h>
+#if defined(__APPLE__)
 #include <sys/sysctl.h>
+#else
+#include <sys/sysinfo.h>
+#endif
 #include <sys/utsname.h>
 #include <time.h>
 #include <unistd.h>
@@ -160,11 +166,39 @@ void stopTee()
 
 std::string sysctlString(const char* name)
 {
+#if !defined(__APPLE__)
+	// Linux: the CPU model from /proc/cpuinfo, the OS from /etc/os-release.
+	std::string key = strcmp(name, "machdep.cpu.brand_string") == 0 ? "model name" : "PRETTY_NAME";
+	FILE* f = fopen(key == "model name" ? "/proc/cpuinfo" : "/etc/os-release", "r");
+	if (f == nullptr)
+		return "unknown";
+	char line[512];
+	std::string value = "unknown";
+	while (fgets(line, sizeof(line), f))
+	{
+		if (strncmp(line, key.c_str(), key.size()) == 0)
+		{
+			const char* v = strpbrk(line + key.size(), ":=");
+			if (v)
+			{
+				value = v + 1;
+				while (!value.empty() && (value.back() == '\n' || value.back() == '"'))
+					value.pop_back();
+				while (!value.empty() && (value[0] == ' ' || value[0] == '\t' || value[0] == '"'))
+					value.erase(0, 1);
+			}
+			break;
+		}
+	}
+	fclose(f);
+	return value;
+#else
 	char value[256] = {};
 	size_t size = sizeof(value) - 1;
 	if (sysctlbyname(name, value, &size, nullptr, 0) != 0)
 		return "unknown";
 	return value;
+#endif
 }
 
 // Deletes the oldest logs of this game so that 'keep' remain.
@@ -244,8 +278,14 @@ void Win32Shim_StartSessionLog(const char* appName, const char* version)
 	struct utsname uts;
 	uname(&uts);
 	uint64_t memory = 0;
+#if defined(__APPLE__)
 	size_t size = sizeof(memory);
 	sysctlbyname("hw.memsize", &memory, &size, nullptr, 0);
+#else
+	struct sysinfo si;
+	if (sysinfo(&si) == 0)
+		memory = (uint64_t)si.totalram * si.mem_unit;
+#endif
 	fprintf(stderr,
 		"==== %s session log ====\n"
 		"Started:  %s (pid %d)\n"
@@ -284,8 +324,13 @@ const char* Win32Shim_GetExtraDataDirectory()
 		resolved = true;
 		struct stat st;
 		char exe[PATH_MAX];
+#if defined(__APPLE__)
 		uint32_t size = sizeof(exe);
 		if (_NSGetExecutablePath(exe, &size) == 0)
+#else
+		ssize_t len = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
+		if (len > 0 && ((exe[len] = 0), true))
+#endif
 		{
 			char real[PATH_MAX];
 			if (realpath(exe, real))

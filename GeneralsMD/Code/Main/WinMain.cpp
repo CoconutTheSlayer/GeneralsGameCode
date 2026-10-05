@@ -814,7 +814,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		// default in a DevStudio project
 		//
 
-#if !defined(__APPLE__)
+#if !defined(RTS_POSIX_PORT)
 		TheAsciiStringCriticalSection = &critSec1;
 		TheUnicodeStringCriticalSection = &critSec2;
 		TheDmaCriticalSection = &critSec3;
@@ -944,7 +944,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #ifdef RTS_ENABLE_CRASHDUMP
 	MiniDumper::shutdownMiniDumper();
 #endif
-#if !defined(__APPLE__)
+#if !defined(RTS_POSIX_PORT)
 	TheUnicodeStringCriticalSection = nullptr;
 	TheDmaCriticalSection = nullptr;
 	TheMemoryPoolCriticalSection = nullptr;
@@ -970,7 +970,7 @@ GameEngine *CreateGameEngine()
 
 }
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 #include <win32shim.h>
 #include "gitinfo.h"
 

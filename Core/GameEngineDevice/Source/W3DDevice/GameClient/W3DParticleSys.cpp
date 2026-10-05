@@ -461,7 +461,7 @@ void W3DParticleSystemManager::flushParticleBatch(RenderInfoClass& rinfo, Unsign
 			break;
 		}
 
-#ifdef __APPLE__
+#ifdef RTS_POSIX_PORT
 		if (m_batchParticleAlignment != ParticleSystemInfo::PARTICLE_ALIGNMENT_BILLBOARD && TheTerrainLogic != nullptr)
 		{
 			renderGroundBatch(rinfo, pointCount);
@@ -488,7 +488,7 @@ void W3DParticleSystemManager::flushParticleBatch(RenderInfoClass& rinfo, Unsign
 	m_batchShaderType = ParticleSystemInfo::INVALID_SHADER;
 }
 
-#ifdef __APPLE__
+#ifdef RTS_POSIX_PORT
 //-------------------------------------------------------------------------------------------------
 // TheSuperHackers @feature Particles that lie flat on the ground (radiation and toxin fields, shockwave
 // rings, ground glows) are drawn as a grid that follows the terrain and the water surface, instead of a

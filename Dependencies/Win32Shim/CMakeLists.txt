@@ -18,11 +18,17 @@ target_compile_features(deps_win32shim PUBLIC cxx_std_20)
 target_link_libraries(deps_win32shim PUBLIC
     SDL3::SDL3
     detmath
-    "-framework CoreFoundation"
-    "-framework CoreGraphics"
-    "-framework CoreText"
-    "-framework IOKit"
 )
+if(APPLE)
+    target_link_libraries(deps_win32shim PUBLIC
+        "-framework CoreFoundation"
+        "-framework CoreGraphics"
+        "-framework CoreText"
+        "-framework IOKit"
+    )
+else()
+    target_link_libraries(deps_win32shim PUBLIC pthread dl)
+endif()
 
 add_executable(win32shim_test EXCLUDE_FROM_ALL tests/shimtest.cpp)
 target_link_libraries(win32shim_test PRIVATE deps_win32shim)

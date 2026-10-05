@@ -28,7 +28,7 @@
 #include <errno.h>
 #endif
 
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(RTS_POSIX_PORT)
 #include <winsock.h>
 #include <io.h>
 //#define close _close

@@ -34,6 +34,6 @@ target_link_libraries(deps_utility INTERFACE
     deps_precompiled # Gives force included headers. Link early.
 )
 
-if(APPLE)
+if(RTS_POSIX_PORT)
     target_link_libraries(deps_utility INTERFACE deps_win32shim)
 endif()

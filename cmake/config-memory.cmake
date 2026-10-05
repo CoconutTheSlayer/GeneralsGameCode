@@ -21,7 +21,7 @@ option(RTS_MEMORYPOOL_DEBUG_CHECK_BLOCK_OWNERSHIP "Enables debug to verify that 
 option(RTS_MEMORYPOOL_DEBUG_INTENSE_DMA_BOOKKEEPING "Prints statistics for memory usage of Memory Pools." OFF)
 
 # Memory dump options
-if(APPLE)
+if(RTS_POSIX_PORT)
     # Crash dumps rely on dbghelp.dll.
     set(RTS_CRASHDUMP_DEFAULT OFF)
 else()

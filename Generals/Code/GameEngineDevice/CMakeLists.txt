@@ -176,7 +176,7 @@ set(GAMEENGINEDEVICE_SRC
 #    Source/Win32Device/GameClient/Win32Mouse.cpp
 )
 
-if(APPLE)
+if(RTS_POSIX_PORT)
     list(REMOVE_ITEM GAMEENGINEDEVICE_SRC
         Include/W3DDevice/GameClient/W3DWebBrowser.h
         Source/W3DDevice/GameClient/W3DWebBrowser.cpp

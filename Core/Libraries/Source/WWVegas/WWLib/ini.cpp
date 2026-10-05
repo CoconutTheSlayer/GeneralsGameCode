@@ -2280,7 +2280,7 @@ void INIClass::DuplicateCRCError(const char *message, const char *section, const
 	assert(0);
 
 #ifdef RTS_RELEASE
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(RTS_POSIX_PORT)
 	MessageBox(nullptr, buffer, "Duplicate CRC in INI file.", MB_ICONSTOP | MB_OK);
 #endif
 #endif

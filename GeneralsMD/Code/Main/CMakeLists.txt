@@ -7,7 +7,7 @@ else()
     set_target_properties(z_generals PROPERTIES OUTPUT_NAME "generalszh${RTS_BUILD_OUTPUT_SUFFIX}")
 endif()
 
-if(APPLE)
+if(RTS_POSIX_PORT)
     target_link_libraries(z_generals PRIVATE
         d3d8lib
         deps_miles

@@ -2143,7 +2143,7 @@ void W3DView::scrollBy( const Coord2D *delta )
 		world.Y = worldEnd.Y - worldStart.Y;
 		world.Z = worldEnd.Z - worldStart.Z;
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 		// TheSuperHackers @tweak Beyond the normal maximum height the camera scrolls faster, so the
 		// screen moves at the same speed however far the player zooms out.
 		if (m_maxHeightAboveGround > 0.0f && m_currentHeightAboveGround > m_maxHeightAboveGround)
@@ -3760,7 +3760,7 @@ bool W3DView::getDesiredTerrainDrawSize(ICoord2D &dimensions) const
 	return true;
 }
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 // TheSuperHackers @bugfix Above the normal maximum camera height the visible ground grows with the height,
 // so the terrain draw area grows with it, in whole vertex buffer blocks; otherwise the map is cut off
 // short of its edges when zoomed far out.
@@ -3784,7 +3784,7 @@ void W3DView::updateTerrain()
 
 	if (getDesiredTerrainDrawSize(drawSize))
 	{
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 		if (m_isUserControlled && !(TheGlobalData && TheGlobalData->m_drawEntireTerrain))
 			growTerrainDrawSizeForZoom(drawSize, m_currentHeightAboveGround, m_maxHeightAboveGround);
 #endif

@@ -233,6 +233,26 @@
                 "RTS_DEBUG_LOGGING": "ON",
                 "RTS_DEBUG_CRASHING": "ON"
             }
+        },
+        {
+            "name": "linux",
+            "displayName": "Linux x86-64/arm64 Release",
+            "generator": "Ninja",
+            "hidden": false,
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "RTS_BUILD_CORE_TOOLS": "OFF",
+                "RTS_BUILD_ZEROHOUR_TOOLS": "OFF",
+                "RTS_BUILD_GENERALS_TOOLS": "OFF",
+                "RTS_BUILD_OPTION_FFMPEG": "OFF"
+            }
         }
     ],
     "buildPresets": [
@@ -347,6 +367,10 @@
             "name": "macos-releaselog",
             "configurePreset": "macos-releaselog",
             "displayName": "Build macos-releaselog"
+        },
+        {
+            "name": "linux",
+            "configurePreset": "linux"
         }
     ],
     "workflowPresets": [

@@ -69,7 +69,7 @@
 ** Enable one of the following #defines to specify which thread-sychronization
 ** method to use.
 */
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(RTS_POSIX_PORT)
 #include <windows.h>
 #define MEMLOG_USE_MUTEX					0
 #define MEMLOG_USE_CRITICALSECTION		1

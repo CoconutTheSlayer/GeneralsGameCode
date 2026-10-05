@@ -292,7 +292,7 @@ bool DX8Wrapper::Init(void * hwnd, bool lite)
 	Invalidate_Cached_Render_States();
 
 	if (!lite) {
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 		// Direct3D 8 is implemented by the statically linked Metal backend.
 		Direct3DCreate8Ptr = Direct3DCreate8;
 #else
@@ -487,7 +487,7 @@ void DX8Wrapper::Do_Onetime_Device_Dependent_Shutdowns()
 }
 
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 #include <win32shim.h>
 
 // Tells the frame pacer whether presentation is vsynced. Like the Metal backend, only an immediate
@@ -609,7 +609,7 @@ bool DX8Wrapper::Create_Device()
 	}
 
 	dbgHelpGuard.deactivate();
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	Publish_Presentation_Sync(_PresentParameters);
 #endif
 
@@ -652,7 +652,7 @@ bool DX8Wrapper::Reset_Device(bool reload_assets)
 		{	DX8CALL_HRES(Reset(&_PresentParameters),hr)
 			if (hr != D3D_OK)
 				return false;	//reset failed.
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 			Publish_Presentation_Sync(_PresentParameters);
 #endif
 		}
@@ -978,7 +978,7 @@ bool DX8Wrapper::Set_Render_Device(int dev, int width, int height, int bits, int
 		_RenderDeviceNameTable[CurRenderDevice].str(),_RenderDeviceDescriptionTable[CurRenderDevice].Get_Driver_Name(),
 		_RenderDeviceDescriptionTable[CurRenderDevice].Get_Driver_Version(),ResolutionWidth,ResolutionHeight,(IsWindowed ? 1 : 0)));
 
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(RTS_POSIX_PORT)
 	// PWG 4/13/2000 - changed so that if you say to resize the window it resizes
 	// regardless of whether its windowed or not as OpenGL resizes its self around
 	// the caption and edges of the window type you provide, so its important to

@@ -89,6 +89,38 @@ template <class A> inline double rts_atan(A x) { return rts_atan((double)x); }
 template <class A> inline double rts_exp(A x) { return rts_exp((double)x); }
 template <class A> inline double rts_log(A x) { return rts_log((double)x); }
 template <class A> inline double rts_log10(A x) { return rts_log10((double)x); }
+
+// Standard library headers included later call std::log and the like, which the macros below
+// turn into std::rts_log.
+namespace std
+{
+using ::rts_sinf;
+using ::rts_cosf;
+using ::rts_tanf;
+using ::rts_asinf;
+using ::rts_acosf;
+using ::rts_atanf;
+using ::rts_atan2f;
+using ::rts_powf;
+using ::rts_expf;
+using ::rts_logf;
+using ::rts_log10f;
+using ::rts_sinhf;
+using ::rts_coshf;
+using ::rts_tanhf;
+using ::rts_expm1f;
+using ::rts_sin;
+using ::rts_cos;
+using ::rts_tan;
+using ::rts_asin;
+using ::rts_acos;
+using ::rts_atan;
+using ::rts_atan2;
+using ::rts_pow;
+using ::rts_exp;
+using ::rts_log;
+using ::rts_log10;
+}
 #endif
 
 // Function-like, so only calls are redirected and other uses of these names are left alone.

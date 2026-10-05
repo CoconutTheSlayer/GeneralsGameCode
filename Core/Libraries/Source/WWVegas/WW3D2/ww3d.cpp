@@ -1514,7 +1514,7 @@ void WW3D::Make_Screen_Shot( const char * filename_base , const float gamma, con
  *=============================================================================================*/
 void WW3D::Start_Movie_Capture( const char * filename_base, float frame_rate )
 {
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(RTS_POSIX_PORT)
 	if (IsCapturing) {
 		Stop_Movie_Capture();
 	}
@@ -1557,7 +1557,7 @@ void WW3D::Start_Movie_Capture( const char * filename_base, float frame_rate )
  *=============================================================================================*/
 void WW3D::Stop_Movie_Capture()
 {
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(RTS_POSIX_PORT)
 	if (IsCapturing) {
 		IsCapturing = false;
 		WWDEBUG_SAY(( "Stopping Movie" ));
@@ -1715,7 +1715,7 @@ bool WW3D::Is_Movie_Ready()
  *=============================================================================================*/
 void WW3D::Update_Movie_Capture()
 {
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(RTS_POSIX_PORT)
 	WWASSERT( IsCapturing);
 	WWPROFILE("WW3D::Update_Movie_Capture");
 	WWDEBUG_SAY(( "Updating"));
@@ -1792,7 +1792,7 @@ void WW3D::Update_Movie_Capture()
  *=============================================================================================*/
 float	WW3D::Get_Movie_Capture_Frame_Rate()
 {
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(RTS_POSIX_PORT)
 	if (IsCapturing) {
 		return Movie->GetFrameRate();
 	}

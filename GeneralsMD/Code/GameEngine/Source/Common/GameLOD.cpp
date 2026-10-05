@@ -330,7 +330,7 @@ void GameLODManager::init()
 	//Get presets for each known hardware configuration
 	ini.loadFileDirectory( "Data\\INI\\GameLODPresets", INI_LOAD_OVERWRITE, nullptr);
 
-#ifdef __APPLE__
+#ifdef RTS_POSIX_PORT
 	// TheSuperHackers @tweak The 2003 particle limits make big battles drop smoke and debris. The
 	// high detail levels allow far more particles, and keep every effect until the frame rate drops
 	// below 20 rather than 25.
@@ -527,7 +527,7 @@ StaticGameLODLevel GameLODManager::getRecommendedStaticLODLevel()
 		// The Metal renderer identifies itself as an old fixed function card so that the game
 		// avoids pixel shaders, but any Mac it runs on is far faster than the presets assume.
 		ChipsetType presetChipType = m_videoChipType;
-#ifdef __APPLE__
+#ifdef RTS_POSIX_PORT
 		if (presetChipType < DC_GEFORCE4)
 			presetChipType = DC_GEFORCE4;
 #endif

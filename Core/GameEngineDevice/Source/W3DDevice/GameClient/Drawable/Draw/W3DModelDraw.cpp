@@ -2042,7 +2042,7 @@ void W3DModelDraw::adjustTransformMtx(Matrix3D& mtx) const
 }
 
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 //-------------------------------------------------------------------------------------------------
 // TheSuperHackers @feature RealScale draws vehicles and aircraft at their real world size next to the
 // infantry (buildings keep their size: at real size they would cover their neighbours and the units in
@@ -3106,7 +3106,7 @@ void W3DModelDraw::setModelState(const ModelConditionInfo* newState)
 		{
 			m_renderObject = W3DDisplay::m_assetManager->Create_Render_Obj(newState->m_modelName.str(), draw->getScale(), m_hexColor);
 			DEBUG_ASSERTCRASH(m_renderObject, ("*** ASSET ERROR: Model %s not found!",newState->m_modelName.str()));
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 			if (m_renderObject)
 				applyRealScale(draw, m_renderObject);
 #endif

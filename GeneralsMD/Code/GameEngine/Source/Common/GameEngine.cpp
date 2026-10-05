@@ -39,7 +39,7 @@
 #include "Common/PlayerList.h"
 #include "Common/GameAudio.h"
 #include "Common/GameEngine.h"
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 #include <win32shim.h>
 #endif
 #include "Common/INI.h"
@@ -172,7 +172,7 @@ void initSubsystem(
 
 //-------------------------------------------------------------------------------------------------
 extern HINSTANCE ApplicationHInstance;  ///< our application instance
-#if !defined(__APPLE__)
+#if !defined(RTS_POSIX_PORT)
 extern CComModule _Module;
 #endif
 
@@ -256,7 +256,7 @@ GameEngine::GameEngine()
 	m_quitting = FALSE;
 	m_isActive = FALSE;
 
-#if !defined(__APPLE__)
+#if !defined(RTS_POSIX_PORT)
 	_Module.Init(nullptr, ApplicationHInstance, nullptr);
 #endif
 }
@@ -306,7 +306,7 @@ GameEngine::~GameEngine()
 
 	Drawable::killStaticImages();
 
-#if !defined(__APPLE__)
+#if !defined(RTS_POSIX_PORT)
 	_Module.Term();
 #endif
 
@@ -572,7 +572,7 @@ void GameEngine::init()
 
 
 		initSubsystem(TheFXListStore,"TheFXListStore", MSGNEW("GameEngineSubsystem") FXListStore(), &xferCRC, "Data\\INI\\Default\\FXList", "Data\\INI\\FXList");
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 		// TheSuperHackers @feature Effects the fork adds (blood, bigger explosions), from the art that comes
 		// with the application.
 		if (const char *extraData = Win32Shim_GetExtraDataDirectory())

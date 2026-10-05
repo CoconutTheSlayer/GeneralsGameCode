@@ -16,31 +16,12 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#pragma once
+// Direct3D 8 without a device, for headless builds (replays, dedicated servers). The D3DX helpers
+// come from the Metal backend, which implements them in portable C++.
 
-#ifdef __cplusplus
+#include <d3d8.h>
 
-	#include "CppMacros.h"
-	#include "CppTypes.h"
-
-#else
-
-	#if !(defined(_MSC_VER) && _MSC_VER < 1300)
-		#include <stdbool.h>
-	#endif
-
-#endif // __cplusplus
-
-#include "stdint_adapter.h"
-
-// On macOS and Linux every translation unit sees the Win32 shim, like windows.h through the
-// precompiled headers on Windows.
-#if defined(RTS_POSIX_PORT)
-#include <stddef.h>
-#ifdef __cplusplus
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
-#endif
+extern "C" IDirect3D8* WINAPI Direct3DCreate8(UINT)
+{
+	return nullptr;
+}

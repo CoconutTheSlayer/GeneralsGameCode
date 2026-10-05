@@ -12,7 +12,7 @@ target_include_directories(g_wwcommon INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-if(NOT APPLE)
+if(NOT RTS_POSIX_PORT)
     # Only used by W3DView.
     add_subdirectory(WWAudio)
 endif()

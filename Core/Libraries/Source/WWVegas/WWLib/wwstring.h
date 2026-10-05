@@ -42,7 +42,7 @@
 #include <stdarg.h>
 #include "trim.h"
 #include "WWDebug/wwdebug.h"
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(RTS_POSIX_PORT)
 #include <tchar.h>
 #endif
 

@@ -234,6 +234,7 @@ HCURSOR LoadCursorFromFile(LPCSTR fileName)
 	}
 
 	std::vector<SDL_Surface*> surfaces;
+#if SDL_VERSION_ATLEAST(3, 4, 0)
 	std::vector<SDL_CursorFrameInfo> info;
 	for (size_t step = 0; step < sequence.size(); ++step)
 	{
@@ -252,6 +253,16 @@ HCURSOR LoadCursorFromFile(LPCSTR fileName)
 	SDL_Cursor* cursor = nullptr;
 	if (info.size() > 1)
 		cursor = SDL_CreateAnimatedCursor(info.data(), (int)info.size(), frames[0].hotX, frames[0].hotY);
+#else
+	// Animated cursors need SDL 3.4; older versions show the first frame.
+	for (size_t step = 0; step < 1 && step < sequence.size(); ++step)
+	{
+		SDL_Surface* s = toSurface(frames[sequence[step] < frames.size() ? sequence[step] : 0]);
+		if (s)
+			surfaces.push_back(s);
+	}
+	SDL_Cursor* cursor = nullptr;
+#endif
 	if (cursor == nullptr && !surfaces.empty())
 		cursor = SDL_CreateColorCursor(surfaces[0], frames[0].hotX, frames[0].hotY);
 	for (SDL_Surface* s : surfaces)

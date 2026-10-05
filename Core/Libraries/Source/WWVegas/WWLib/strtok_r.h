@@ -36,6 +36,6 @@
 
 #pragma once
 
-#ifndef _UNIX
+#if !defined(_UNIX) && !defined(RTS_POSIX_PORT) // POSIX systems have strtok_r
 char *strtok_r(char *strptr, const char *delimiters, char **lasts);
 #endif

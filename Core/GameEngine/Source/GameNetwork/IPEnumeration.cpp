@@ -26,7 +26,7 @@
 
 #include "GameNetwork/IPEnumeration.h"
 
-#ifdef __APPLE__
+#ifdef RTS_POSIX_PORT
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -79,7 +79,7 @@ EnumeratedIP * IPEnumeration::getAddresses()
 		m_isWinsockInitialized = true;
 	}
 
-#ifdef __APPLE__
+#ifdef RTS_POSIX_PORT
 	// The host name does not always resolve on macOS, for example without a network
 	// connection, so list the IPv4 addresses of the active network interfaces instead.
 	{

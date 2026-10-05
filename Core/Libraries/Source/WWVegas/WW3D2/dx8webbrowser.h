@@ -51,7 +51,7 @@
 
 struct IDirect3DDevice8;
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 typedef void* LPDISPATCH;
 #endif
 

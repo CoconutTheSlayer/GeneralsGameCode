@@ -25,7 +25,7 @@
 #include "systimer.h"
 #pragma warning ( pop )
 
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(RTS_POSIX_PORT)
 #include <process.h>
 #include <windows.h>
 #endif
@@ -53,7 +53,7 @@ void __cdecl ThreadClass::Internal_Thread_Function(void* params)
 	tc->running=true;
 	tc->ThreadID = GetCurrentThreadId();
 
-#if defined(_WIN32) || defined(__APPLE__)
+#if defined(_WIN32) || defined(RTS_POSIX_PORT)
 #if defined(_WIN32)
 	Register_Thread_ID(tc->ThreadID, tc->ThreadName);
 #endif
@@ -67,7 +67,7 @@ void __cdecl ThreadClass::Internal_Thread_Function(void* params)
 	} else {
 		tc->Thread_Function();
 	}
-#elif defined(__GNUC__) && (defined(_WIN32) || defined(__APPLE__))
+#elif defined(__GNUC__) && (defined(_WIN32) || defined(RTS_POSIX_PORT))
 	// GCC/MinGW-w64 doesn't support MSVC's __try/__except syntax
 	// Call Thread_Function directly without SEH support
 	tc->Thread_Function();

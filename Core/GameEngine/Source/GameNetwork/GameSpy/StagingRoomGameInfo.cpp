@@ -27,7 +27,7 @@
 // Author: Matthew D. Campbell, July 2002
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 #include <winsock.h>
 #endif
 
@@ -69,7 +69,7 @@ GameSpyGameSlot::GameSpyGameSlot()
 	m_pingStr.clear();
 }
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 
 // macOS: SNMP (inetmib1.dll) is unavailable. Ask the network stack which local
 // address it would use to reach the chat server by "connecting" a UDP socket.
@@ -473,7 +473,7 @@ Bool GetLocalChatConnectionAddress(AsciiString serverName, UnsignedShort serverP
 	return(found);
 }
 
-#endif // __APPLE__
+#endif // RTS_POSIX_PORT
 
 // GameSpyGameSlot ----------------------------------------
 

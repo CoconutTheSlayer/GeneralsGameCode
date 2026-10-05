@@ -146,7 +146,7 @@ set(WWLIB_SRC
     XSTRAW.h
 )
 
-if(APPLE)
+if(RTS_POSIX_PORT)
     list(APPEND WWLIB_SRC
         registry.cpp
         registry.h

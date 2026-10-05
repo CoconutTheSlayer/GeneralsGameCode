@@ -23,9 +23,15 @@
 #include <windows.h>
 #include "win32shim_internal.h"
 
+#if defined(__APPLE__)
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreGraphics/CoreGraphics.h>
 #include <CoreText/CoreText.h>
+#else
+// TODO: rasterize with FreeType. Until then fonts on Linux have approximate metrics and draw
+// nothing, which is enough for headless runs.
+typedef void* CTFontRef;
+#endif
 
 #include <cmath>
 #include <string>
@@ -54,8 +60,10 @@ struct Font : GdiObject
 	Font() : GdiObject(GDI_FONT) {}
 	~Font() override
 	{
+#if defined(__APPLE__)
 		if (ctFont)
 			CFRelease(ctFont);
+#endif
 	}
 	CTFontRef ctFont = nullptr;
 	float scaleX = 1.0f;
@@ -112,6 +120,7 @@ DC* toDC(HDC hdc)
 	return gdiCast<DC>((HGDIOBJ)hdc, GDI_DC);
 }
 
+#if defined(__APPLE__)
 CTFontRef createCTFont(const char* faceName, float size, bool bold, bool italic)
 {
 	CFStringRef name = CFStringCreateWithCString(nullptr, (faceName && *faceName) ? faceName : "Arial", kCFStringEncodingUTF8);
@@ -176,6 +185,25 @@ Font* createFont(int height, int width, int weight, bool italic, const char* fac
 	return f;
 }
 
+#else
+Font* createFont(int height, int width, int weight, bool italic, const char* faceName)
+{
+	(void)italic;
+	(void)faceName;
+	Font* f = new Font();
+	f->weight = weight;
+	const int size = height < 0 ? -height : (height ? height : 12);
+	f->ascent = (size * 4 + 4) / 5;
+	f->descent = size - f->ascent + 1;
+	f->height = f->ascent + f->descent;
+	f->internalLeading = std::max(0, f->height - size);
+	f->aveCharWidth = width > 0 ? width : (size + 1) / 2;
+	f->maxCharWidth = f->aveCharWidth * 2;
+	return f;
+}
+
+#endif
+
 Font* defaultFont()
 {
 	if (g_defaultFont == nullptr)
@@ -183,6 +211,7 @@ Font* defaultFont()
 	return g_defaultFont;
 }
 
+#if defined(__APPLE__)
 CTLineRef createLine(Font* font, const wchar_t* str, int len)
 {
 	std::vector<UniChar> utf16;
@@ -211,6 +240,8 @@ CTLineRef createLine(Font* font, const wchar_t* str, int len)
 	CFRelease(text);
 	return line;
 }
+
+#endif
 
 void writePixel(Bitmap* bmp, int x, int y, COLORREF color, int coverage, bool blend)
 {
@@ -355,6 +386,10 @@ HFONT CreateFontIndirect(const LOGFONT* lf)
 
 int AddFontResource(LPCSTR fileName)
 {
+#if !defined(__APPLE__)
+	(void)fileName;
+	return 1;
+#else
 	std::string path = Win32Shim_TranslatePath(fileName);
 	CFStringRef str = CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
 	CFURLRef url = CFURLCreateWithFileSystemPath(nullptr, str, kCFURLPOSIXPathStyle, false);
@@ -362,10 +397,15 @@ int AddFontResource(LPCSTR fileName)
 	CFRelease(url);
 	CFRelease(str);
 	return ok ? 1 : 0;
+#endif
 }
 
 BOOL RemoveFontResource(LPCSTR fileName)
 {
+#if !defined(__APPLE__)
+	(void)fileName;
+	return TRUE;
+#else
 	std::string path = Win32Shim_TranslatePath(fileName);
 	CFStringRef str = CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
 	CFURLRef url = CFURLCreateWithFileSystemPath(nullptr, str, kCFURLPOSIXPathStyle, false);
@@ -373,6 +413,7 @@ BOOL RemoveFontResource(LPCSTR fileName)
 	CFRelease(url);
 	CFRelease(str);
 	return ok;
+#endif
 }
 
 int AddFontResourceEx(LPCSTR fileName, DWORD, PVOID)
@@ -419,6 +460,11 @@ BOOL GetTextExtentPoint32W(HDC hdc, LPCWSTR str, int len, LPSIZE size)
 	Font* f = dc && dc->font ? dc->font : defaultFont();
 	size->cx = 0;
 	size->cy = f->height;
+#if !defined(__APPLE__)
+	(void)str;
+	size->cx = len > 0 ? (LONG)len * f->aveCharWidth : 0;
+	return TRUE;
+#else
 	if (f->ctFont == nullptr || len <= 0)
 		return TRUE;
 	CTLineRef line = createLine(f, str, len);
@@ -426,6 +472,7 @@ BOOL GetTextExtentPoint32W(HDC hdc, LPCWSTR str, int len, LPSIZE size)
 	CFRelease(line);
 	size->cx = (LONG)lround(width * f->scaleX);
 	return TRUE;
+#endif
 }
 
 BOOL GetTextExtentPoint32(HDC hdc, LPCSTR str, int len, LPSIZE size)
@@ -482,6 +529,13 @@ BOOL ExtTextOutW(HDC hdc, int x, int y, UINT options, const RECT* rect, LPCWSTR 
 				writePixel(bmp, px, py, dc->bkColor, 255, false);
 		}
 	}
+#if !defined(__APPLE__)
+	(void)x;
+	(void)y;
+	(void)str;
+	(void)len;
+	return TRUE;
+#else
 	if (f->ctFont == nullptr || len == 0)
 		return TRUE;
 
@@ -525,6 +579,7 @@ BOOL ExtTextOutW(HDC hdc, int x, int y, UINT options, const RECT* rect, LPCWSTR 
 		}
 	}
 	return TRUE;
+#endif
 }
 
 BOOL TextOutW(HDC hdc, int x, int y, LPCWSTR str, int len)

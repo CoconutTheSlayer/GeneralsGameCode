@@ -46,7 +46,7 @@
 #include "GameClient/GameWindow.h"
 #include "GameClient/Display.h"
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 
 const FieldParse WebBrowserURL::m_URLFieldParseTable[] =
 {
@@ -330,4 +330,4 @@ STDMETHODIMP WebBrowser::TestMethod(Int num1)
 	return S_OK;
 }
 
-#endif // __APPLE__
+#endif // RTS_POSIX_PORT

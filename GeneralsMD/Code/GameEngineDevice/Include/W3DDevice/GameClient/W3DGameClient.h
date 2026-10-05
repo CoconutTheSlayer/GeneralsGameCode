@@ -49,12 +49,12 @@
 #ifdef RTS_HAS_FFMPEG
 #include "VideoDevice/FFmpeg/FFmpegVideoPlayer.h"
 #endif
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 #include "MacDevice/GameClient/MacKeyboard.h"
 #else
 #include "Win32Device/GameClient/Win32DIKeyboard.h"
 #endif
-#if !defined(__APPLE__)
+#if !defined(RTS_POSIX_PORT)
 #include "Win32Device/GameClient/Win32DIMouse.h"
 #endif
 #include "Win32Device/GameClient/Win32Mouse.h"
@@ -119,7 +119,7 @@ protected:
 	virtual DisplayStringManager *createDisplayStringManager() override { return NEW W3DDisplayStringManager; }
 #ifdef RTS_HAS_FFMPEG
 	virtual VideoPlayerInterface *createVideoPlayer() { return NEW FFmpegVideoPlayer; }
-#elif defined(__APPLE__)
+#elif defined(RTS_POSIX_PORT)
 	// Without FFmpeg the macOS build has no video decoder (Bink is Windows only).
 	virtual VideoPlayerInterface *createVideoPlayer() override { return NEW NullVideoPlayer; }
 #else
@@ -135,7 +135,7 @@ protected:
 
 };
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 inline Keyboard *W3DGameClient::createKeyboard() { return NEW MacKeyboard; }
 #else
 inline Keyboard *W3DGameClient::createKeyboard() { return NEW DirectInputKeyboard; }

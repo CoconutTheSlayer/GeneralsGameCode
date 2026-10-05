@@ -27,7 +27,7 @@
 #include "GameNetwork/NetworkDefs.h"
 #include "GameNetwork/NetworkInterface.h"
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 #include <win32shim.h>
 #endif
 
@@ -95,7 +95,7 @@ void FramePacer::setFramesPerSecondLimit( Int fps )
 
 void FramePacer::setDecoupledFramesPerSecond( Int logicFps )
 {
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	// Render as fast as the display refreshes. The simulation keeps its own rate through the
 	// logic time scale and drawables are interpolated between logic frames.
 	Int renderFps = 60;
@@ -159,7 +159,7 @@ Int FramePacer::getActualFramesPerSecondLimit() const
 UnsignedInt FramePacer::getWaitFramesPerSecondLimit() const
 {
 	const Int maxFps = getActualFramesPerSecondLimit();
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	// Presentation already waits for the display refresh, so limiting the render rate to the refresh
 	// rate on the CPU as well only adds a sleep and a busy wait to every frame. Leave the pacing to
 	// vsync then. The simulation keeps its speed because the logic time scale uses the measured frame

@@ -3776,7 +3776,7 @@ void GameLogic::update()
 	{
 		m_CRC = getCRC( CRC_RECALC );
 		bool isPlayback = (TheRecorder && TheRecorder->isPlaybackMode());
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 		// GENERALS_CRC_LOG=1 prints each game state CRC, to compare the simulation between builds
 		// and platforms.
 		static const bool crcLog = getenv("GENERALS_CRC_LOG") != nullptr;

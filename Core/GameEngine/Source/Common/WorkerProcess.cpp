@@ -74,7 +74,7 @@ WorkerProcess::WorkerProcess()
 	m_isDone = false;
 }
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 
 // Replay simulation in worker processes is not supported on macOS.
 bool WorkerProcess::startProcess(UnicodeString command) { return false; }
@@ -243,4 +243,4 @@ void WorkerProcess::kill()
 	m_isDone = false;
 }
 
-#endif // __APPLE__
+#endif // RTS_POSIX_PORT

@@ -46,8 +46,31 @@
 #include <limits.h>
 #include <unistd.h>
 #include <pthread.h>
+#if defined(__cplusplus)
+// GCC's C++ library #undefs C functions such as fopen in <cstdio>, which would remove the path
+// translating macros below if it were included after them.
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cwchar>
+#include <cctype>
+#include <cwctype>
+#include <ctime>
+#endif
+
+#if defined(__APPLE__)
 #include <os/lock.h>
 #include <malloc/malloc.h>
+#else
+#include <malloc.h>
+#define malloc_size malloc_usable_size
+// os_unfair_lock on a pthread mutex; all zero is the unlocked state on glibc, as with Apple's lock.
+typedef pthread_mutex_t os_unfair_lock;
+static inline int iswascii(wint_t c) { return c < 0x80; } // BSD, not in glibc
+static inline void os_unfair_lock_lock(os_unfair_lock* l) { pthread_mutex_lock(l); }
+static inline bool os_unfair_lock_trylock(os_unfair_lock* l) { return pthread_mutex_trylock(l) == 0; }
+static inline void os_unfair_lock_unlock(os_unfair_lock* l) { pthread_mutex_unlock(l); }
+#endif
 
 // Pieces of the generic non-Windows compatibility layer that do not conflict with this shim.
 #include <Utility/mem_compat.h>
@@ -441,6 +464,10 @@ int Win32Shim_mkdir(const char* path);
 int Win32Shim_chdir(const char* path);
 int Win32Shim_rmdir(const char* path);
 #define fopen Win32Shim_fopen
+#ifdef __cplusplus
+// Standard headers that call std::fopen after this point get the translating version too.
+namespace std { using ::Win32Shim_fopen; }
+#endif
 #define _access Win32Shim_access
 #define _unlink Win32Shim_unlink
 #define _chdir Win32Shim_chdir

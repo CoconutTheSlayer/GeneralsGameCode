@@ -24,7 +24,7 @@ typedef const char* LPCSTR;
 typedef char* LPSTR;
 
 // String functions
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 // Declared with C linkage by the Win32 shim (GameSpy defines the same function).
 extern "C" char *_strlwr(char *str);
 #else

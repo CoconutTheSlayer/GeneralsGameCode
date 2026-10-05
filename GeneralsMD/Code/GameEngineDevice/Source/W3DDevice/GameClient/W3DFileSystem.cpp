@@ -48,7 +48,7 @@
 #include "Common/MapObject.h"
 #include "Common/Registry.h"
 #include "W3DDevice/GameClient/W3DFileSystem.h"
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 #include <win32shim.h>
 #endif
 
@@ -171,7 +171,7 @@ char const * GameFileClass::Set_Name( char const *filename )
 
 	GameFileType fileType = getFileType(filename);
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	// TheSuperHackers @feature High resolution versions of effect textures replace the originals.
 	// GENERALS_ORIGINAL_EFFECTS=1 turns them off to compare.
 	if( isImageFileType(fileType) )
@@ -342,7 +342,7 @@ char const * GameFileClass::Set_Name( char const *filename )
 
 	}
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	// TheSuperHackers @feature Art the fork adds to the game data, such as new command button icons.
 	if( m_fileExists == FALSE && isImageFileType(fileType) )
 	{

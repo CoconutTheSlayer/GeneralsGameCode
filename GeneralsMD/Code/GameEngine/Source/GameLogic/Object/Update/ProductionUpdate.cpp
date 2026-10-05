@@ -1263,7 +1263,7 @@ void ProductionUpdate::xfer( Xfer *xfer )
 
 	// version
 	// 2: TheSuperHackers @feature Attack-move rally point (m_rallyAttackMove)
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	XferVersion currentVersion = 2;
 #else
 	XferVersion currentVersion = 1;

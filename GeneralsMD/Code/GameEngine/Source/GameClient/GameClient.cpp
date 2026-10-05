@@ -610,7 +610,7 @@ void GameClient::update()
 
 	const Bool freezeTime = TheGameEngine->isTimeFrozen() || TheGameEngine->isGameHalted();
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	// GENERALS_LOOKAT=x,y[,height] moves the camera once to that point of the map, given as fractions
 	// of its size (0,0 is one corner, 1,1 the opposite one), and optionally to that height above the
 	// ground, for screenshots of a particular place.

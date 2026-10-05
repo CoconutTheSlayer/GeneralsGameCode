@@ -5186,7 +5186,7 @@ void AIUpdateInterface::xfer( Xfer *xfer )
   // version
 	// 6: TheSuperHackers @feature Unit stance (m_aggressiveStance)
 	// 7: TheSuperHackers @feature Attack-move rally point (m_pendingAttackMove)
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	const XferVersion currentVersion = 7;
 #elif RETAIL_COMPATIBLE_CRC || RETAIL_COMPATIBLE_XFER_SAVE
 	const XferVersion currentVersion = 4;

@@ -211,7 +211,7 @@ if(NOT IS_VS6_BUILD)
     )
 endif()
 
-if(APPLE)
+if(RTS_POSIX_PORT)
     list(REMOVE_ITEM GAMEENGINEDEVICE_SRC
         Include/VideoDevice/Bink/BinkVideoPlayer.h
         Source/VideoDevice/Bink/BinkVideoPlayer.cpp

@@ -154,7 +154,7 @@ Int UDP::Bind(UnsignedInt IP,UnsignedShort Port)
   addr.sin_port=Port;
   addr.sin_addr.s_addr=IP;
   fd=socket(AF_INET,SOCK_DGRAM,DEFAULT_PROTOCOL);
-  #if defined(_WIN32) || defined(__APPLE__)
+  #if defined(_WIN32) || defined(RTS_POSIX_PORT)
   if (fd==SOCKET_ERROR)
     fd=-1;
   #endif
@@ -163,7 +163,7 @@ Int UDP::Bind(UnsignedInt IP,UnsignedShort Port)
 
   retval=bind(fd,(struct sockaddr *)&addr,sizeof(addr));
 
-  #if defined(_WIN32) || defined(__APPLE__)
+  #if defined(_WIN32) || defined(RTS_POSIX_PORT)
   if (retval==SOCKET_ERROR)
 	{
     retval=-1;
@@ -201,7 +201,7 @@ Int UDP::getLocalAddr(UnsignedInt &ip, UnsignedShort &port)
 // private function
 Int UDP::SetBlocking(Int block)
 {
-  #if defined(_WIN32) || defined(__APPLE__)
+  #if defined(_WIN32) || defined(RTS_POSIX_PORT)
    unsigned long flag=1;
    if (block)
      flag=0;
@@ -244,7 +244,7 @@ Int UDP::Write(const unsigned char *msg,UnsignedInt len,UnsignedInt IP,UnsignedS
 
   ClearStatus();
   retval=sendto(fd,(const char *)msg,len,0,(struct sockaddr *)&to,sizeof(to));
-  #if defined(_WIN32) || defined(__APPLE__)
+  #if defined(_WIN32) || defined(RTS_POSIX_PORT)
   if (retval==SOCKET_ERROR)
 	{
     retval=-1;
@@ -267,7 +267,7 @@ Int UDP::Read(unsigned char *msg,UnsignedInt len,sockaddr_in *from)
   if (from!=nullptr)
   {
     retval=recvfrom(fd,(char *)msg,len,0,(struct sockaddr *)from,&alen);
-    #if defined(_WIN32) || defined(__APPLE__)
+    #if defined(_WIN32) || defined(RTS_POSIX_PORT)
     if (retval == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -288,7 +288,7 @@ Int UDP::Read(unsigned char *msg,UnsignedInt len,sockaddr_in *from)
   else
   {
     retval=recvfrom(fd,(char *)msg,len,0,nullptr,nullptr);
-    #if defined(_WIN32) || defined(__APPLE__)
+    #if defined(_WIN32) || defined(RTS_POSIX_PORT)
     if (retval==SOCKET_ERROR)
 		{
 			if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -312,7 +312,7 @@ Int UDP::Read(unsigned char *msg,UnsignedInt len,sockaddr_in *from)
 
 void UDP::ClearStatus()
 {
-  #if !defined(_WIN32) && !defined(__APPLE__)
+  #if !defined(_WIN32) && !defined(RTS_POSIX_PORT)
   errno=0;
   #endif
 
@@ -322,7 +322,7 @@ void UDP::ClearStatus()
 UDP::sockStat UDP::GetStatus()
 {
 	Int status = m_lastError;
- #if defined(_WIN32) || defined(__APPLE__)
+ #if defined(_WIN32) || defined(RTS_POSIX_PORT)
   //int status=WSAGetLastError();
   switch (status) {
     case NO_ERROR:

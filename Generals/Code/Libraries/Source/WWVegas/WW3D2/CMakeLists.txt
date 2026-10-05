@@ -241,6 +241,10 @@ target_compile_definitions(g_ww3d2 PRIVATE
     $<$<BOOL:${IS_VS6_BUILD}>:WINVER=0x0500>
 )
 
+# With Clang on x86-64 Linux, this file sees <string> for the first time after the precompiled
+# header was loaded and ends up with two __va_list_tag types.
+set_source_files_properties(${CMAKE_SOURCE_DIR}/Core/Libraries/Source/WWVegas/WW3D2/w3d_dep.cpp PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+
 target_precompile_headers(g_ww3d2 PRIVATE
     [["Precompiled/BasePrecomp.h"]] # Must be first
     [["dx8wrapper.h"]]

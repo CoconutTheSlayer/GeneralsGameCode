@@ -8,7 +8,7 @@ add_subdirectory(Source/WWVegas)
 add_subdirectory(Source/profile)
 
 # debugging library
-if(NOT APPLE)
+if(NOT RTS_POSIX_PORT)
     add_subdirectory(Source/debug)
     add_subdirectory(Source/EABrowserDispatch)
     add_subdirectory(Source/EABrowserEngine)

@@ -34,7 +34,7 @@
 #include "ww3d.h"
 #include "dx8wrapper.h"
 
-#if ENABLE_EMBEDDED_BROWSER && defined(__APPLE__)
+#if ENABLE_EMBEDDED_BROWSER && defined(RTS_POSIX_PORT)
 
 // No embedded browser on macOS.
 HWND DX8WebBrowser::hWnd = 0;

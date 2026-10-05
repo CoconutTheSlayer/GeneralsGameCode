@@ -27,7 +27,14 @@
 #include "mss.h"
 
 #include <SDL3/SDL.h>
+#if defined(__APPLE__)
 #include <AudioToolbox/AudioToolbox.h>
+#else
+// Elsewhere MP3 is decoded with dr_mp3 (public domain or MIT-0).
+#define DR_MP3_IMPLEMENTATION
+#define DR_MP3_NO_STDIO
+#include "dr_mp3.h"
+#endif
 
 #include <algorithm>
 #include <atomic>
@@ -247,6 +254,7 @@ struct MemoryFile
 	}
 };
 
+#if defined(__APPLE__)
 OSStatus memRead(void* client, SInt64 position, UInt32 count, void* buffer, UInt32* actual)
 {
 	MemoryFile* f = static_cast<MemoryFile*>(client);
@@ -337,6 +345,56 @@ struct CoreAudioDecoder
 		return true;
 	}
 };
+
+#else
+// The same interface on dr_mp3.
+struct CoreAudioDecoder
+{
+	std::shared_ptr<MemoryFile> file;
+	drmp3 mp3;
+	bool initialized = false;
+
+	~CoreAudioDecoder()
+	{
+		if (initialized)
+			drmp3_uninit(&mp3);
+	}
+
+	bool open(std::shared_ptr<MemoryFile> f, Pcm& pcm)
+	{
+		file = f;
+		if (!drmp3_init_memory(&mp3, file->data, file->size, nullptr))
+			return false;
+		initialized = true;
+		if (mp3.channels < 1 || mp3.channels > 2)
+			return false;
+		pcm.channels = (int)mp3.channels;
+		pcm.rate = mp3.sampleRate > 0 ? (int)mp3.sampleRate : 44100;
+		const drmp3_uint64 frames = drmp3_get_pcm_frame_count(&mp3);
+		drmp3_seek_to_pcm_frame(&mp3, 0);
+		pcm.totalFrames = (size_t)frames;
+		pcm.frames.resize((pcm.totalFrames + pcm.rate) * pcm.channels);
+		return true;
+	}
+
+	// Decodes up to maxFrames more frames into pcm; returns false at end of data.
+	bool decode(Pcm& pcm, size_t maxFrames)
+	{
+		size_t done = pcm.decodedFrames.load();
+		if (done + maxFrames > pcm.frames.size() / pcm.channels)
+		{
+			maxFrames = pcm.frames.size() / pcm.channels - done;
+			if (maxFrames == 0)
+				return false;
+		}
+		const drmp3_uint64 frames = drmp3_read_pcm_frames_s16(&mp3, maxFrames, pcm.frames.data() + done * pcm.channels);
+		if (frames == 0)
+			return false;
+		pcm.decodedFrames = done + (size_t)frames;
+		return true;
+	}
+};
+#endif
 
 bool decodeCoreAudio(std::shared_ptr<MemoryFile> file, Pcm& pcm)
 {

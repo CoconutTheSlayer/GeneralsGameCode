@@ -19,8 +19,8 @@
 // This file contains macros to help compiling on non-windows platforms.
 #pragma once
 
-#if !defined(_WIN32) && defined(__APPLE__)
-// macOS uses the fuller Win32 replacement from Dependencies/Win32Shim.
+#if !defined(_WIN32) && defined(RTS_POSIX_PORT)
+// The macOS and Linux ports use the fuller Win32 replacement from Dependencies/Win32Shim.
 #include <windows.h>
 #elif !defined(_WIN32)
 // For size_t

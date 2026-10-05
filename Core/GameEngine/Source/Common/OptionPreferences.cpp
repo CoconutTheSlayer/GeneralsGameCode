@@ -750,7 +750,7 @@ void OptionPreferences::getResolution(Int *xres, Int *yres)
 	*xres = TheGlobalData->m_xResolution;
 	*yres = TheGlobalData->m_yResolution;
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	// Without a chosen resolution, use the native pixel size of the display, so the game fills the
 	// screen sharply with the right aspect ratio.
 	DEVMODE desktop;
@@ -818,14 +818,14 @@ Int OptionPreferences::getNetworkLatencyFontSize()
 // 50% further. The default view stays the same. Up to 6 on macOS, 4 elsewhere.
 Real OptionPreferences::getCameraZoomOutFactor()
 {
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	const Real defaultFactor = 3.0f;
 	const Real maxFactor = 6.0f;
 #else
 	const Real defaultFactor = 1.0f;
 	const Real maxFactor = 4.0f;
 #endif
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	// GENERALS_CAMERA_ZOOM_OUT overrides the option, for test runs.
 	if (const char *value = getenv("GENERALS_CAMERA_ZOOM_OUT"))
 		return clamp(1.0f, (Real)atof(value), maxFactor);

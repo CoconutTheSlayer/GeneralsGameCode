@@ -374,7 +374,7 @@ static __inline unsigned int ggetm(const void *src, int bytes)
 {
     if (bytes==1)
         return (unsigned int) *(const unsigned char *) src;
-#if defined(__APPLE__) || (defined(__MWERKS__) && defined(__PPCGEKKO__))
+#if defined(__BIG_ENDIAN__) || (defined(__MWERKS__) && defined(__PPCGEKKO__)) // TheSuperHackers @bugfix native reads only on big endian CPUs (was __APPLE__, meaning PowerPC Macs)
     else if (bytes==2)
         return (unsigned int) *(const unsigned short *) src;
     else if (bytes==4)
@@ -420,7 +420,7 @@ static __inline void gputm(void *dst, unsigned int data, int bytes)
     {
         ((unsigned char *) dst)[0] = (unsigned char) data;
     }
-#if defined(__APPLE__) || (defined(__MWERKS__) && defined(__PPCGEKKO__))
+#if defined(__BIG_ENDIAN__) || (defined(__MWERKS__) && defined(__PPCGEKKO__)) // TheSuperHackers @bugfix native reads only on big endian CPUs (was __APPLE__, meaning PowerPC Macs)
     else if (bytes==2)
     {
         ((unsigned short *) dst)[0] = (unsigned short) data;

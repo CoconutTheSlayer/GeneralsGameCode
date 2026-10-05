@@ -3264,7 +3264,7 @@ void ParticleSystemManager::update()
 					const Coord3D *pos = p->getPosition();
 					Smudge *smudge = set->addSmudgeToSet(p);
 					smudge->m_pos.Set(pos->x, pos->y, pos->z);
-#ifdef __APPLE__
+#ifdef RTS_POSIX_PORT
 					// TheSuperHackers @tweak A small, smooth wobble of the refracted image reads as heat shimmer;
 					// a new random jump of up to 6% of the screen every frame shows hard edged copies instead.
 					const Real phase = (Real)(((UnsignedInt)(uintptr_t)p >> 4) % 1024) * 0.37f;

@@ -580,7 +580,7 @@ WWINLINE float WWMath::Sqrt(float val)
 }
 #endif
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 // The bit manipulation versions below shift by more than 31 bits for values below one,
 // which is undefined behavior that the optimizer may exploit.
 WWINLINE int WWMath::Float_To_Int_Chop(const float& f)

@@ -171,7 +171,7 @@ void initSubsystem(
 
 //-------------------------------------------------------------------------------------------------
 extern HINSTANCE ApplicationHInstance;  ///< our application instance
-#if !defined(__APPLE__)
+#if !defined(RTS_POSIX_PORT)
 extern CComModule _Module;
 #endif
 
@@ -255,7 +255,7 @@ GameEngine::GameEngine()
 	m_quitting = FALSE;
 	m_isActive = FALSE;
 
-#if !defined(__APPLE__)
+#if !defined(RTS_POSIX_PORT)
 	_Module.Init(nullptr, ApplicationHInstance, nullptr);
 #endif
 }
@@ -299,7 +299,7 @@ GameEngine::~GameEngine()
 
 	Drawable::killStaticImages();
 
-#if !defined(__APPLE__)
+#if !defined(RTS_POSIX_PORT)
 	_Module.Term();
 #endif
 

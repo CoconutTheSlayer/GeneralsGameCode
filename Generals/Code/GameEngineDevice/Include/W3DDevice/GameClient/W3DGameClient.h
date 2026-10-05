@@ -49,7 +49,7 @@
 #ifdef RTS_HAS_FFMPEG
 #include "VideoDevice/FFmpeg/FFmpegVideoPlayer.h"
 #endif
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 #include "MacDevice/GameClient/MacKeyboard.h"
 #else
 #include "Win32Device/GameClient/Win32DIKeyboard.h"
@@ -126,7 +126,7 @@ protected:
 
 };
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 inline Keyboard *W3DGameClient::createKeyboard() { return NEW MacKeyboard; }
 #else
 inline Keyboard *W3DGameClient::createKeyboard() { return NEW DirectInputKeyboard; }

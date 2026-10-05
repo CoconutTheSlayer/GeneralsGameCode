@@ -56,8 +56,14 @@ if(MINGW)
     include(cmake/widl.cmake)
 endif()
 
+# The non-Windows ports (macOS and Linux) share the Win32 replacement layer and most settings.
+if(APPLE OR (UNIX AND NOT MINGW))
+    set(RTS_POSIX_PORT TRUE)
+endif()
 if(APPLE)
     include(cmake/macos.cmake)
+elseif(RTS_POSIX_PORT)
+    include(cmake/linux.cmake)
 endif()
 
 # Find/Add build dependencies and stubs shared by all projects

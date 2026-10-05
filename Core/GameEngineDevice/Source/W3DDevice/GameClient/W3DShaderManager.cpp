@@ -1804,7 +1804,7 @@ Int TerrainShader8Stage::init()
 	//this shader will also use the 2Stage shader for some of the passes so initialize it too.
 	if (!terrainShader2Stage.init())
 		return FALSE;
-#ifdef __APPLE__
+#ifdef RTS_POSIX_PORT
 	// This shader relies on how NVIDIA drivers mapped 8 texture stages onto the register combiners
 	// of the TNT and GeForce2. The Metal renderer evaluates the stages as Direct3D defines them,
 	// which turns the terrain white, so it uses the 2 stage shader.
@@ -3177,7 +3177,7 @@ StaticGameLODLevel W3DShaderManager::getGPUPerformanceIndex()
 	ChipsetType	chipType;
 	StaticGameLODLevel detailSetting=STATIC_GAME_LOD_LOW;	//assume lowest settings for now.
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	// Every Mac that runs the Metal renderer handles the highest detail; the GeForce2 it identifies as
 	// only selects the fixed function code paths.
 	return STATIC_GAME_LOD_VERY_HIGH;

@@ -42,7 +42,7 @@
 #include "W3DDevice/Common/W3DModuleFactory.h"
 #include "W3DDevice/GameLogic/W3DGameLogic.h"
 #include "W3DDevice/GameClient/W3DGameClient.h"
-#if !defined(__APPLE__)
+#if !defined(RTS_POSIX_PORT)
 #include "W3DDevice/GameClient/W3DWebBrowser.h"
 #endif
 #include "W3DDevice/Common/W3DFunctionLexicon.h"
@@ -110,7 +110,7 @@ inline Radar *Win32GameEngine::createRadar(Bool dummy)
 		return NEW RadarDummy;
 	return NEW W3DRadar;
 }
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 inline WebBrowser *Win32GameEngine::createWebBrowser() { return nullptr; }
 #else
 inline WebBrowser *Win32GameEngine::createWebBrowser() { return NEW CComObject<W3DWebBrowser>; }

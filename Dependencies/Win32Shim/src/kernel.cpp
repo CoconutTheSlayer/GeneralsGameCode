@@ -35,18 +35,35 @@
 #include <pwd.h>
 #include <sched.h>
 #include <signal.h>
+#include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/param.h>
+#if defined(__APPLE__)
 #include <sys/mount.h>
+#else
+#include <sys/sysinfo.h>
+#include <sys/vfs.h>
+#endif
 #include <sys/stat.h>
+#if defined(__APPLE__)
 #include <sys/sysctl.h>
+#endif
 #include <sys/time.h>
 #include <time.h>
 
+#if !defined(__APPLE__)
+// Linux names of the stat time fields (no creation time; the status change time stands in).
+#define st_birthtimespec st_ctim
+#define st_atimespec st_atim
+#define st_mtimespec st_mtim
+#endif
+
+#if defined(__APPLE__)
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 #include <mach-o/dyld.h>
 #include <IOKit/pwr_mgt/IOPMLib.h>
+#endif
 
 //-----------------------------------------------------------------------------
 // Handle objects
@@ -260,7 +277,11 @@ bool isCaseSensitiveVolume(const std::string& dir, dev_t dev)
 	}
 	// pathconf returns 0 for case insensitive volumes. If it fails, assume case
 	// sensitive so that the directory scan below still runs.
+#if defined(__APPLE__)
 	bool sensitive = pathconf(dir.c_str(), _PC_CASE_SENSITIVE) != 0;
+#else
+	bool sensitive = true; // Linux file systems are case sensitive
+#endif
 	std::lock_guard<std::mutex> lock(mutex);
 	cache[dev] = sensitive;
 	return sensitive;
@@ -607,6 +628,12 @@ int WideCharToMultiByte(UINT codePage, DWORD, LPCWSTR src, int srcLen, LPSTR dst
 //-----------------------------------------------------------------------------
 void GlobalMemoryStatus(LPMEMORYSTATUS status)
 {
+#if !defined(__APPLE__)
+	struct sysinfo si;
+	sysinfo(&si);
+	uint64_t total = (uint64_t)si.totalram * si.mem_unit;
+	uint64_t avail = (uint64_t)(si.freeram + si.bufferram) * si.mem_unit;
+#else
 	uint64_t total = 0;
 	size_t len = sizeof(total);
 	sysctlbyname("hw.memsize", &total, &len, nullptr, 0);
@@ -618,6 +645,7 @@ void GlobalMemoryStatus(LPMEMORYSTATUS status)
 	mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
 	if (host_statistics64(mach_host_self(), HOST_VM_INFO64, (host_info64_t)&vmStats, &count) == KERN_SUCCESS)
 		avail = (uint64_t)(vmStats.free_count + vmStats.inactive_count) * pageSize;
+#endif
 
 	status->dwLength = sizeof(*status);
 	status->dwMemoryLoad = total ? (DWORD)(100 - (avail * 100 / total)) : 0;
@@ -684,7 +712,13 @@ namespace
 {
 uint64_t monotonicNanoseconds()
 {
+#if defined(__APPLE__)
 	return clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+#else
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+#endif
 }
 
 void tmToSystemTime(const struct tm& t, int ms, LPSYSTEMTIME st)
@@ -879,7 +913,11 @@ int GetTimeFormatW(LCID locale, DWORD flags, const SYSTEMTIME* t, LPCWSTR, LPWST
 // inline in windows.h.
 void InitializeCriticalSection(LPCRITICAL_SECTION cs)
 {
+#if defined(__APPLE__)
 	cs->lock = OS_UNFAIR_LOCK_INIT;
+#else
+	cs->lock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+#endif
 	cs->owner = 0;
 	cs->recursion = 0;
 }
@@ -950,9 +988,14 @@ DWORD beginThreadTrampoline(LPVOID param)
 
 DWORD GetCurrentThreadId()
 {
+#if defined(__APPLE__)
 	uint64_t tid = 0;
 	pthread_threadid_np(nullptr, &tid);
 	return (DWORD)tid;
+#else
+	// Only needs to be unique among the threads and match the id CreateThread reported.
+	return (DWORD)(uintptr_t)pthread_self();
+#endif
 }
 
 DWORD GetCurrentProcessId()
@@ -993,9 +1036,13 @@ HANDLE CreateThread(LPSECURITY_ATTRIBUTES, SIZE_T stackSize, LPTHREAD_START_ROUT
 	}
 	if (threadId)
 	{
+#if defined(__APPLE__)
 		uint64_t tid = 0;
 		pthread_threadid_np(th->thread, &tid);
 		*threadId = (DWORD)tid;
+#else
+		*threadId = (DWORD)(uintptr_t)th->thread;
+#endif
 	}
 	return th;
 }
@@ -1751,9 +1798,16 @@ BOOL SetCurrentDirectory(LPCSTR name)
 DWORD GetModuleFileName(HMODULE, LPSTR buffer, DWORD len)
 {
 	char path[PATH_MAX];
+#if defined(__APPLE__)
 	uint32_t size = sizeof(path);
 	if (_NSGetExecutablePath(path, &size) != 0)
 		return 0;
+#else
+	ssize_t n = readlink("/proc/self/exe", path, sizeof(path) - 1);
+	if (n <= 0)
+		return 0;
+	path[n] = 0;
+#endif
 	char resolved[PATH_MAX];
 	if (realpath(path, resolved) == nullptr)
 		strlcpy(resolved, path, sizeof(resolved));
@@ -2045,12 +2099,16 @@ void GetSystemInfo(LPSYSTEM_INFO info)
 	memset(info, 0, sizeof(*info));
 	info->dwPageSize = (DWORD)getpagesize();
 	info->dwAllocationGranularity = 65536;
-	int ncpu = 1;
-	size_t len = sizeof(ncpu);
-	sysctlbyname("hw.logicalcpu", &ncpu, &len, nullptr, 0);
+	int ncpu = (int)sysconf(_SC_NPROCESSORS_ONLN);
+	if (ncpu < 1)
+		ncpu = 1;
 	info->dwNumberOfProcessors = (DWORD)ncpu;
 	info->dwActiveProcessorMask = (ncpu >= 64) ? ~(DWORD_PTR)0 : (((DWORD_PTR)1 << ncpu) - 1);
+#if defined(__x86_64__)
+	info->wProcessorArchitecture = 9; // PROCESSOR_ARCHITECTURE_AMD64
+#else
 	info->wProcessorArchitecture = 12; // PROCESSOR_ARCHITECTURE_ARM64
+#endif
 	info->lpMinimumApplicationAddress = (LPVOID)0x10000;
 	info->lpMaximumApplicationAddress = (LPVOID)0x7FFFFFFFFFFF;
 }
@@ -2157,6 +2215,20 @@ void OutputDebugStringW(LPCWSTR str)
 
 BOOL IsDebuggerPresent()
 {
+#if !defined(__APPLE__)
+	FILE* f = fopen("/proc/self/status", "r");
+	if (f == nullptr)
+		return FALSE;
+	char line[256];
+	int tracer = 0;
+	while (fgets(line, sizeof(line), f))
+	{
+		if (sscanf(line, "TracerPid: %d", &tracer) == 1)
+			break;
+	}
+	fclose(f);
+	return tracer != 0;
+#else
 	int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
 	struct kinfo_proc info;
 	memset(&info, 0, sizeof(info));
@@ -2164,6 +2236,7 @@ BOOL IsDebuggerPresent()
 	if (sysctl(mib, 4, &info, &size, nullptr, 0) != 0)
 		return FALSE;
 	return (info.kp_proc.p_flag & P_TRACED) != 0;
+#endif
 }
 
 void DebugBreak()
@@ -2219,6 +2292,11 @@ char* _ui64toa(uint64_t value, char* str, int radix) { return integerToString(va
 
 EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE flags)
 {
+#if !defined(__APPLE__)
+	// SDL keeps the screen saver off while the game window is open.
+	(void)flags;
+	return ES_CONTINUOUS;
+#else
 	// Keep the display awake while the game asks for it, using an IOKit power assertion.
 	static IOPMAssertionID assertion = kIOPMNullAssertionID;
 	if ((flags & ES_DISPLAY_REQUIRED) && assertion == kIOPMNullAssertionID)
@@ -2229,6 +2307,7 @@ EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE flags)
 		assertion = kIOPMNullAssertionID;
 	}
 	return ES_CONTINUOUS;
+#endif
 }
 
 // Weak so the identical GameSpy definitions take precedence when linked.

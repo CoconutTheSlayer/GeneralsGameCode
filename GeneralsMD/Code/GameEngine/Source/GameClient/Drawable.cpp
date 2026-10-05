@@ -341,7 +341,7 @@ void Drawable::saturateRGB(RGBColor& color, Real factor)
 //-------------------------------------------------------------------------------------------------
 static Real modelScaleFor(const ThingTemplate *thingTemplate)
 {
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	static Bool loaded = FALSE;
 	static Real infantry, vehicles, tanks, bikes, jets, helicopters, structures;
 	if (!loaded)

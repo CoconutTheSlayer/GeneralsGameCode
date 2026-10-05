@@ -68,7 +68,7 @@ static constexpr const Int MAX_UDP_PAYLOAD_SIZE = 1100;
 static constexpr const Int RETAIL_GAME_PACKET_SIZE = 476;
 
 // TheSuperHackers @info The legacy lanapi cannot use a larger packet size without breaking the gameinfo command
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 // wchar_t is 4 bytes on macOS, which doubles the size of the wide strings in LANMessage.
 // macOS clients only talk to each other on LAN, so a larger packet is fine.
 static constexpr const Int MAX_LANAPI_PACKET_SIZE = MAX_UDP_PAYLOAD_SIZE;

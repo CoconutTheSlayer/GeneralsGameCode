@@ -63,7 +63,7 @@ class FFmpegVideoStream : public VideoStream
 		Char			*m_memFile;				///< Pointer to memory resident file
 		UnsignedInt64	m_startTime = 0;		///< Time the stream started
 		UnsignedByte *	m_audioBuffer = nullptr;///< Audio buffer for the stream
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 		void *			m_pcmStream = nullptr;	///< Miles PCM voice playing the movie audio
 #endif
 

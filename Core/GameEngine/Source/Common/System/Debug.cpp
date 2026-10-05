@@ -60,7 +60,7 @@
 #endif
 #include "Common/CommandLine.h"
 #include "Common/Debug.h"
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 #include <win32shim.h>
 #endif
 #include "Common/CRCDebug.h"
@@ -380,7 +380,7 @@ void DebugInit(int flags)
 			return;
 
 		char dirbuf[ _MAX_PATH ];
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 		// Next to the session logs; the executable is inside the application bundle.
 		if (const char *logDir = Win32Shim_GetLogDirectory())
 			snprintf(dirbuf, sizeof(dirbuf), "%s/", logDir);

@@ -598,7 +598,7 @@ void SortingRendererClass::Flush_Sorting_Pool()
 
 // ----------------------------------------------------------------------------
 
-#ifdef __APPLE__
+#ifdef RTS_POSIX_PORT
 // TheSuperHackers @feature The Metal renderer fades translucent sprites drawn while this render state
 // is set (outside the Direct3D 8 range) where they come within this many units of the scene behind
 // them. GENERALS_SOFT_PARTICLES sets the distance, 0 turns it off.
@@ -628,7 +628,7 @@ static void Set_Soft_Particles(float distance)
 void SortingRendererClass::Flush()
 {
 	WWPROFILE("SortingRenderer::Flush");
-#ifdef __APPLE__
+#ifdef RTS_POSIX_PORT
 	Set_Soft_Particles(Soft_Particle_Distance());
 #endif
 	Matrix4x4 old_view;
@@ -669,7 +669,7 @@ void SortingRendererClass::Flush()
 	DX8Wrapper::Set_Index_Buffer(nullptr,0);
 	DX8Wrapper::Set_Vertex_Buffer(nullptr);
 	total_sorting_vertices=0;
-#ifdef __APPLE__
+#ifdef RTS_POSIX_PORT
 	Set_Soft_Particles(0.0f);
 #endif
 

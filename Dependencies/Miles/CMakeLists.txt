@@ -1,5 +1,5 @@
-if(APPLE)
-    # Miles is implemented on SDL3 audio and AudioToolbox on macOS.
+if(RTS_POSIX_PORT)
+    # Miles is implemented on SDL3 audio, with AudioToolbox (macOS) or dr_mp3 (Linux) for MP3.
     set(MILES_SRC
         mss/mss.h
         MilesLoader.h
@@ -29,6 +29,9 @@ target_link_libraries(deps_miles PRIVATE
 
 if(APPLE)
     target_link_libraries(deps_miles PUBLIC SDL3::SDL3 "-framework AudioToolbox" "-framework CoreFoundation")
+    target_compile_definitions(deps_miles PRIVATE NOMINMAX)
+elseif(RTS_POSIX_PORT)
+    target_link_libraries(deps_miles PUBLIC SDL3::SDL3)
     target_compile_definitions(deps_miles PRIVATE NOMINMAX)
 endif()
 

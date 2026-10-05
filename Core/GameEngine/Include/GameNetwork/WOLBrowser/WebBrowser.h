@@ -44,7 +44,7 @@
 
 #include "Common/SubsystemInterface.h"
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 // The embedded browser is an ATL/COM component that is never instantiated by the
 // game. On macOS only the interface remains so callers compile; TheWebBrowser is
 // always null.
@@ -165,4 +165,4 @@ class WebBrowser :
 
 extern CComObject<WebBrowser> *TheWebBrowser;
 
-#endif // __APPLE__
+#endif // RTS_POSIX_PORT

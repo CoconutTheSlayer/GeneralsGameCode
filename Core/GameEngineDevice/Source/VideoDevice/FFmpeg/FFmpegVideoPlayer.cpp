@@ -53,7 +53,7 @@ extern "C" {
 
 #include <chrono>
 
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 #include <mss.h>
 #include <vector>
 #endif
@@ -340,7 +340,7 @@ FFmpegVideoStream::FFmpegVideoStream(FFmpegFile* file)
 
 FFmpegVideoStream::~FFmpegVideoStream()
 {
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	MilesMac_ClosePCMStream((HSTREAM)m_pcmStream);
 #endif
 	av_freep(&m_audioBuffer);
@@ -357,7 +357,7 @@ void FFmpegVideoStream::onFrame(AVFrame *frame, int stream_idx, int stream_type,
 		videoStream->m_frame = av_frame_clone(frame);
 		videoStream->m_gotFrame = true;
 	}
-#if defined(__APPLE__)
+#if defined(RTS_POSIX_PORT)
 	else if (stream_type == AVMEDIA_TYPE_AUDIO) {
 		// Convert the decoded samples to interleaved float and queue them on a Miles PCM voice.
 		const int channels = frame->ch_layout.nb_channels;

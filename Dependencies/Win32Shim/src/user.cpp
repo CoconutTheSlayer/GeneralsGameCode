@@ -31,6 +31,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <algorithm>
 #include <atomic>
 #include <csignal>
 #include <sys/stat.h>
