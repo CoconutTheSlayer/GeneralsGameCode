@@ -35,6 +35,11 @@
 #include "W3DDevice/GameClient/W3DSmudge.h"
 #include "W3DDevice/GameClient/W3DSnow.h"
 #include "WW3D2/camera.h"
+#include "WW3D2/dx8wrapper.h"
+#include "WW3D2/dx8vertexbuffer.h"
+#include "WW3D2/dx8indexbuffer.h"
+#include "WW3D2/vertmaterial.h"
+#include "GameLogic/TerrainLogic.h"
 
 
 //------------------------------------------------------------------------------ Performance Timers
@@ -456,6 +461,18 @@ void W3DParticleSystemManager::flushParticleBatch(RenderInfoClass& rinfo, Unsign
 			break;
 		}
 
+#ifdef __APPLE__
+		if (m_batchParticleAlignment != ParticleSystemInfo::PARTICLE_ALIGNMENT_BILLBOARD && TheTerrainLogic != nullptr)
+		{
+			renderGroundBatch(rinfo, pointCount);
+			pointCount = 0;
+			m_batchTexture.Clear();
+			m_batchParticleAlignment = ParticleSystemInfo::PARTICLE_ALIGNMENT_BILLBOARD;
+			m_batchShaderType = ParticleSystemInfo::INVALID_SHADER;
+			return;
+		}
+#endif
+
 		m_pointGroup->Set_Flag(PointGroupClass::TRANSFORM, true);
 		m_pointGroup->Set_Point_Mode(PointGroupClass::QUADS);
 		m_pointGroup->Set_Arrays(m_posBuffer, m_RGBABuffer, nullptr, m_sizeBuffer, m_angleBuffer, nullptr, pointCount);
@@ -470,3 +487,148 @@ void W3DParticleSystemManager::flushParticleBatch(RenderInfoClass& rinfo, Unsign
 	m_batchParticleAlignment = ParticleSystemInfo::PARTICLE_ALIGNMENT_BILLBOARD;
 	m_batchShaderType = ParticleSystemInfo::INVALID_SHADER;
 }
+
+#ifdef __APPLE__
+//-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature Particles that lie flat on the ground (radiation and toxin fields, shockwave
+// rings, ground glows) are drawn as a grid that follows the terrain and the water surface, instead of a
+// flat square that cuts into hills and floats over dips. Each particle keeps its height above the
+// ground at its centre.
+//-------------------------------------------------------------------------------------------------
+static Real groundSurfaceHeight(Real x, Real y)
+{
+	Real waterZ = 0.0f;
+	if (TheTerrainLogic->isUnderwater(x, y, &waterZ))
+		return waterZ;
+	return TheTerrainLogic->getGroundHeight(x, y);
+}
+
+static Int groundGridCells(Real halfSize)
+{
+	// About one cell per 6 world units; terrain cells are 10 units.
+	Int cells = (Int)ceilf(2.0f * halfSize / 6.0f);
+	return cells < 1 ? 1 : (cells > 16 ? 16 : cells);
+}
+
+void W3DParticleSystemManager::renderGroundBatch(RenderInfoClass& rinfo, UnsignedInt pointCount)
+{
+	const Vector3 *posArray = m_posBuffer->Get_Array();
+	const Real *sizeArray = m_sizeBuffer->Get_Array();
+	const Vector4 *colorArray = m_RGBABuffer->Get_Array();
+	const uint8 *angleArray = m_angleBuffer->Get_Array();
+
+	ShaderClass shader = ShaderClass::_PresetAlphaSpriteShader;
+	switch (m_batchShaderType)
+	{
+	case ParticleSystemInfo::ADDITIVE: shader = ShaderClass::_PresetAdditiveSpriteShader; break;
+	case ParticleSystemInfo::ALPHA: shader = ShaderClass::_PresetAlphaSpriteShader; break;
+	case ParticleSystemInfo::ALPHA_TEST: shader = ShaderClass::_PresetATestSpriteShader; break;
+	case ParticleSystemInfo::MULTIPLY: shader = ShaderClass::_PresetMultiplicativeSpriteShader; break;
+	default: break;
+	}
+	shader.Set_Cull_Mode(ShaderClass::CULL_MODE_DISABLE);
+	// The vertex colours carry each particle's colour and alpha, as in PointGroupClass::Render.
+	shader.Set_Primary_Gradient(ShaderClass::GRADIENT_MODULATE);
+	shader.Set_Texturing(m_batchTexture.Peek() ? ShaderClass::TEXTURING_ENABLE : ShaderClass::TEXTURING_DISABLE);
+
+	Matrix3D view;
+	rinfo.Camera.Get_View_Matrix(&view);
+	DX8Wrapper::Set_Transform(D3DTS_WORLD, Matrix3D(true));
+	DX8Wrapper::Set_Transform(D3DTS_VIEW, view);
+	VertexMaterialClass *material = VertexMaterialClass::Get_Preset(VertexMaterialClass::PRELIT_DIFFUSE);
+	DX8Wrapper::Set_Material(material);
+	REF_PTR_RELEASE(material);
+	DX8Wrapper::Set_Shader(shader);
+	DX8Wrapper::Set_Texture(0, m_batchTexture.Peek());
+
+	const Int maxVertices = 16384;
+	UnsignedInt first = 0;
+	while (first < pointCount)
+	{
+		// Particles that fit into one draw.
+		Int vertexCount = 0, indexCount = 0;
+		UnsignedInt last = first;
+		while (last < pointCount)
+		{
+			const Int cells = groundGridCells(sizeArray[last]);
+			const Int verts = (cells + 1) * (cells + 1);
+			if (last > first && vertexCount + verts > maxVertices)
+				break;
+			vertexCount += verts;
+			indexCount += cells * cells * 6;
+			++last;
+		}
+
+		DynamicVBAccessClass vbAccess(BUFFER_TYPE_DYNAMIC_DX8, DX8_FVF_XYZNDUV2, vertexCount);
+		DynamicIBAccessClass ibAccess(BUFFER_TYPE_DYNAMIC_DX8, indexCount);
+		{
+			DynamicVBAccessClass::WriteLockClass vbLock(&vbAccess);
+			DynamicIBAccessClass::WriteLockClass ibLock(&ibAccess);
+			VertexFormatXYZNDUV2 *vb = vbLock.Get_Formatted_Vertex_Array();
+			unsigned short *ib = ibLock.Get_Index_Array();
+			if (vb == nullptr || ib == nullptr)
+				return;
+
+			Int base = 0;
+			for (UnsignedInt i = first; i < last; ++i)
+			{
+				const Vector3 &center = posArray[i];
+				const Real halfSize = sizeArray[i];
+				const Int cells = groundGridCells(halfSize);
+				const Real angle = (Real)angleArray[i] / 255.0f * 2.0f * PI;
+				const Real c = Cos(angle), s = Sin(angle);
+				const unsigned diffuse = DX8Wrapper::Convert_Color_Clamp(colorArray[i]);
+				// Height above the surface at the centre; a little more keeps the grid off the terrain,
+				// whose triangles it does not match exactly.
+				Real lift = center.Z - groundSurfaceHeight(center.X, center.Y);
+				lift = (lift > 0.0f ? lift : 0.0f) + 0.75f;
+
+				for (Int row = 0; row <= cells; ++row)
+				{
+					// Local coordinates run from 1 to -1, as PointGroupClass lays out ground aligned quads.
+					const Real b = 1.0f - 2.0f * (Real)row / (Real)cells;
+					for (Int col = 0; col <= cells; ++col)
+					{
+						const Real a = 1.0f - 2.0f * (Real)col / (Real)cells;
+						const Real x = center.X + (a * c - b * s) * halfSize;
+						const Real y = center.Y + (a * s + b * c) * halfSize;
+						vb->x = x;
+						vb->y = y;
+						vb->z = groundSurfaceHeight(x, y) + lift;
+						vb->nx = 0.0f;
+						vb->ny = 0.0f;
+						vb->nz = 1.0f;
+						vb->diffuse = diffuse;
+						vb->u1 = (1.0f - a) * 0.5f;
+						vb->v1 = (1.0f - b) * 0.5f;
+						vb->u2 = 0.0f;
+						vb->v2 = 0.0f;
+						++vb;
+					}
+				}
+				for (Int row = 0; row < cells; ++row)
+				{
+					for (Int col = 0; col < cells; ++col)
+					{
+						const unsigned short v0 = (unsigned short)(base + row * (cells + 1) + col);
+						const unsigned short v1 = (unsigned short)(v0 + 1);
+						const unsigned short v2 = (unsigned short)(v0 + cells + 1);
+						const unsigned short v3 = (unsigned short)(v2 + 1);
+						*ib++ = v0; *ib++ = v2; *ib++ = v1;
+						*ib++ = v1; *ib++ = v2; *ib++ = v3;
+					}
+				}
+				base += (cells + 1) * (cells + 1);
+			}
+		}
+
+		DX8Wrapper::Set_Vertex_Buffer(vbAccess);
+		DX8Wrapper::Set_Index_Buffer(ibAccess, 0);
+		DX8Wrapper::Draw_Triangles(0, indexCount / 3, 0, vertexCount);
+		first = last;
+	}
+
+	DX8Wrapper::Set_Index_Buffer(nullptr, 0);
+	DX8Wrapper::Set_Vertex_Buffer(nullptr);
+}
+#endif

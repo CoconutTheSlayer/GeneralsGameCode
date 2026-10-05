@@ -102,7 +102,7 @@ on the current display and scales the image to fit.
 - **Production queue** (Zero Hour): factories queue up to 30 units; the queue shows the first 9 and "+N" for the rest.
 - **Unit stance** (Zero Hour): the Stance button on the command bar, or Ctrl+A, switches the selected units between
   Guard (the original behavior: fire at enemies in range) and Aggressive (attack anything in sight and chase it).
-- **Effects** (Zero Hour): the most used explosion, fire and smoke textures are replaced by high resolution
+- **Effects** (Zero Hour): the most used explosion, fire, flame, spark, flare and smoke textures are replaced by high resolution
   redraws (`resources/macos/GameData/Art/TexturesHD`, made from the originals; `GENERALS_ORIGINAL_EFFECTS=1` uses the
   originals). The High and Very High detail levels allow 12,000 and 20,000 particles instead of 3,000 and 5,000, and
   keep every effect until the frame rate drops below 20.
@@ -112,7 +112,11 @@ on the current display and scales the image to fit.
   instead of replacing it) in `resources/macos/GameData/Data/INI/Explosions.ini`. Hot air shimmers above
   explosions and burning ruins when the Heat Effects detail option is on; it uses the engine's smudge particles,
   which now wobble gently instead of jumping by up to 6% of the screen every frame, and the renderer copies the
-  screen for them on the GPU.
+  screen for them on the GPU. Nukes, the Scud Storm, fuel air bombs, napalm, the particle cannon and flame
+  weapons get shimmer, embers and smoke the same way.
+- **Ground effects follow the terrain**: particles that lie flat on the ground (radiation and toxin fields,
+  shockwave rings, ground glows) are drawn as a grid that follows hills and the water surface, instead of a flat
+  square that cut into slopes and floated over dips.
 - **Soft particles**: smoke, fire and explosion sprites fade out where they meet the ground, units and buildings
   instead of cutting into them with a hard edge (both games). `GENERALS_SOFT_PARTICLES` sets the fade distance
   in world units (default 12, 0 turns it off).
@@ -160,7 +164,8 @@ on the current display and scales the image to fit.
 - Set `GENERALS_LOOKAT=x,y` to move the camera once to that point of the map (fractions of its size), for
   screenshots of a particular place in `-skirmish` test runs.
 - Set `GENERALS_FX_TEST=FX_A,FX_B` (Zero Hour) to play those effect lists from `FXList.ini` one after another, every
-  two seconds, where the camera looks, for example `FX_GenericTankDeathExplosion,FX_LargeStructureDeath`.
+  two seconds (`GENERALS_FX_TEST_EVERY` seconds), where the camera looks, for example
+  `FX_GenericTankDeathExplosion,FX_LargeStructureDeath`.
 - Set `D3D8METAL_TRACE=1` to print the fixed function state of every draw call, the textures that are created and
   the shader compile times.
 - The renderer lists every pipeline it builds in `~/Library/Caches/<bundle id>/pipelines.bin` and builds those

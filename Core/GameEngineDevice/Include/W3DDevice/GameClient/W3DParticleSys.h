@@ -53,6 +53,7 @@ private:
 	Bool finishedBatch(const ParticleSystem& system, const RefCountPtr<TextureClass>& texture);
 	void initializeBatch(const ParticleSystem& system, const RefCountPtr<TextureClass>& texture);
 	void flushParticleBatch(RenderInfoClass& rinfo, UnsignedInt& pointCount);
+	void renderGroundBatch(RenderInfoClass& rinfo, UnsignedInt pointCount);
 
 	enum { MAX_POINTS_PER_GROUP = 512 };
 

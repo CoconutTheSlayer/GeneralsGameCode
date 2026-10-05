@@ -632,7 +632,8 @@ void GameClient::update()
 	}
 
 	// GENERALS_FX_TEST=FX_A,FX_B,... plays the listed effect lists one after another, every two
-	// seconds, where the camera looks, for screenshots of explosions and smoke.
+	// seconds (GENERALS_FX_TEST_EVERY seconds), where the camera looks, for screenshots of explosions
+	// and smoke.
 	{
 		static const char *fxTest = getenv("GENERALS_FX_TEST");
 		static UnsignedInt nextFrame = 90;
@@ -657,7 +658,8 @@ void GameClient::update()
 				else
 					fprintf(stderr, "FX_TEST unknown effect %s\n", name.str());
 			}
-			nextFrame = TheGameLogic->getFrame() + 2 * LOGICFRAMES_PER_SECOND;
+			static const char *every = getenv("GENERALS_FX_TEST_EVERY");
+			nextFrame = TheGameLogic->getFrame() + (every ? max(1, atoi(every)) : 2) * LOGICFRAMES_PER_SECOND;
 		}
 	}
 #endif
