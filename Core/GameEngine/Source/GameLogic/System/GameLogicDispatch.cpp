@@ -490,6 +490,25 @@ void GameLogic::logicMessageDispatcher( GameMessage *msg, void *userData )
 			onEnableRetaliationMode(msg);
 			break;
 		}
+		case GameMessage::MSG_SET_STANCE:
+		{
+#if !RTS_GENERALS
+			// TheSuperHackers @feature Set the stance of the selected units.
+			if (currentlySelectedGroup && msg->getArgumentCount() >= 1)
+			{
+				const Bool aggressive = msg->getArgument(0)->boolean;
+				const std::vector<ObjectID> ids = currentlySelectedGroup->getAllIDs();
+				for (std::vector<ObjectID>::const_iterator it = ids.begin(); it != ids.end(); ++it)
+				{
+					Object *obj = findObjectByID(*it);
+					AIUpdateInterface *ai = obj ? obj->getAI() : nullptr;
+					if (ai)
+						ai->setAggressiveStance(aggressive);
+				}
+			}
+#endif
+			break;
+		}
 		case GameMessage::MSG_DO_WEAPON_AT_LOCATION:
 		{
 			onDoWeaponAtLocation(msg, currentlySelectedGroup);

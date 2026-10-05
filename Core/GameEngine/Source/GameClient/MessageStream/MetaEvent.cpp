@@ -190,6 +190,7 @@ static const LookupListRec GameMessageMetaTypeNames[] =
 	{ "STEP_FRAME",																GameMessage::MSG_META_STEP_FRAME },
 	{ "STEP_FRAME_ALT",														GameMessage::MSG_META_STEP_FRAME_ALT },
 	{ "DEMO_INSTANT_QUIT",												GameMessage::MSG_META_DEMO_INSTANT_QUIT },
+	{ "TOGGLE_STANCE",														GameMessage::MSG_META_TOGGLE_STANCE },
 
 #if defined(_ALLOW_DEBUG_CHEATS_IN_RELEASE)//may be defined in GameCommon.h
 	{ "CHEAT_RUNSCRIPT1",								        	GameMessage::MSG_CHEAT_RUNSCRIPT1 },
@@ -869,6 +870,17 @@ void MetaMap::generateMetaMap()
 			map->m_transition = DOWN;
 			map->m_modState = NONE;
 			map->m_usableIn = COMMANDUSABLE_GAME; // @todo COMMANDUSABLE_OBSERVER
+		}
+	}
+	{
+		// TheSuperHackers @feature Ctrl+A switches the selected units between Guard and Aggressive stance.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_TOGGLE_STANCE);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_A;
+			map->m_transition = DOWN;
+			map->m_modState = CTRL;
+			map->m_usableIn = COMMANDUSABLE_GAME;
 		}
 	}
 	{

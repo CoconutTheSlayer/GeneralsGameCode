@@ -284,6 +284,16 @@ void ControlBar::populateMultiSelect()
 
 	}
 
+	// TheSuperHackers @feature Add the unit stance button when any selected unit can use it.
+	for( DrawableListCIt it = selectedDrawables->begin(); it != selectedDrawables->end(); ++it )
+	{
+		if( canUseStance( (*it)->getObject() ) )
+		{
+			addStanceButton( m_commonCommands );
+			break;
+		}
+	}
+
 	// set the portrait image
 	setPortraitByObject( portraitObj );
 

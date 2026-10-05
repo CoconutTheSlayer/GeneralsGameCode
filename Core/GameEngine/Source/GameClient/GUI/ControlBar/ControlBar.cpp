@@ -1072,6 +1072,17 @@ void ControlBar::init()
 	// load the command sets
 	ini.loadFileDirectory( "Data\\INI\\CommandSet", INI_LOAD_OVERWRITE, nullptr );
 
+#if !RTS_GENERALS
+	// TheSuperHackers @feature The unit stance button is defined by the engine; the game data has none.
+	// An INI definition with the same name takes precedence.
+	if( findCommandButton( "Command_ToggleStance" ) == nullptr )
+	{
+		CommandButton *stance = newCommandButton( "Command_ToggleStance" );
+		stance->setupBuiltIn( GUI_COMMAND_TOGGLE_STANCE, OK_FOR_MULTI_SELECT | CHECK_LIKE, "CONTROLBAR:ToggleStance",
+			"CONTROLBAR:ToolTipToggleStance", "SSAttackMove2", COMMAND_BUTTON_BORDER_SYSTEM );
+	}
+#endif
+
 	// post process step after loading the command buttons and command sets
 	postProcessCommands();
 

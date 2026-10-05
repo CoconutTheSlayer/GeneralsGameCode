@@ -50,6 +50,8 @@
 #include "GameClient/GameWindow.h"
 #include "GameClient/GameWindowManager.h"
 #include "GameClient/InGameUI.h"
+#include "GameLogic/Module/AIUpdate.h"
+#include "GameClient/GameText.h"
 #include "GameClient/AnimateWindowManager.h"
 
 #include "GameLogic/GameLogic.h"
@@ -773,6 +775,12 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 
 		}
 
+		case GUI_COMMAND_TOGGLE_STANCE:
+		{
+			toggleSelectedUnitsStance();
+			break;
+		}
+
 #ifdef ALLOW_SURRENDER
 		// ------------------------------------------------------------------------------------------------
 		case GUI_COMMAND_POW_RETURN_TO_PRISON:
@@ -905,3 +913,35 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 
 }
 
+
+//-------------------------------------------------------------------------------------------------
+/** TheSuperHackers @feature Switches the selected units to Aggressive stance, or back to Guard when all
+	* of the units that can use a stance already are Aggressive. */
+//-------------------------------------------------------------------------------------------------
+void ControlBar::toggleSelectedUnitsStance()
+{
+#if !RTS_GENERALS
+	const DrawableList *selected = TheInGameUI->getAllSelectedDrawables();
+	Bool any = FALSE;
+	Bool allAggressive = TRUE;
+	for( DrawableListCIt it = selected->begin(); it != selected->end(); ++it )
+	{
+		const Object *obj = (*it)->getObject();
+		if( !canUseStance( obj ) )
+			continue;
+		any = TRUE;
+		if( !obj->getAI()->isAggressiveStance() )
+			allAggressive = FALSE;
+	}
+	if( !any )
+		return;
+
+	const Bool aggressive = !allAggressive;
+	GameMessage *msg = TheMessageStream->appendMessage( GameMessage::MSG_SET_STANCE );
+	msg->appendBooleanArgument( aggressive );
+
+	UnicodeString text = TheGameText->fetchOrSubstitute( aggressive ? "GUI:StanceAggressive" : "GUI:StanceGuard",
+		aggressive ? L"Stance: Aggressive (attack anything in sight and chase it)" : L"Stance: Guard (fire at what is in range)" );
+	TheInGameUI->message( text );
+#endif
+}

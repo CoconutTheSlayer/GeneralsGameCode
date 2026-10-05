@@ -406,6 +406,13 @@ public:
 	void markAsDead();
 
 	Bool isRecruitable() const {return m_isRecruitable;}
+	// TheSuperHackers @feature Unit stance of human players' units. Aggressive units attack anything
+	// they see and chase it, like computer players' units; Guard (the default) is the original behavior,
+	// which only fires at what is within weapon range.
+	Bool isAggressiveStance() const { return m_aggressiveStance; }
+	void setAggressiveStance(Bool aggressive) { m_aggressiveStance = aggressive; }
+	// Whether the unit's own target acquisition is limited like that of human players' units in Guard stance.
+	Bool isHumanGuardStance() const;
 	void setIsRecruitable(Bool isRecruitable) {m_isRecruitable = isRecruitable;}
 
 	Real getDesiredSpeed() const { return m_desiredSpeed; }
@@ -794,6 +801,7 @@ private:
 	Bool				m_randomlyOffsetMoodCheck;	///< If true, randomly offset the mood check rate next time, to avoid "spiking" of ai checks
 	Bool				m_isAiDead;									///< TRUE if dead
 	Bool				m_isRecruitable;						///< TRUE if recruitable by the ai.
+	Bool				m_aggressiveStance;					///< TRUE if the unit is in Aggressive stance (see isAggressiveStance).
 	Bool				m_executingWaypointQueue;						///< if true, we are moving thru the waypoints
 	Bool				m_retryPath;								///< If true, we need to try the path a second time.  jba.
 	Bool				m_allowedToChase;						///< Allowed to pursue targets.

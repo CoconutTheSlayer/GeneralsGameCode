@@ -213,6 +213,7 @@ enum GUICommandType CPP_11(: Int)
 	GUI_COMMAND_SPECIAL_POWER_CONSTRUCT_FROM_SHORTCUT, ///< do a shortcut special power using the construct building interface
 
 	GUI_COMMAND_SELECT_ALL_UNITS_OF_TYPE,
+	GUI_COMMAND_TOGGLE_STANCE,										///< TheSuperHackers @feature switch the selected units between Guard and Aggressive stance
 
 	// add more commands here, don't forget to update the string command list below too ...
 
@@ -267,6 +268,7 @@ static const char *const TheGuiCommandNames[] =
 	"SPECIAL_POWER_CONSTRUCT",
 	"SPECIAL_POWER_CONSTRUCT_FROM_SHORTCUT",
 	"SELECT_ALL_UNITS_OF_TYPE",
+	"TOGGLE_STANCE",
 
 	nullptr
 };
@@ -356,6 +358,13 @@ public:
 	void setName(const AsciiString& n) { m_name = n; }
 
 	void setButtonImage( const Image *image ) { m_buttonImage = image; }
+	// For buttons the engine defines itself instead of reading them from INI.
+	void setupBuiltIn( GUICommandType command, UnsignedInt options, const AsciiString& textLabel,
+		const AsciiString& descriptionLabel, const AsciiString& imageName, CommandButtonMappedBorderType border )
+	{
+		m_command = command; m_options = options; m_textLabel = textLabel; m_descriptionLabel = descriptionLabel;
+		m_buttonImageName = imageName; m_commandButtonBorder = border;
+	}
 
 	// bleah. shouldn't be const, but is. sue me. (srj)
 	void copyImagesFrom( const CommandButton *button, Bool markUIDirtyIfChanged ) const;
@@ -830,6 +839,15 @@ protected:
 
 	/// post process step, after all commands and command sets are loaded
 	void postProcessCommands();
+	// TheSuperHackers @feature Unit stance button, defined by the engine and added to the command bar
+	// of units that can use it.
+	static Bool canUseStance( const Object *obj );
+	const CommandButton *getStanceButton();
+	void addStanceButton( const CommandButton **slotCommands );
+public:
+	// Switches the selected units to Aggressive stance, or back to Guard when all of them already are.
+	void toggleSelectedUnitsStance();
+protected:
 
 	// the following methods are for resetting data for various contexts
 	void resetCommonCommandData();	/// reset shared command data

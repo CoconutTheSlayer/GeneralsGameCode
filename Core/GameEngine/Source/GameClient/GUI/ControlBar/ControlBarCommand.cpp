@@ -258,6 +258,54 @@ void ControlBar::doTransportInventoryUI( Object *transport, const CommandSet *co
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
+/** TheSuperHackers @feature Whether the object is a unit of the local player whose stance can be set. */
+//-------------------------------------------------------------------------------------------------
+Bool ControlBar::canUseStance( const Object *obj )
+{
+#if RTS_GENERALS
+	return FALSE;
+#else
+	if( obj == nullptr || obj->getAI() == nullptr || !obj->isKindOf( KINDOF_CAN_ATTACK ) || obj->isKindOf( KINDOF_STRUCTURE ) )
+		return FALSE;
+	const Player *player = obj->getControllingPlayer();
+	return player && player == ThePlayerList->getLocalPlayer() && player->getPlayerType() == PLAYER_HUMAN;
+#endif
+}
+
+//-------------------------------------------------------------------------------------------------
+const CommandButton *ControlBar::getStanceButton()
+{
+	return findCommandButton( "Command_ToggleStance" );
+}
+
+//-------------------------------------------------------------------------------------------------
+/** Shows the stance button in the first free command slot. 'slotCommands' holds the command of
+	* each slot, or null where the slot is free. */
+//-------------------------------------------------------------------------------------------------
+void ControlBar::addStanceButton( const CommandButton **slotCommands )
+{
+	const CommandButton *stance = getStanceButton();
+	if( stance == nullptr )
+		return;
+	Int freeSlot = -1;
+	for( Int i = 0; i < MAX_COMMANDS_PER_SET; i++ )
+	{
+		if( !m_commandWindows[ i ] )
+			continue;
+		if( slotCommands[ i ] && slotCommands[ i ]->getCommandType() == GUI_COMMAND_TOGGLE_STANCE )
+			return; // the command set has it already
+		if( freeSlot < 0 && slotCommands[ i ] == nullptr && m_commandWindows[ i ]->winIsHidden() )
+			freeSlot = i;
+	}
+	if( freeSlot < 0 )
+		return;
+	slotCommands[ freeSlot ] = stance;
+	m_commandWindows[ freeSlot ]->winHide( FALSE );
+	m_commandWindows[ freeSlot ]->winEnable( TRUE );
+	setControlCommand( m_commandWindows[ freeSlot ], stance );
+}
+
 void ControlBar::populateCommand( Object *obj )
 {
 	const CommandSet *commandSet;
@@ -480,6 +528,18 @@ void ControlBar::populateCommand( Object *obj )
 	// removed from multiplayer branch
 	//showCommandMarkers();
 
+	// TheSuperHackers @feature Add the unit stance button to units that can use it.
+	if( canUseStance( obj ) )
+	{
+		const CommandButton *slotCommands[ MAX_COMMANDS_PER_SET ];
+		for( i = 0; i < MAX_COMMANDS_PER_SET; i++ )
+		{
+			slotCommands[ i ] = nullptr;
+			if( m_commandWindows[ i ] && !m_commandWindows[ i ]->winIsHidden() )
+				slotCommands[ i ] = (const CommandButton *)GadgetButtonGetData( m_commandWindows[ i ] );
+		}
+		addStanceButton( slotCommands );
+	}
 
 	//
 	// for objects that have a production exit interface, we may have a rally point set.
@@ -1437,6 +1497,19 @@ CommandAvailability ControlBar::getCommandAvailability( const CommandButton *com
 				}
 			}
 
+			break;
+		}
+
+		case GUI_COMMAND_TOGGLE_STANCE:
+		{
+#if !RTS_GENERALS
+			// Units that cannot use a stance stay out of the count; the button shows as checked for
+			// units in Aggressive stance.
+			if( !canUseStance( obj ) )
+				return COMMAND_RESTRICTED;
+			if( obj->getAI()->isAggressiveStance() )
+				return COMMAND_ACTIVE;
+#endif
 			break;
 		}
 

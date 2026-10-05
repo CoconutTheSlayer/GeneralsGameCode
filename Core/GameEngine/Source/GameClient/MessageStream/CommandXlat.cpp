@@ -3460,6 +3460,12 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 			TheInGameUI->toggleAttackMoveToMode();
 			break;
 
+		case GameMessage::MSG_META_TOGGLE_STANCE:
+			// TheSuperHackers @feature Switch the selected units between Guard and Aggressive stance.
+			TheControlBar->toggleSelectedUnitsStance();
+			disp = DESTROY_MESSAGE;
+			break;
+
 		case GameMessage::MSG_META_BEGIN_CAMERA_ROTATE_LEFT:
 			DEBUG_ASSERTCRASH(!TheInGameUI->isCameraRotatingLeft(), ("Setting rotate camera left, but it's already set!"));
 			TheInGameUI->setCameraRotateLeft( true );

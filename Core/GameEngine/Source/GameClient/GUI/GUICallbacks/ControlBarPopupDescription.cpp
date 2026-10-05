@@ -308,6 +308,10 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 
 		if( commandButton->getDescriptionLabel().isNotEmpty() )
 		{
+			if (commandButton->getCommandType() == GUI_COMMAND_TOGGLE_STANCE)
+				descrip = TheGameText->fetchOrSubstitute(commandButton->getDescriptionLabel().str(),
+					L"Aggressive: attack any enemy in sight and chase it. Guard: fire only at enemies within range. (Ctrl+A)");
+			else
 			descrip = TheGameText->fetch(commandButton->getDescriptionLabel());
 
 			Drawable *draw = TheInGameUI->getFirstSelectedDrawable();
@@ -401,6 +405,9 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 
 		}
 
+		if (commandButton->getCommandType() == GUI_COMMAND_TOGGLE_STANCE)
+			name = TheGameText->fetchOrSubstitute(commandButton->getTextLabel().str(), L"Stance");
+		else
 		name = TheGameText->fetch(commandButton->getTextLabel().str());
 
 		if( thingTemplate && commandButton->getCommandType() != GUI_COMMAND_PURCHASE_SCIENCE )

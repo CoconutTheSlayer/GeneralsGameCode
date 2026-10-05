@@ -2608,7 +2608,7 @@ StateReturnType AIAttackApproachTargetState::onEnter()
 		// Kris (July 2003): If we are retaliating... don't fail out!
 		if( ai->getCurrentStateID() != AI_GUARD_RETALIATE )
 		{
-			if (source->getControllingPlayer()->getPlayerType() == PLAYER_HUMAN)
+			if (ai->isHumanGuardStance())
 			{
 				if (ai->getLastCommandSource() == CMD_FROM_AI && !ai->isAllowedToChase() )
 				{
@@ -2618,7 +2618,7 @@ StateReturnType AIAttackApproachTargetState::onEnter()
 					}
 				}
 			} else {
-				// Computer player.  Don't chase aircraft, unless we're hunting. jba [8/27/2003]
+				// Computer player, or a human player's unit in Aggressive stance.  Don't chase aircraft, unless we're hunting. jba [8/27/2003]
 				Bool hunt = ai->getCurrentStateID() == AI_HUNT;
 				if (!hunt && victim->isKindOf(KINDOF_AIRCRAFT) && victim->isAirborneTarget())
 				{
@@ -2980,7 +2980,7 @@ StateReturnType AIAttackPursueTargetState::onEnter()
 	// Kris (July 2003): If we are retaliating... don't succeed out!
 	if( ai->getCurrentStateID() != AI_GUARD_RETALIATE )
 	{
-		if (source->getControllingPlayer()->getPlayerType() == PLAYER_HUMAN)
+		if (ai->isHumanGuardStance())
 		{
 			if (ai->getLastCommandSource() == CMD_FROM_AI)
 			{

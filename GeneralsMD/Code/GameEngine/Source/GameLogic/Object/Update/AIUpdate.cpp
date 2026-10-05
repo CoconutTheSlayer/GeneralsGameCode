@@ -278,6 +278,7 @@ AIUpdateInterface::AIUpdateInterface( Thing *thing, const ModuleData* moduleData
 	m_randomlyOffsetMoodCheck = FALSE;
 	m_isAiDead = FALSE;
 	m_isRecruitable = TRUE; // Things default to being recruitable.
+	m_aggressiveStance = FALSE;
 	m_executingWaypointQueue = FALSE;
 	m_retryPath = FALSE;
 	m_isInUpdate = FALSE;
@@ -4286,6 +4287,16 @@ void AIUpdateInterface::setAttitude( AttitudeType tude )
 }
 
 /**
+ * Whether the unit's own target acquisition is limited like that of human players' units in Guard stance:
+ * only targets within weapon range, and no chasing of targets it acquired itself.
+ */
+Bool AIUpdateInterface::isHumanGuardStance() const
+{
+	const Player *player = getObject()->getControllingPlayer();
+	return player && player->getPlayerType() == PLAYER_HUMAN && !m_aggressiveStance;
+}
+
+/**
  * Get the current behavior modifier state
  */
 AttitudeType AIUpdateInterface::getAttitude() const
@@ -4599,6 +4610,9 @@ Object* AIUpdateInterface::getNextMoodTarget( Bool calledByAI, Bool calledDuring
 			return nullptr;
 
 		Int checkRate = d->m_moodAttackCheckRate;
+		// Units in Aggressive stance react to enemies coming into view within half a second.
+		if (m_aggressiveStance && obj->getControllingPlayer()->getPlayerType() == PLAYER_HUMAN)
+			checkRate = min(checkRate, (Int)(LOGICFRAMES_PER_SECOND / 2));
 		m_nextMoodCheckTime = now + checkRate;
 		if (m_randomlyOffsetMoodCheck)
 		{
@@ -4656,7 +4670,7 @@ Object* AIUpdateInterface::getNextMoodTarget( Bool calledByAI, Bool calledDuring
 	// if we're called by AI, and are human controlled, then our AI will not
 	// allow us to pursue the target. therefore, we should ensure that we only
 	// look for targets that are already within attack range (as opposed to vision range).
-	if (calledByAI && obj->getControllingPlayer()->getPlayerType() == PLAYER_HUMAN)
+	if (calledByAI && isHumanGuardStance())
 	{
 		flags |= AI::WITHIN_ATTACK_RANGE;
 	}
@@ -5091,7 +5105,10 @@ void AIUpdateInterface::crc( Xfer *x )
 void AIUpdateInterface::xfer( Xfer *xfer )
 {
   // version
-#if RETAIL_COMPATIBLE_CRC || RETAIL_COMPATIBLE_XFER_SAVE
+	// 6: TheSuperHackers @feature Unit stance (m_aggressiveStance)
+#if defined(__APPLE__)
+	const XferVersion currentVersion = 6;
+#elif RETAIL_COMPATIBLE_CRC || RETAIL_COMPATIBLE_XFER_SAVE
 	const XferVersion currentVersion = 4;
 #else
 	const XferVersion currentVersion = 5;
@@ -5320,6 +5337,11 @@ void AIUpdateInterface::xfer( Xfer *xfer )
 	{
 		Int repulsorCountdown = 0;
 		xfer->xferInt(&repulsorCountdown);
+	}
+
+	if (version >= 6)
+	{
+		xfer->xferBool(&m_aggressiveStance);
 	}
 
 
