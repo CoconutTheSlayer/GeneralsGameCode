@@ -848,7 +848,7 @@ Real OptionPreferences::getModelScale(const char *key, Real defaultScale)
 	return clamp(0.25f, (Real)atof(it->second.str()), 4.0f);
 }
 
-// RealScale = yes (default on macOS) draws units and buildings at their real world size next to the
+// RealScale = yes draws vehicles and aircraft at their real world size next to the
 // infantry; no uses the Scale* values above.
 Bool OptionPreferences::getRealScale()
 {
@@ -856,13 +856,7 @@ Bool OptionPreferences::getRealScale()
 		return FALSE;
 	OptionPreferences::const_iterator it = find("RealScale");
 	if (it == end())
-	{
-#if defined(__APPLE__)
-		return TRUE;
-#else
 		return FALSE;
-#endif
-	}
 	return stricmp(it->second.str(), "yes") == 0;
 }
 

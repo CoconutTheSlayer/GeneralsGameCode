@@ -104,8 +104,8 @@ on the current display and scales the image to fit.
 - **Model sizes** (Zero Hour): some models are far out of proportion, so they are drawn at a different size
   without changing their size in the game: tanks 1.3 times larger, jets 1.5, helicopters 1.15, combat bikes 0.7.
   `ScaleInfantry`, `ScaleVehicles`, `ScaleTanks`, `ScaleBikes`, `ScaleJets`, `ScaleHelicopters` and
-  `ScaleStructures` in `Options.ini` (0.25 to 4) change them when `RealScale = no`. `RealScale = yes`, the
-  current default, instead draws vehicles and aircraft at their real world size next to the infantry (buildings
+  `ScaleStructures` in `Options.ini` (0.25 to 4) change them when `RealScale = no`. `RealScale = yes`
+  instead draws vehicles and aircraft at their real world size next to the infantry (buildings
   keep their size); `GENERALS_ORIGINAL_SCALE=1` draws everything at the
   original size. `GENERALS_LINEUP=TemplateA,TemplateB` places one of each in a row in the middle of the map, to
   compare sizes.
