@@ -102,6 +102,10 @@ on the current display and scales the image to fit.
 - **Production queue** (Zero Hour): factories queue up to 30 units; the queue shows the first 9 and "+N" for the rest.
 - **Unit stance** (Zero Hour): the Stance button on the command bar, or Ctrl+A, switches the selected units between
   Guard (the original behavior: fire at enemies in range) and Aggressive (attack anything in sight and chase it).
+- **Effects** (Zero Hour): the most used explosion, fire and smoke textures are replaced by high resolution
+  redraws (`resources/macos/GameData/Art/TexturesHD`, made from the originals; `GENERALS_ORIGINAL_EFFECTS=1` uses the
+  originals). The High and Very High detail levels allow 12,000 and 20,000 particles instead of 3,000 and 5,000, and
+  keep every effect until the frame rate drops below 20.
 - **Money cheat** (Zero Hour): Ctrl+Shift+M gives the player $100,000 in skirmish and campaign games, for example to
   test the AI. It does nothing in multiplayer games.
 - **Balance changes** (Zero Hour, optional): `scripts/balance/apply_balance.py` narrows the gap between the twelve
@@ -145,6 +149,8 @@ on the current display and scales the image to fit.
   `GENERALS_PATH_TEST=AmericaTankCrusader:20:0.2:0.2:0.8:0.8` on Leipzig Lowlands.
 - Set `GENERALS_LOOKAT=x,y` to move the camera once to that point of the map (fractions of its size), for
   screenshots of a particular place in `-skirmish` test runs.
+- Set `GENERALS_FX_TEST=FX_A,FX_B` (Zero Hour) to play those effect lists from `FXList.ini` one after another, every
+  two seconds, where the camera looks, for example `FX_GenericTankDeathExplosion,FX_LargeStructureDeath`.
 - Set `D3D8METAL_TRACE=1` to print the fixed function state of every draw call, the textures that are created and
   the shader compile times.
 - The renderer lists every pipeline it builds in `~/Library/Caches/<bundle id>/pipelines.bin` and builds those

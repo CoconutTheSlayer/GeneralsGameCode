@@ -171,6 +171,31 @@ char const * GameFileClass::Set_Name( char const *filename )
 
 	GameFileType fileType = getFileType(filename);
 
+#if defined(__APPLE__)
+	// TheSuperHackers @feature High resolution versions of effect textures replace the originals.
+	// GENERALS_ORIGINAL_EFFECTS=1 turns them off to compare.
+	if( isImageFileType(fileType) )
+	{
+		static const char *hdDir = nullptr;
+		static Bool hdResolved = FALSE;
+		if( !hdResolved )
+		{
+			hdResolved = TRUE;
+			if( !getenv("GENERALS_ORIGINAL_EFFECTS") )
+				hdDir = Win32Shim_GetExtraDataDirectory();
+		}
+		if( hdDir )
+		{
+			snprintf( m_filePath, ARRAY_SIZE(m_filePath), "%s/Art/TexturesHD/%s", hdDir, filename );
+			if( TheFileSystem->doesFileExist( m_filePath ) )
+			{
+				m_fileExists = TRUE;
+				return m_filename;
+			}
+		}
+	}
+#endif
+
 	// We need to be able to grab w3d's from a localization dir, since Germany hates exploding people units.
 	if( fileType == FILE_TYPE_W3D )
 	{

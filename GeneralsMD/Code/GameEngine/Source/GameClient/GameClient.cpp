@@ -79,6 +79,7 @@
 #include "GameClient/Shell.h"
 #include "GameClient/Snow.h"
 #include "GameClient/TerrainVisual.h"
+#include "GameClient/FXList.h"
 #include "GameClient/View.h"
 #include "GameClient/VideoPlayer.h"
 #include "GameClient/WindowXlat.h"
@@ -627,6 +628,36 @@ void GameClient::update()
 			pos.z = 0.0f;
 			TheTacticalView->lookAt(&pos);
 			lookedAt = TRUE;
+		}
+	}
+
+	// GENERALS_FX_TEST=FX_A,FX_B,... plays the listed effect lists one after another, every two
+	// seconds, where the camera looks, for screenshots of explosions and smoke.
+	{
+		static const char *fxTest = getenv("GENERALS_FX_TEST");
+		static UnsignedInt nextFrame = 90;
+		static Int nextIndex = 0;
+		if (fxTest && TheGameLogic->isInGame() && TheTacticalView && TheTerrainLogic && TheFXListStore
+			&& TheGameLogic->getFrame() >= nextFrame)
+		{
+			std::vector<AsciiString> names;
+			AsciiString list(fxTest), token;
+			while (list.nextToken(&token, ","))
+				names.push_back(token);
+			if (!names.empty())
+			{
+				const AsciiString &name = names[nextIndex++ % names.size()];
+				if (const FXList *fx = TheFXListStore->findFXList(name.str()))
+				{
+					Coord3D pos = TheTacticalView->getPosition();
+					pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
+					FXList::doFXPos(fx, &pos);
+					fprintf(stderr, "FX_TEST frame %u %s\n", TheGameLogic->getFrame(), name.str());
+				}
+				else
+					fprintf(stderr, "FX_TEST unknown effect %s\n", name.str());
+			}
+			nextFrame = TheGameLogic->getFrame() + 2 * LOGICFRAMES_PER_SECOND;
 		}
 	}
 #endif

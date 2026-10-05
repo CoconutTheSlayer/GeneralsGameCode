@@ -327,6 +327,16 @@ void GameLODManager::init()
 	//Get presets for each known hardware configuration
 	ini.loadFileDirectory( "Data\\INI\\GameLODPresets", INI_LOAD_OVERWRITE, nullptr);
 
+#ifdef __APPLE__
+	// TheSuperHackers @tweak The 2003 particle limits make big battles drop smoke and debris. The
+	// high detail levels allow far more particles, and keep every effect until the frame rate drops
+	// below 20 rather than 25.
+	m_staticGameLODInfo[STATIC_GAME_LOD_HIGH].m_maxParticleCount = max(m_staticGameLODInfo[STATIC_GAME_LOD_HIGH].m_maxParticleCount, 12000);
+	m_staticGameLODInfo[STATIC_GAME_LOD_VERY_HIGH].m_maxParticleCount = max(m_staticGameLODInfo[STATIC_GAME_LOD_VERY_HIGH].m_maxParticleCount, 20000);
+	m_dynamicGameLODInfo[DYNAMIC_GAME_LOD_HIGH].m_dynamicParticleSkipMask = m_dynamicGameLODInfo[DYNAMIC_GAME_LOD_VERY_HIGH].m_dynamicParticleSkipMask;
+	m_dynamicGameLODInfo[DYNAMIC_GAME_LOD_HIGH].m_minDynamicParticlePriority = m_dynamicGameLODInfo[DYNAMIC_GAME_LOD_VERY_HIGH].m_minDynamicParticlePriority;
+#endif
+
 	//Get Presets for custom LOD level by pulling them out of initial globaldata (which should
 	//have all settings already applied).
 	refreshCustomStaticLODLevel();
