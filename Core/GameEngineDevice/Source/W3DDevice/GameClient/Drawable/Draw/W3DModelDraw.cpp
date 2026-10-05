@@ -36,6 +36,8 @@
 
 #include <windows.h>
 
+#include <map>
+#include "Common/OptionPreferences.h"
 #include "Common/crc.h"
 #include "Common/CRCDebug.h"
 #include "Common/GameState.h"
@@ -2039,6 +2041,89 @@ void W3DModelDraw::adjustTransformMtx(Matrix3D& mtx) const
 	}
 }
 
+
+#if defined(__APPLE__)
+//-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature RealScale draws units and buildings at their real world size next to the
+// infantry, whose models are 1.8 m soldiers at 10 world units per metre. The table gives the largest
+// horizontal size in metres (rotors included); the scale is that over the largest horizontal size of
+// the model as first created. Matched by name, so faction general variants (SupW_, Tank_, ...) and
+// hulks share their unit's size. Only the drawing changes.
+//-------------------------------------------------------------------------------------------------
+struct RealSize { const char *name; Real metres; };
+static const RealSize RealSizes[] =
+{
+	// Longer names first: the first entry whose name is part of the template name wins.
+	{ "GLAVehicleCombatBike", 2.1f }, { "GLAVehicleTechnical", 5.3f }, { "GLAVehicleQuadCannon", 6.5f },
+	{ "GLAVehicleRocketBuggy", 4.0f }, { "GLAVehicleScudLauncher", 13.0f }, { "GLAVehicleToxinTruck", 7.0f },
+	{ "GLAVehicleBombTruck", 8.0f }, { "GLAVehicleRadarVan", 6.0f }, { "GLAVehicleBattleBus", 12.0f },
+	{ "GLATankScorpion", 9.0f }, { "GLATankMarauder", 9.5f },
+	{ "AmericaVehicleHumvee", 6.3f }, // 4.6 m; the model box includes hidden attachments { "AmericaTankCrusader", 9.8f }, { "AmericaTankPaladin", 9.8f },
+	{ "AmericaTankAvenger", 9.0f }, { "AmericaTankMicrowave", 8.0f }, { "AmericaVehicleTomahawk", 10.0f },
+	{ "AmericaVehicleMedic", 6.0f }, { "AmericaVehicleDozer", 8.0f }, { "AmericaVehicleSentryDrone", 3.0f },
+	{ "AmericaVehicleComanche", 14.0f }, { "AmericaVehicleChinook", 30.0f },
+	{ "AmericaJetRaptor", 19.0f }, { "AmericaJetStealthFighter", 20.0f }, { "AmericaJetAurora", 25.0f },
+	{ "AmericaJetA10", 17.5f }, { "AmericaJetB52", 48.0f }, { "AmericaJetCargoPlane", 53.0f },
+	{ "AmericaJetSpectreGunship", 30.0f },
+	{ "ChinaTankBattleMaster", 10.0f }, { "ChinaTankOverlord", 14.0f }, { "ChinaTankEmperor", 14.0f },
+	{ "ChinaTankDragon", 8.0f }, { "ChinaTankGattling", 8.0f }, { "ChinaTankECM", 8.0f },
+	{ "ChinaVehicleTroopCrawler", 8.0f }, { "ChinaVehicleSupplyTruck", 8.0f }, { "ChinaVehicleDozer", 8.0f },
+	{ "ChinaVehicleInfernoCannon", 10.0f }, { "ChinaVehicleNukeLauncher", 15.0f }, { "ChinaVehicleListeningOutpost", 7.0f },
+	{ "ChinaVehicleHelix", 20.0f }, { "ChinaJetMIG", 20.0f }, { "GLAJetCargoPlane", 40.0f }, { "ChinaJetCargoPlane", 40.0f },
+	{ "ParticleCannonUplink", 60.0f }, { "NuclearMissileLauncher", 50.0f }, { "ScudStorm", 40.0f },
+	{ "CommandCenter", 70.0f }, { "Barracks", 40.0f }, { "WarFactory", 60.0f }, { "ArmsDealer", 50.0f },
+	{ "Airfield", 110.0f }, { "PowerPlant", 40.0f }, { "SupplyCenter", 50.0f }, { "SupplyDropZone", 60.0f },
+	{ "SupplyStash", 30.0f }, { "StrategyCenter", 60.0f }, { "PropagandaCenter", 35.0f }, { "InternetCenter", 40.0f },
+	{ "BlackMarket", 40.0f }, { "GLAPalace", 60.0f }, { "TunnelNetwork", 15.0f }, { "StingerSite", 20.0f },
+	{ "PatriotBattery", 15.0f }, { "GattlingCannon", 10.0f }, { "ChinaBunker", 15.0f }, { "FireBase", 25.0f },
+	{ "SpeakerTower", 8.0f },
+};
+
+static Real realSizeFor(const ThingTemplate *tmpl)
+{
+	if (tmpl == nullptr || tmpl->isKindOf(KINDOF_PROJECTILE) || tmpl->isKindOf(KINDOF_INFANTRY))
+		return 0.0f;
+	const char *name = tmpl->getName().str();
+	for (const RealSize &entry : RealSizes)
+	{
+		if (strstr(name, entry.name))
+			return entry.metres;
+	}
+	return 0.0f;
+}
+
+void W3DModelDraw::applyRealScale(Drawable *draw, RenderObjClass *renderObject)
+{
+	static Int enabled = -1;
+	if (enabled < 0)
+	{
+		OptionPreferences prefs;
+		enabled = prefs.getRealScale() ? 1 : 0;
+	}
+	const ThingTemplate *tmpl = draw->getTemplate();
+	if (!enabled || tmpl == nullptr)
+		return;
+	// The first model created for a template decides, so damaged and other states keep the same size.
+	static std::map<AsciiString, Real> scales;
+	std::map<AsciiString, Real>::iterator it = scales.find(tmpl->getName());
+	if (it == scales.end())
+	{
+		Real scale = 1.0f;
+		const Real metres = realSizeFor(tmpl);
+		if (metres > 0.0f)
+		{
+			AABoxClass box;
+			renderObject->Get_Obj_Space_Bounding_Box(box);
+			const Real modelSize = 2.0f * max(box.Extent.X, box.Extent.Y);
+			if (modelSize > 1.0f)
+				scale = clamp(0.3f, metres * 10.0f / modelSize, 6.0f);
+		}
+		it = scales.insert(std::make_pair(tmpl->getName(), scale)).first;
+	}
+	draw->setModelScale(it->second);
+}
+#endif
+
 //-------------------------------------------------------------------------------------------------
 void W3DModelDraw::doDrawModule(const Matrix3D* transformMtx)
 {
@@ -3027,6 +3112,10 @@ void W3DModelDraw::setModelState(const ModelConditionInfo* newState)
 		{
 			m_renderObject = W3DDisplay::m_assetManager->Create_Render_Obj(newState->m_modelName.str(), draw->getScale(), m_hexColor);
 			DEBUG_ASSERTCRASH(m_renderObject, ("*** ASSET ERROR: Model %s not found!",newState->m_modelName.str()));
+#if defined(__APPLE__)
+			if (m_renderObject)
+				applyRealScale(draw, m_renderObject);
+#endif
 		}
 
 		//BONEPOS_LOG(("validateStuff() from within W3DModelDraw::setModelState()"));

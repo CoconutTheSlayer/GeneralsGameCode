@@ -104,7 +104,9 @@ on the current display and scales the image to fit.
 - **Model sizes** (Zero Hour): some models are far out of proportion, so they are drawn at a different size
   without changing their size in the game: tanks 1.3 times larger, jets 1.5, helicopters 1.15, combat bikes 0.7.
   `ScaleInfantry`, `ScaleVehicles`, `ScaleTanks`, `ScaleBikes`, `ScaleJets`, `ScaleHelicopters` and
-  `ScaleStructures` in `Options.ini` (0.25 to 4) change them; `GENERALS_ORIGINAL_SCALE=1` draws everything at the
+  `ScaleStructures` in `Options.ini` (0.25 to 4) change them when `RealScale = no`. `RealScale = yes`, the
+  current default, instead draws units and faction buildings at their real world size next to the infantry (up to
+  6 times larger, so bases tower over the map); `GENERALS_ORIGINAL_SCALE=1` draws everything at the
   original size. `GENERALS_LINEUP=TemplateA,TemplateB` places one of each in a row in the middle of the map, to
   compare sizes.
 - **Production queue** (Zero Hour): factories queue up to 30 units; the queue shows the first 9 and "+N" for the rest.

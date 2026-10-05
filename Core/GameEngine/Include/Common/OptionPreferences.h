@@ -124,6 +124,7 @@ public:
 	Int getRenderFpsFontSize();
 	Real getCameraZoomOutFactor();
 	Real getModelScale(const char *key, Real defaultScale);
+	Bool getRealScale();
 	Int getHealthBarMode();
 	Int getBloodLevel();
 	Int getSystemTimeFontSize();

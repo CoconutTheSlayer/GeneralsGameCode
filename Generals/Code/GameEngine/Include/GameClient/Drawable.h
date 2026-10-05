@@ -408,7 +408,8 @@ public:
 	Bool isInstanceIdentity() const { return m_instanceIsIdentity; }
 
 	Real getInstanceScale() const { return m_instanceScale; }		///< get scale that will be applied to instance matrix
-	Real getDrawScale() const { return m_instanceScale * m_modelScale; }	///< instance scale times the player's model scale for this kind of object; only for drawing
+	Real getDrawScale() const { return m_instanceScale * m_modelScale; }
+	void setModelScale(Real value) { m_modelScale = value; }	///< only changes how large the model is drawn	///< instance scale times the player's model scale for this kind of object; only for drawing
 	void setInstanceScale(Real value) { m_instanceScale = value;}	///< set scale that will be applied to instance matrix before rendering.
 
 	const Matrix3D *getTransformMatrix() const;	///< return the world transform

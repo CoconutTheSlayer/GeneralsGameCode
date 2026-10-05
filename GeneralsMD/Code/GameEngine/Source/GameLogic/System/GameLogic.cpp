@@ -3958,7 +3958,8 @@ void GameLogic::update()
 	}
 
 	// GENERALS_LINEUP=TemplateA,TemplateB,... places one of each in a row through the middle of the map,
-	// facing the camera, at 2 seconds, to compare how large units are drawn.
+	// facing the camera, at 2 seconds, to compare how large units are drawn. GENERALS_LINEUP_SPACING sets
+	// the distance between them (45).
 	static const char *lineup = getenv("GENERALS_LINEUP");
 	if (lineup && m_frame == 2 * LOGICFRAMES_PER_SECOND && ThePlayerList->getLocalPlayer())
 	{
@@ -3968,7 +3969,7 @@ void GameLogic::update()
 		AsciiString list(lineup), token;
 		while (list.nextToken(&token, ","))
 			names.push_back(token);
-		const Real spacing = 45.0f;
+		const Real spacing = getenv("GENERALS_LINEUP_SPACING") ? (Real)atof(getenv("GENERALS_LINEUP_SPACING")) : 45.0f;
 		Coord3D pos;
 		pos.x = (extent.lo.x + extent.hi.x) * 0.5f - spacing * (names.size() - 1) * 0.5f;
 		pos.y = (extent.lo.y + extent.hi.y) * 0.5f;

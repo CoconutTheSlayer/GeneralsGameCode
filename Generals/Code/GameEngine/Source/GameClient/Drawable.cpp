@@ -355,8 +355,9 @@ static Real modelScaleFor(const ThingTemplate *thingTemplate)
 		jets = prefs.getModelScale("ScaleJets", 1.5f);
 		helicopters = prefs.getModelScale("ScaleHelicopters", 1.15f);
 		structures = prefs.getModelScale("ScaleStructures", 1.0f);
-		// GENERALS_ORIGINAL_SCALE=1 draws everything at the original size, to compare.
-		if (getenv("GENERALS_ORIGINAL_SCALE"))
+		// GENERALS_ORIGINAL_SCALE=1 draws everything at the original size, to compare. With RealScale (the
+		// default) W3DModelDraw sizes the models it knows the real size of instead.
+		if (getenv("GENERALS_ORIGINAL_SCALE") || prefs.getRealScale())
 			infantry = vehicles = tanks = bikes = jets = helicopters = structures = 1.0f;
 	}
 	if (thingTemplate == nullptr || thingTemplate->isKindOf(KINDOF_PROJECTILE))

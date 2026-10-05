@@ -436,6 +436,9 @@ protected:
 	const ModelConditionInfo* getCurState() const { return m_curState; }
 
 	void setModelState(const ModelConditionInfo* newState);
+#if defined(__APPLE__)
+	void applyRealScale(Drawable *draw, RenderObjClass *renderObject);
+#endif
 	const ModelConditionInfo* findBestInfo(const ModelConditionFlags& c) const;
 	void handleClientTurretPositioning();
 	void handleClientRecoil();

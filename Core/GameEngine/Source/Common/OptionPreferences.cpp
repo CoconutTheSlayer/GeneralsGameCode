@@ -848,6 +848,24 @@ Real OptionPreferences::getModelScale(const char *key, Real defaultScale)
 	return clamp(0.25f, (Real)atof(it->second.str()), 4.0f);
 }
 
+// RealScale = yes (default on macOS) draws units and buildings at their real world size next to the
+// infantry; no uses the Scale* values above.
+Bool OptionPreferences::getRealScale()
+{
+	if (getenv("GENERALS_ORIGINAL_SCALE"))
+		return FALSE;
+	OptionPreferences::const_iterator it = find("RealScale");
+	if (it == end())
+	{
+#if defined(__APPLE__)
+		return TRUE;
+#else
+		return FALSE;
+#endif
+	}
+	return stricmp(it->second.str(), "yes") == 0;
+}
+
 // HealthBars = Selected (default), Damaged or All: which units and buildings show a health bar. Selected
 // shows it for selected objects and the one under the cursor, Damaged also for every damaged one, All for all.
 Int OptionPreferences::getHealthBarMode()
