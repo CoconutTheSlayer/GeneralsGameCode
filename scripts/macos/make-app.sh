@@ -21,6 +21,10 @@ make_app() {
     rm -rf "$APP"
     mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
     cp "$BINARY" "$APP/Contents/MacOS/$EXE"
+    # Art the fork adds to the game data (for example new command button icons).
+    if [[ -d "$PROJECT_DIR/resources/macos/GameData" ]]; then
+        cp -R "$PROJECT_DIR/resources/macos/GameData" "$APP/Contents/Resources/GameData"
+    fi
 
     local ICON_NAME=""
     if [[ -f "$ICON_SRC" ]] && sips -s format icns "$ICON_SRC" --out "$APP/Contents/Resources/AppIcon.icns" >/dev/null 2>&1; then

@@ -48,6 +48,9 @@
 #include "Common/MapObject.h"
 #include "Common/Registry.h"
 #include "W3DDevice/GameClient/W3DFileSystem.h"
+#if defined(__APPLE__)
+#include <win32shim.h>
+#endif
 
 #include <io.h>
 
@@ -313,6 +316,18 @@ char const * GameFileClass::Set_Name( char const *filename )
 		m_fileExists = TheFileSystem->doesFileExist( m_filePath );
 
 	}
+
+#if defined(__APPLE__)
+	// TheSuperHackers @feature Art the fork adds to the game data, such as new command button icons.
+	if( m_fileExists == FALSE && isImageFileType(fileType) )
+	{
+		if( const char *extraData = Win32Shim_GetExtraDataDirectory() )
+		{
+			snprintf( m_filePath, ARRAY_SIZE(m_filePath), "%s/Art/Textures/%s", extraData, filename );
+			m_fileExists = TheFileSystem->doesFileExist( m_filePath );
+		}
+	}
+#endif
 
 	return m_filename;
 

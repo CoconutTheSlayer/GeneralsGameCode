@@ -9,6 +9,8 @@ set(WIN32SHIM_SRC
 )
 
 add_library(deps_win32shim STATIC ${WIN32SHIM_SRC})
+# Art the fork adds to the game data, used by builds that run outside an application bundle.
+target_compile_definitions(deps_win32shim PRIVATE GENERALS_SOURCE_GAMEDATA_DIR="${CMAKE_SOURCE_DIR}/resources/macos/GameData")
 
 target_include_directories(deps_win32shim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(deps_win32shim PUBLIC ${CMAKE_SOURCE_DIR}/Dependencies/Utility)

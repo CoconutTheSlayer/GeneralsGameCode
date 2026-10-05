@@ -31,6 +31,10 @@ void Win32Shim_Initialize();
 // the version and system, and appends a stack trace when the game crashes. The newest 20 logs of
 // each game are kept. GENERALS_NO_LOG=1 turns it off. Call after Win32Shim_SetCommandLine.
 void Win32Shim_StartSessionLog(const char* appName, const char* version);
+// Folder with art the fork adds to the game data (GameData in the application bundle's Resources, or
+// resources/macos/GameData of the source tree for builds outside a bundle), or null if there is none.
+const char* Win32Shim_GetExtraDataDirectory();
+
 // Folder of the session logs (created when needed), or null if HOME is not set.
 const char* Win32Shim_GetLogDirectory();
 

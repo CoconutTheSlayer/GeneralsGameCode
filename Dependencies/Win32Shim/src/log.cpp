@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <dirent.h>
 #include <execinfo.h>
+#include <mach-o/dyld.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
@@ -272,4 +273,33 @@ const char* Win32Shim_GetLogDirectory()
 		g_logDir = dir;
 	}
 	return g_logDir.c_str();
+}
+
+const char* Win32Shim_GetExtraDataDirectory()
+{
+	static std::string dir;
+	static bool resolved = false;
+	if (!resolved)
+	{
+		resolved = true;
+		struct stat st;
+		char exe[PATH_MAX];
+		uint32_t size = sizeof(exe);
+		if (_NSGetExecutablePath(exe, &size) == 0)
+		{
+			char real[PATH_MAX];
+			if (realpath(exe, real))
+			{
+				std::string path = real;
+				path = path.substr(0, path.rfind('/')) + "/../Resources/GameData";
+				if (stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
+					dir = path;
+			}
+		}
+#ifdef GENERALS_SOURCE_GAMEDATA_DIR
+		if (dir.empty() && stat(GENERALS_SOURCE_GAMEDATA_DIR, &st) == 0 && S_ISDIR(st.st_mode))
+			dir = GENERALS_SOURCE_GAMEDATA_DIR;
+#endif
+	}
+	return dir.empty() ? nullptr : dir.c_str();
 }

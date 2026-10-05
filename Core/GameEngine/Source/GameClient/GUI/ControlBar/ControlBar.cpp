@@ -1077,9 +1077,34 @@ void ControlBar::init()
 	// An INI definition with the same name takes precedence.
 	if( findCommandButton( "Command_ToggleStance" ) == nullptr )
 	{
+		// Its icon comes with the fork's own art (SSStanceAggressive.tga, a 60x48 image on a 64x64 texture).
+		const char *imageName = "SSAttackMove2";
+		if( TheMappedImageCollection )
+		{
+			if( TheMappedImageCollection->findImageByName( "SSStanceAggressive" ) == nullptr )
+			{
+				Image *image = newInstance(Image);
+				image->setName( "SSStanceAggressive" );
+				image->setFilename( "SSStanceAggressive.tga" );
+				image->setTextureWidth( 64 );
+				image->setTextureHeight( 64 );
+				Region2D uv;
+				uv.lo.x = 0.0f;
+				uv.lo.y = 0.0f;
+				uv.hi.x = 60.0f / 64.0f;
+				uv.hi.y = 48.0f / 64.0f;
+				image->setUV( &uv );
+				ICoord2D size;
+				size.x = 60;
+				size.y = 48;
+				image->setImageSize( &size );
+				TheMappedImageCollection->addImage( image );
+			}
+			imageName = "SSStanceAggressive";
+		}
 		CommandButton *stance = newCommandButton( "Command_ToggleStance" );
 		stance->setupBuiltIn( GUI_COMMAND_TOGGLE_STANCE, OK_FOR_MULTI_SELECT | CHECK_LIKE, "CONTROLBAR:ToggleStance",
-			"CONTROLBAR:ToolTipToggleStance", "SSAttackMove2", COMMAND_BUTTON_BORDER_SYSTEM );
+			"CONTROLBAR:ToolTipToggleStance", imageName, COMMAND_BUTTON_BORDER_SYSTEM );
 	}
 #endif
 
