@@ -205,6 +205,7 @@ public:
 	const FXList *findFXList( const char* name ) const;
 
 	static void parseFXListDefinition(INI* ini);
+	static void parseFXListAddition(INI* ini);
 
 private:
 

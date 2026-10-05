@@ -106,6 +106,10 @@ on the current display and scales the image to fit.
   redraws (`resources/macos/GameData/Art/TexturesHD`, made from the originals; `GENERALS_ORIGINAL_EFFECTS=1` uses the
   originals). The High and Very High detail levels allow 12,000 and 20,000 particles instead of 3,000 and 5,000, and
   keep every effect until the frame rate drops below 20.
+- **Bigger explosions** (Zero Hour): destroyed vehicles, aircraft and buildings also throw sparks and burning
+  debris, flash and leave a column of smoke over the wreck or ruin for a while; buildings shower embers. The
+  effects are added to the original ones by `FXListAddition` blocks (an FXList block that adds to an existing list
+  instead of replacing it) in `resources/macos/GameData/Data/INI/Explosions.ini`.
 - **Soft particles**: smoke, fire and explosion sprites fade out where they meet the ground, units and buildings
   instead of cutting into them with a hard edge (both games). `GENERALS_SOFT_PARTICLES` sets the fade distance
   in world units (default 12, 0 turns it off).

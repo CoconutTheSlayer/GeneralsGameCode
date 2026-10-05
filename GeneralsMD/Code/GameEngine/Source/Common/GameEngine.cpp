@@ -573,15 +573,20 @@ void GameEngine::init()
 
 		initSubsystem(TheFXListStore,"TheFXListStore", MSGNEW("GameEngineSubsystem") FXListStore(), &xferCRC, "Data\\INI\\Default\\FXList", "Data\\INI\\FXList");
 #if defined(__APPLE__)
-		// TheSuperHackers @feature Effects the fork adds (blood), from the art that comes with the application.
+		// TheSuperHackers @feature Effects the fork adds (blood, bigger explosions), from the art that comes
+		// with the application.
 		if (const char *extraData = Win32Shim_GetExtraDataDirectory())
 		{
-			AsciiString bloodINI;
-			bloodINI.format("%s/Data/INI/Blood.ini", extraData);
-			if (TheFileSystem->doesFileExist(bloodINI.str()))
+			static const char *const extraINIs[] = { "Blood.ini", "Explosions.ini" };
+			for (const char *name : extraINIs)
 			{
-				INI ini;
-				ini.load(bloodINI, INI_LOAD_OVERWRITE, nullptr);
+				AsciiString path;
+				path.format("%s/Data/INI/%s", extraData, name);
+				if (TheFileSystem->doesFileExist(path.str()))
+				{
+					INI ini;
+					ini.load(path, INI_LOAD_OVERWRITE, nullptr);
+				}
 			}
 		}
 #endif

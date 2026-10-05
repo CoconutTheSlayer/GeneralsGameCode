@@ -875,7 +875,25 @@ const FXList *FXListStore::findFXList(const char* name) const
 }
 
 //-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature Adds the effects of the block to an FXList defined earlier, instead of
+// replacing it like a second FXList block would.
+/*static */ void FXListStore::parseFXListAddition(INI *ini)
+{
+	const char *c = ini->getNextToken();
+	NameKeyType key = TheNameKeyGenerator->nameToKey(c);
+	DEBUG_ASSERTLOG(TheFXListStore->m_fxmap.find(key) != TheFXListStore->m_fxmap.end(), ("FXListAddition for unknown FXList %s", c));
+	FXList& fxl = TheFXListStore->m_fxmap[key];
+	ini->initFromINI(&fxl, TheFXListFieldParse);
+}
+
+//-------------------------------------------------------------------------------------------------
 /*static*/ void INI::parseFXListDefinition(INI *ini)
 {
 	FXListStore::parseFXListDefinition(ini);
+}
+
+//-------------------------------------------------------------------------------------------------
+/*static*/ void INI::parseFXListAddition(INI *ini)
+{
+	FXListStore::parseFXListAddition(ini);
 }

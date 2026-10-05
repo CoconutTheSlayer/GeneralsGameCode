@@ -111,6 +111,7 @@ static const BlockParse theTypeTable[] =
 	{ "DynamicGameLOD",                 INI::parseDynamicGameLODDefinition },
 	{ "EvaEvent",                       INI::parseEvaEvent },
 	{ "FXList",                         INI::parseFXListDefinition },
+	{ "FXListAddition",                 INI::parseFXListAddition },
 	{ "GameData",                       INI::parseGameDataDefinition },
 	{ "HeaderTemplate",                 INI::parseHeaderTemplateDefinition },
 	{ "InGameUI",                       INI::parseInGameUIDefinition },
