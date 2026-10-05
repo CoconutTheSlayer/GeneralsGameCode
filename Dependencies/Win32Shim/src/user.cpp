@@ -108,6 +108,10 @@ void ensureSDL()
 		return;
 	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
 	SDL_SetHint(SDL_HINT_MAC_OPTION_AS_ALT, "both");
+	// Fullscreen without a separate Space: the menu bar and the Dock stay hidden. In a fullscreen Space,
+	// moving the mouse against the top or bottom edge reveals them, and while they are shown the game gets
+	// no mouse movement, so scrolling the map at the screen edge stopped now and then.
+	SDL_SetHint(SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES, "0");
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
 		fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
 	g_sdlInitialized = true;
@@ -144,6 +148,13 @@ void toLogical(Window* w, float x, float y, int* lx, int* ly)
 	}
 	*lx = (int)((x - ax) * w->logicalWidth / aw);
 	*ly = (int)((y - ay) * w->logicalHeight / ah);
+	// The black bars around a game area of another aspect ratio count as its edge, so pushing the mouse
+	// into them still scrolls the map.
+	if (w->logicalWidth > 0 && w->logicalHeight > 0)
+	{
+		*lx = std::clamp(*lx, 0, w->logicalWidth - 1);
+		*ly = std::clamp(*ly, 0, w->logicalHeight - 1);
+	}
 }
 
 void postMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
