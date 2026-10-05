@@ -436,7 +436,12 @@ void ControlBar::populatePurchaseScience( Player* player )
 		AsciiString tempAs;
 
 		tempAs.format("SCIENCE:Rank%d", player->getRankLevel());
-		GadgetStaticTextSetText(win, TheGameText->fetch(tempAs));
+		Bool exists = FALSE;
+		UnicodeString title = TheGameText->fetch(tempAs, &exists);
+		// Rank.ini can define more ranks than the game has titles for.
+		if (!exists)
+			title = TheGameText->fetchOrSubstituteFormat("SCIENCE:Rank", L"Rank %d", player->getRankLevel());
+		GadgetStaticTextSetText(win, title);
 	}
 
 
