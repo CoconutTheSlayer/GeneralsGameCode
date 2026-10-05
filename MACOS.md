@@ -83,8 +83,10 @@ on the current display and scales the image to fit.
 - `-skirmish [map name]` skips the intro and menus and starts a skirmish with the settings of the last
   skirmish, for example `generalszh -skirmish "Alpine Assault"`. `-ai easy|medium|hard` and `-opponents N`
   choose other AI opponents.
-- The camera can zoom out twice as far as on Windows. Set `CameraZoomOutFactor` in `Options.ini` (1 to 4) to
-  change this; the default view when a game starts is unchanged.
+- The camera can zoom out three times as far as on Windows, and scrolls faster the further it is zoomed out. Set
+  `CameraZoomOutFactor` in `Options.ini` (1 to 6) to change this; the default view when a game starts is
+  unchanged. `GENERALS_CAMERA_ZOOM_OUT` overrides it for test runs, and `GENERALS_LOOKAT=x,y,height` also sets
+  the camera height.
 - The game renders at the display refresh rate while the simulation keeps its normal speed.
 
 ## Gameplay additions

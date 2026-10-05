@@ -2143,6 +2143,17 @@ void W3DView::scrollBy( const Coord2D *delta )
 		world.Y = worldEnd.Y - worldStart.Y;
 		world.Z = worldEnd.Z - worldStart.Z;
 
+#if defined(__APPLE__)
+		// TheSuperHackers @tweak Beyond the normal maximum height the camera scrolls faster, so the
+		// screen moves at the same speed however far the player zooms out.
+		if (m_maxHeightAboveGround > 0.0f && m_currentHeightAboveGround > m_maxHeightAboveGround)
+		{
+			const Real zoomScale = m_currentHeightAboveGround / m_maxHeightAboveGround;
+			world.X *= zoomScale;
+			world.Y *= zoomScale;
+		}
+#endif
+
 		// scroll by delta
 		Coord2D pos = getPosition2D();
 		pos.x += world.X;

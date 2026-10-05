@@ -611,15 +611,16 @@ void GameClient::update()
 	const Bool freezeTime = TheGameEngine->isTimeFrozen() || TheGameEngine->isGameHalted();
 
 #if defined(__APPLE__)
-	// GENERALS_LOOKAT=x,y moves the camera once to that point of the map, given as fractions of
-	// its size (0,0 is one corner, 1,1 the opposite one), for screenshots of a particular place.
+	// GENERALS_LOOKAT=x,y[,height] moves the camera once to that point of the map, given as fractions
+	// of its size (0,0 is one corner, 1,1 the opposite one), and optionally to that height above the
+	// ground, for screenshots of a particular place.
 	{
 		static Bool lookedAt = FALSE;
 		static const char *lookAt = getenv("GENERALS_LOOKAT");
 		if (lookAt && !lookedAt && TheGameLogic->isInGame() && TheGameLogic->getFrame() > 60 && TheTacticalView && TheTerrainLogic)
 		{
-			Real fx = 0.5f, fy = 0.5f;
-			sscanf(lookAt, "%f,%f", &fx, &fy);
+			Real fx = 0.5f, fy = 0.5f, height = 0.0f;
+			sscanf(lookAt, "%f,%f,%f", &fx, &fy, &height);
 			Region3D extent;
 			TheTerrainLogic->getExtent(&extent);
 			Coord3D pos;
@@ -627,6 +628,8 @@ void GameClient::update()
 			pos.y = extent.lo.y + (extent.hi.y - extent.lo.y) * fy;
 			pos.z = 0.0f;
 			TheTacticalView->lookAt(&pos);
+			if (height > 0.0f)
+				TheTacticalView->setHeightAboveGround(height);
 			lookedAt = TRUE;
 		}
 	}

@@ -815,20 +815,27 @@ Int OptionPreferences::getNetworkLatencyFontSize()
 }
 
 // CameraZoomOutFactor lets the player zoom out further than the map allows, for example 1.5 for
-// 50% further. The default view stays the same.
+// 50% further. The default view stays the same. Up to 6 on macOS, 4 elsewhere.
 Real OptionPreferences::getCameraZoomOutFactor()
 {
 #if defined(__APPLE__)
-	const Real defaultFactor = 2.0f;
+	const Real defaultFactor = 3.0f;
+	const Real maxFactor = 6.0f;
 #else
 	const Real defaultFactor = 1.0f;
+	const Real maxFactor = 4.0f;
+#endif
+#if defined(__APPLE__)
+	// GENERALS_CAMERA_ZOOM_OUT overrides the option, for test runs.
+	if (const char *value = getenv("GENERALS_CAMERA_ZOOM_OUT"))
+		return clamp(1.0f, (Real)atof(value), maxFactor);
 #endif
 	OptionPreferences::const_iterator it = find("CameraZoomOutFactor");
 	if (it == end())
 		return defaultFactor;
 
 	Real factor = (Real)atof(it->second.str());
-	return clamp(1.0f, factor, 4.0f);
+	return clamp(1.0f, factor, maxFactor);
 }
 
 // HealthBars = Selected (default), Damaged or All: which units and buildings show a health bar. Selected
