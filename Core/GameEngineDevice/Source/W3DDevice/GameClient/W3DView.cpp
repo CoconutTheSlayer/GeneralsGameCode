@@ -3760,6 +3760,22 @@ bool W3DView::getDesiredTerrainDrawSize(ICoord2D &dimensions) const
 	return true;
 }
 
+#if defined(__APPLE__)
+// TheSuperHackers @bugfix Above the normal maximum camera height the visible ground grows with the height,
+// so the terrain draw area grows with it, in whole vertex buffer blocks; otherwise the map is cut off
+// short of its edges when zoomed far out.
+static void growTerrainDrawSizeForZoom(ICoord2D &dimensions, Real currentHeight, Real maxHeight)
+{
+	if (maxHeight <= 0.0f || currentHeight <= maxHeight)
+		return;
+	const Real scale = currentHeight / maxHeight;
+	const Int blocksX = (Int)ceilf((dimensions.x - 1) * scale / VERTEX_BUFFER_TILE_LENGTH);
+	const Int blocksY = (Int)ceilf((dimensions.y - 1) * scale / VERTEX_BUFFER_TILE_LENGTH);
+	dimensions.x = 1 + blocksX * VERTEX_BUFFER_TILE_LENGTH;
+	dimensions.y = 1 + blocksY * VERTEX_BUFFER_TILE_LENGTH;
+}
+#endif
+
 void W3DView::updateTerrain()
 {
 	DEBUG_ASSERTCRASH(TheTerrainRenderObject != nullptr, ("TheTerrainRenderObject is null"));
@@ -3768,6 +3784,10 @@ void W3DView::updateTerrain()
 
 	if (getDesiredTerrainDrawSize(drawSize))
 	{
+#if defined(__APPLE__)
+		if (m_isUserControlled && !(TheGlobalData && TheGlobalData->m_drawEntireTerrain))
+			growTerrainDrawSizeForZoom(drawSize, m_currentHeightAboveGround, m_maxHeightAboveGround);
+#endif
 		TheTerrainRenderObject->setTerrainDrawSize(drawSize.x, drawSize.y);
 	}
 
