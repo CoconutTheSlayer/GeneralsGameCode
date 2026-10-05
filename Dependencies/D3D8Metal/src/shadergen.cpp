@@ -216,6 +216,7 @@ struct FragmentUniforms
 	float4 alphaRef;
 	float4 bumpEnv[8];
 	float4 bumpLum[8];
+	float4 softParams;
 };
 
 static float fogFactor(int mode, float d, float4 p)
@@ -579,6 +580,8 @@ std::string GenerateShaderSource(const ShaderKey& key)
 			s << ", texture2d<float> t" << i << " [[texture(" << i << ")]]";
 		s << ", sampler s" << i << " [[sampler(" << i << ")]]";
 	}
+	if (key.softParticle)
+		s << ", depth2d<float> softDepth [[texture(" << (int)TEXTURE_SOFT_DEPTH << ")]]";
 	s << ") {\n";
 	if (psMode)
 		s << TranslatePixelShader(psCode, key);
@@ -661,6 +664,24 @@ std::string GenerateShaderSource(const ShaderKey& key)
 	{
 		s << "\t{\n\t\tfloat a = current.a;\n\t\tfloat r = u.alphaRef.x;\n";
 		s << "\t\tif (!(" << compareExpr(key.alphaFunc) << ")) discard_fragment();\n\t}\n";
+	}
+
+	if (key.softParticle)
+	{
+		// View space depths from the window depths of the scene and of this fragment.
+		s << "\t{\n\t\tfloat sceneZ = softDepth.read(uint2(in.position.xy));\n";
+		// z = (_33 v + _43) / (_34 v), so v = _43 / (z _34 - _33); _34 is 1 or -1 by handedness.
+		s << "\t\tfloat sceneView = abs(u.softParams.y / (sceneZ * u.softParams.w - u.softParams.x));\n";
+		s << "\t\tfloat fragView = abs(u.softParams.y / (in.position.z * u.softParams.w - u.softParams.x));\n";
+		s << "\t\tfloat fade = saturate((sceneView - fragView) * u.softParams.z);\n";
+		s << "\t\tfade = fade * fade * (3.0 - 2.0 * fade);\n";
+		if (key.softParticle == 1)
+			s << "\t\tcurrent.a *= fade;\n";
+		else if (key.softParticle == 2)
+			s << "\t\tcurrent *= fade;\n";
+		else
+			s << "\t\tcurrent.rgb = mix(float3(1.0), current.rgb, fade);\n";
+		s << "\t}\n";
 	}
 
 	s << "\treturn current;\n}\n";

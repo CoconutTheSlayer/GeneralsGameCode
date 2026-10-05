@@ -48,6 +48,9 @@ enum BufferSlot
 	BUFFER_STREAM0 = 16,
 };
 
+// Texture slot of the scene depth that soft particles read.
+enum { TEXTURE_SOFT_DEPTH = 8 };
+
 struct StageKey
 {
 	uint8_t colorOp;
@@ -97,6 +100,10 @@ struct ShaderKey
 	uint32_t vertexShader;
 	// Vertex shader inputs: D3DVSDT type + 1 of each input register, 0 when not declared.
 	uint8_t vsInputType[16];
+	// Soft particles: fade the result where it nears the scene depth behind it. 1 scales alpha,
+	// 2 scales color and alpha (additive blending), 3 fades color to white (multiplicative).
+	uint8_t softParticle;
+	uint8_t pad[7];
 
 	uint64_t hash() const;
 	bool operator==(const ShaderKey& o) const { return memcmp(this, &o, sizeof(*this)) == 0; }
@@ -162,6 +169,7 @@ struct FragmentUniforms
 	float alphaRef[4];
 	float bumpEnv[8][4];  // m00, m01, m10, m11
 	float bumpLum[8][4];  // scale, offset
+	float softParams[4];  // projection _33 and _43, 1 / fade distance, projection _34
 };
 
 // Hash of a block of memory whose size is a multiple of 8 bytes.

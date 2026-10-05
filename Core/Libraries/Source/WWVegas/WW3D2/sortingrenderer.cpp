@@ -598,9 +598,39 @@ void SortingRendererClass::Flush_Sorting_Pool()
 
 // ----------------------------------------------------------------------------
 
+#ifdef __APPLE__
+// TheSuperHackers @feature The Metal renderer fades translucent sprites drawn while this render state
+// is set (outside the Direct3D 8 range) where they come within this many units of the scene behind
+// them. GENERALS_SOFT_PARTICLES sets the distance, 0 turns it off.
+static const D3DRENDERSTATETYPE SoftParticlesRenderState = (D3DRENDERSTATETYPE)250;
+
+static float Soft_Particle_Distance()
+{
+	static float distance = -1.0f;
+	if (distance < 0.0f)
+	{
+		const char* value = getenv("GENERALS_SOFT_PARTICLES");
+		distance = value ? (float)atof(value) : 12.0f;
+		if (distance < 0.0f)
+			distance = 0.0f;
+	}
+	return distance;
+}
+
+static void Set_Soft_Particles(float distance)
+{
+	DWORD bits;
+	memcpy(&bits, &distance, sizeof(bits));
+	DX8Wrapper::_Get_D3D_Device8()->SetRenderState(SoftParticlesRenderState, bits);
+}
+#endif
+
 void SortingRendererClass::Flush()
 {
 	WWPROFILE("SortingRenderer::Flush");
+#ifdef __APPLE__
+	Set_Soft_Particles(Soft_Particle_Distance());
+#endif
 	Matrix4x4 old_view;
 	Matrix4x4 old_world;
 	DX8Wrapper::Get_Transform(D3DTS_VIEW,old_view);
@@ -639,6 +669,9 @@ void SortingRendererClass::Flush()
 	DX8Wrapper::Set_Index_Buffer(nullptr,0);
 	DX8Wrapper::Set_Vertex_Buffer(nullptr);
 	total_sorting_vertices=0;
+#ifdef __APPLE__
+	Set_Soft_Particles(0.0f);
+#endif
 
 	DynamicIBAccessClass::_Reset(false);
 	DynamicVBAccessClass::_Reset(false);

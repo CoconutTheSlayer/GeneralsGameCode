@@ -212,6 +212,7 @@ void EncoderState::reset()
 {
 	pipeline = nil;
 	depthStencil = nil;
+	softDepth = nil;
 	stencilRef = ~0u;
 	viewport = MTLViewport { -1, -1, -1, -1, -1, -1 };
 	scissor = MTLScissorRect { 0, 0, 0, 0 };
@@ -272,6 +273,46 @@ id<MTLTexture> Device::activeDepthTexture()
 	id<MTLTexture> depth = [m_mtlDevice newTextureWithDescriptor:td];
 	m_scratchDepth[key] = depth;
 	return depth;
+}
+
+bool Device::captureSoftDepth(id<MTLTexture> depth)
+{
+	// Clears still pending belong to the depth being copied.
+	if (m_pendingClearFlags != 0)
+		renderEncoder();
+	endRenderEncoder();
+	NSUInteger w = depth.width, h = depth.height;
+	if (m_softDepth == nil || m_softDepth.width != w || m_softDepth.height != h)
+	{
+		MTLTextureDescriptor* td = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float_Stencil8 width:w height:h mipmapped:NO];
+		td.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
+		td.storageMode = MTLStorageModePrivate;
+		m_softDepth = [m_mtlDevice newTextureWithDescriptor:td];
+		if (m_softDepth == nil)
+			return false;
+	}
+	if (depth.sampleCount > 1)
+	{
+		// An empty pass that keeps the depth and resolves it to the nearest sample of each pixel.
+		MTLRenderPassDescriptor* pass = [MTLRenderPassDescriptor renderPassDescriptor];
+		pass.depthAttachment.texture = depth;
+		pass.depthAttachment.loadAction = MTLLoadActionLoad;
+		pass.depthAttachment.storeAction = MTLStoreActionStoreAndMultisampleResolve;
+		pass.depthAttachment.resolveTexture = m_softDepth;
+		pass.depthAttachment.depthResolveFilter = MTLMultisampleDepthResolveFilterMin;
+		pass.stencilAttachment.texture = depth;
+		pass.stencilAttachment.loadAction = MTLLoadActionLoad;
+		pass.stencilAttachment.storeAction = MTLStoreActionStore;
+		[[commandBuffer() renderCommandEncoderWithDescriptor:pass] endEncoding];
+	}
+	else
+	{
+		id<MTLBlitCommandEncoder> blit = [commandBuffer() blitCommandEncoder];
+		[blit copyFromTexture:depth toTexture:m_softDepth];
+		[blit endEncoding];
+	}
+	m_softDepthValid = true;
+	return true;
 }
 
 id<MTLRenderCommandEncoder> Device::renderEncoder()
@@ -679,7 +720,7 @@ struct PipelineCacheHeader
 };
 
 // Bump when generated shaders change in a way that makes old keys useless.
-const uint32_t kPipelineCacheVersion = 3;
+const uint32_t kPipelineCacheVersion = 4;
 
 PipelineCacheHeader currentCacheHeader()
 {
@@ -1002,6 +1043,25 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 		blend.hasDepth = activeDepthTexture() != nil ? 1 : 0;
 		blend.sampleCount = (uint8_t)renderTargetSamples();
 
+		// Soft particles: translucent sprites the game draws while it flushes its sorted polygons fade
+		// out where they meet the ground, units or buildings, instead of cutting into them.
+		if (rs[RS_SOFT_PARTICLES] != 0 && blend.enable && rs[D3DRS_ZENABLE] && !rs[D3DRS_ZWRITEENABLE] && !vsMode && !pso
+			&& m_state.transforms[D3DTS_PROJECTION]._34 != 0.0f && m_depthStencil == m_depthBuffer && m_depthBuffer != nullptr)
+		{
+			id<MTLTexture> depth = activeDepthTexture();
+			bool mainDepth = depth != nil && (depth == m_msaaDepth || depth == m_depthBuffer->m_storage->texture);
+			uint8_t mode = 0;
+			if (blend.dst == MTLBlendFactorOne)
+				mode = 2;
+			else if (blend.src == MTLBlendFactorSourceAlpha && blend.dst == MTLBlendFactorOneMinusSourceAlpha)
+				mode = 1;
+			else if ((blend.src == MTLBlendFactorZero && blend.dst == MTLBlendFactorSourceColor)
+				|| (blend.src == MTLBlendFactorDestinationColor && blend.dst == MTLBlendFactorZero))
+				mode = 3;
+			if (mainDepth && mode != 0 && (m_softDepthValid || captureSoftDepth(depth)))
+				key.softParticle = mode;
+		}
+
 		ctx.layout.fvf = key.fvf;
 		ctx.layout.stride = m_state.streams[0].stride;
 		if (vsMode)
@@ -1197,6 +1257,14 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 	colorToFloat4(rs[D3DRS_FOGCOLOR], fu.fogColor);
 	memcpy(fu.fogParams, vu.fogParams, sizeof(fu.fogParams));
 	fu.alphaRef[0] = (rs[D3DRS_ALPHAREF] & 0xFF) / 255.0f;
+	if (ctx.shader.softParticle)
+	{
+		const D3DMATRIX& proj = m_state.transforms[D3DTS_PROJECTION];
+		fu.softParams[0] = proj._33;
+		fu.softParams[1] = proj._43;
+		fu.softParams[2] = 1.0f / std::max(bitsFloat(rs[RS_SOFT_PARTICLES]), 0.001f);
+		fu.softParams[3] = proj._34;
+	}
 	for (unsigned i = 0; i < ctx.shader.numStages; ++i)
 	{
 		const DWORD* ts = m_state.stageStates[i];
@@ -1249,6 +1317,11 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 			[enc setFragmentSamplerState:sampler atIndex:i];
 			es.samplers[i] = sampler;
 		}
+	}
+	if (ctx.shader.softParticle && es.softDepth != m_softDepth)
+	{
+		[enc setFragmentTexture:m_softDepth atIndex:TEXTURE_SOFT_DEPTH];
+		es.softDepth = m_softDepth;
 	}
 	ok = true;
 }

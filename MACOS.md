@@ -106,6 +106,9 @@ on the current display and scales the image to fit.
   redraws (`resources/macos/GameData/Art/TexturesHD`, made from the originals; `GENERALS_ORIGINAL_EFFECTS=1` uses the
   originals). The High and Very High detail levels allow 12,000 and 20,000 particles instead of 3,000 and 5,000, and
   keep every effect until the frame rate drops below 20.
+- **Soft particles**: smoke, fire and explosion sprites fade out where they meet the ground, units and buildings
+  instead of cutting into them with a hard edge (both games). `GENERALS_SOFT_PARTICLES` sets the fade distance
+  in world units (default 12, 0 turns it off).
 - **Money cheat** (Zero Hour): Ctrl+Shift+M gives the player $100,000 in skirmish and campaign games, for example to
   test the AI. It does nothing in multiplayer games.
 - **Balance changes** (Zero Hour, optional): `scripts/balance/apply_balance.py` narrows the gap between the twelve

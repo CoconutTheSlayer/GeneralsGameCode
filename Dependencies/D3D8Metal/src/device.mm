@@ -1433,6 +1433,8 @@ HRESULT Device::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value)
 {
 	if ((unsigned)State >= 256)
 		return D3DERR_INVALIDCALL;
+	if (State == RS_SOFT_PARTICLES && Value != 0 && m_state.renderStates[State] == 0)
+		m_softDepthValid = false; // the scene may have changed since the last copy
 	m_state.renderStates[State] = Value;
 	return D3D_OK;
 }

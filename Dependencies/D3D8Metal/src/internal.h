@@ -317,6 +317,10 @@ enum { MAX_STAGES = 8, MAX_LIGHTS = 8, MAX_STREAMS = 4, MAX_CLIP_PLANES = 6 };
 // ignored, so states the game leaves behind in higher stages have no effect.
 enum { EMULATED_STAGES = 2 };
 
+// Render state outside the Direct3D 8 range the game sets while it draws its sorted translucent
+// polygons (particles): the soft particle fade distance in view space units as float bits, 0 off.
+enum { RS_SOFT_PARTICLES = 250 };
+
 struct StreamSource
 {
 	VertexBuffer* buffer = nullptr;
@@ -379,6 +383,7 @@ struct EncoderState
 	NSUInteger vertexOffset;
 	id<MTLTexture> textures[MAX_STAGES];
 	id<MTLSamplerState> samplers[MAX_STAGES];
+	id<MTLTexture> softDepth;
 	bool vertexUniformsValid;
 	bool fragmentUniformsValid;
 	VertexUniforms vertexUniforms;
@@ -654,6 +659,11 @@ private:
 	// the game's filters).
 	unsigned m_filterUpgrade = 1;
 	id<MTLTexture> m_msaaDepth = nil;
+	// Copy of the scene depth soft particles read, taken at the first soft particle of each run of
+	// sorted translucent polygons.
+	id<MTLTexture> m_softDepth = nil;
+	bool m_softDepthValid = false;
+	bool captureSoftDepth(id<MTLTexture> depth);
 	unsigned renderTargetSamples() const;
 	id<MTLRenderPipelineState> m_presentPipeline = nil;
 	id<MTLRenderPipelineState> m_clearPipelines[16] {};
