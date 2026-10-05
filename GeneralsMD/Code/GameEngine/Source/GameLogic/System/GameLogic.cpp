@@ -3957,6 +3957,37 @@ void GameLogic::update()
 		}
 	}
 
+	// GENERALS_LINEUP=TemplateA,TemplateB,... places one of each in a row through the middle of the map,
+	// facing the camera, at 2 seconds, to compare how large units are drawn.
+	static const char *lineup = getenv("GENERALS_LINEUP");
+	if (lineup && m_frame == 2 * LOGICFRAMES_PER_SECOND && ThePlayerList->getLocalPlayer())
+	{
+		Region3D extent;
+		TheTerrainLogic->getExtent(&extent);
+		std::vector<AsciiString> names;
+		AsciiString list(lineup), token;
+		while (list.nextToken(&token, ","))
+			names.push_back(token);
+		const Real spacing = 45.0f;
+		Coord3D pos;
+		pos.x = (extent.lo.x + extent.hi.x) * 0.5f - spacing * (names.size() - 1) * 0.5f;
+		pos.y = (extent.lo.y + extent.hi.y) * 0.5f;
+		for (const AsciiString &name : names)
+		{
+			if (const ThingTemplate *tmpl = TheThingFactory->findTemplate(name))
+			{
+				Object *obj = TheThingFactory->newObject(tmpl, ThePlayerList->getLocalPlayer()->getDefaultTeam());
+				Coord3D at = pos;
+				at.z = TheTerrainLogic->getGroundHeight(at.x, at.y);
+				obj->setPosition(&at);
+				obj->setOrientation(-PI * 0.75f);
+			}
+			else
+				fprintf(stderr, "LINEUP unknown %s\n", name.str());
+			pos.x += spacing;
+		}
+	}
+
 	// GENERALS_PATH_TEST=Template:count:ax:ay:bx:by spawns count units of the local player around point A
 	// (fractions of the map size) at 2 seconds, orders them to point B as a group at 3 seconds like the
 	// player would, and reports every second how many arrived and how long units were stuck, for tuning

@@ -408,6 +408,7 @@ public:
 	Bool isInstanceIdentity() const { return m_instanceIsIdentity; }
 
 	Real getInstanceScale() const { return m_instanceScale; }		///< get scale that will be applied to instance matrix
+	Real getDrawScale() const { return m_instanceScale * m_modelScale; }	///< instance scale times the player's model scale for this kind of object; only for drawing
 	void setInstanceScale(Real value) { m_instanceScale = value;}	///< set scale that will be applied to instance matrix before rendering.
 
 	const Matrix3D *getTransformMatrix() const;	///< return the world transform
@@ -724,6 +725,7 @@ private:
 
 	Matrix3D m_instance;				///< The instance matrix that holds the initial/default position & orientation
 	Real m_instanceScale;				///< the uniform scale factor applied to the instance matrix before it is sent to W3D.
+	Real m_modelScale;					///< TheSuperHackers @feature how much larger the model is drawn than the object is; never affects the game logic.
 
 	DrawableInfo				m_drawableInfo;		///< structure pointed to by W3D render objects so they know which drawable they belong to.
 

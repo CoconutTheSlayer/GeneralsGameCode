@@ -140,13 +140,13 @@ void W3DDefaultDraw::doDrawModule(const Matrix3D* transformMtx)
 	if(m_renderObject)
 	{
 		Matrix3D scaledTransform;
-		if (getDrawable()->getInstanceScale() != 1.0f)
+		if (getDrawable()->getDrawScale() != 1.0f)
 		{
 			//do custom scaling of the W3D model.
 			scaledTransform=*transformMtx;
-			scaledTransform.Scale(getDrawable()->getInstanceScale());
+			scaledTransform.Scale(getDrawable()->getDrawScale());
 			transformMtx = &scaledTransform;
-			m_renderObject->Set_ObjectScale(getDrawable()->getInstanceScale());
+			m_renderObject->Set_ObjectScale(getDrawable()->getDrawScale());
 		}
 		else
 		{

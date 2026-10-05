@@ -123,6 +123,7 @@ public:
 	Int getNetworkLatencyFontSize();
 	Int getRenderFpsFontSize();
 	Real getCameraZoomOutFactor();
+	Real getModelScale(const char *key, Real defaultScale);
 	Int getHealthBarMode();
 	Int getBloodLevel();
 	Int getSystemTimeFontSize();

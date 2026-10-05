@@ -47,6 +47,7 @@
 #include "Common/Player.h"
 #include "Common/PlayerList.h"
 #include "Common/ThingFactory.h"
+#include "Common/OptionPreferences.h"
 #include "Common/ThingTemplate.h"
 #include "Common/Xfer.h"
 
@@ -332,6 +333,56 @@ void Drawable::saturateRGB(RGBColor& color, Real factor)
  * graphical side of a logical object, whereas GameLogic objects encapsulate
  * behaviors and physics.  */
 //-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature Some models are far out of proportion to the rest: the combat bike is as long
+// as a pickup truck, tanks are half their real length and jets a third. On macOS these are drawn at a
+// size closer to the trucks and infantry around them; Options.ini can change each group (ScaleInfantry,
+// ScaleVehicles, ScaleTanks, ScaleBikes, ScaleJets, ScaleHelicopters, ScaleStructures). Only the model is
+// scaled; geometry, bone positions and everything else the game logic uses stay the same.
+//-------------------------------------------------------------------------------------------------
+static Real modelScaleFor(const ThingTemplate *thingTemplate)
+{
+#if defined(__APPLE__)
+	static Bool loaded = FALSE;
+	static Real infantry, vehicles, tanks, bikes, jets, helicopters, structures;
+	if (!loaded)
+	{
+		loaded = TRUE;
+		OptionPreferences prefs;
+		infantry = prefs.getModelScale("ScaleInfantry", 1.0f);
+		vehicles = prefs.getModelScale("ScaleVehicles", 1.0f);
+		tanks = prefs.getModelScale("ScaleTanks", 1.3f);
+		bikes = prefs.getModelScale("ScaleBikes", 0.7f);
+		jets = prefs.getModelScale("ScaleJets", 1.5f);
+		helicopters = prefs.getModelScale("ScaleHelicopters", 1.15f);
+		structures = prefs.getModelScale("ScaleStructures", 1.0f);
+		// GENERALS_ORIGINAL_SCALE=1 draws everything at the original size, to compare.
+		if (getenv("GENERALS_ORIGINAL_SCALE"))
+			infantry = vehicles = tanks = bikes = jets = helicopters = structures = 1.0f;
+	}
+	if (thingTemplate == nullptr || thingTemplate->isKindOf(KINDOF_PROJECTILE))
+		return 1.0f;
+	const char *name = thingTemplate->getName().str();
+	if (thingTemplate->isKindOf(KINDOF_INFANTRY))
+		return infantry;
+	if (thingTemplate->isKindOf(KINDOF_AIRCRAFT))
+		return strstr(name, "Jet") ? jets : helicopters;
+	if (thingTemplate->isKindOf(KINDOF_VEHICLE))
+	{
+		if (strstr(name, "CombatBike"))
+			return bikes;
+		if (strstr(name, "Tank") && !strstr(name, "Tanker"))
+			return tanks;
+		return vehicles;
+	}
+	if (thingTemplate->isKindOf(KINDOF_STRUCTURE) && !thingTemplate->isKindOf(KINDOF_BRIDGE) && !thingTemplate->isKindOf(KINDOF_BRIDGE_TOWER)
+		&& !thingTemplate->isKindOf(KINDOF_WALK_ON_TOP_OF_WALL))
+		return structures;
+#endif
+	(void)thingTemplate;
+	return 1.0f;
+}
+
+//-------------------------------------------------------------------------------------------------
 Drawable::Drawable( const ThingTemplate *thingTemplate, DrawableStatusBits statusBits )
 				: Thing( thingTemplate )
 {
@@ -408,6 +459,7 @@ Drawable::Drawable( const ThingTemplate *thingTemplate, DrawableStatusBits statu
 	//Real scaleFuzziness = thingTemplate->getInstanceScaleFuzziness();
 	//Real fuzzyScale = ( 1.0f + GameClientRandomValueReal( -scaleFuzziness, scaleFuzziness ));
 	m_instanceScale = thingTemplate->getAssetScale();// * fuzzyScale;
+	m_modelScale = modelScaleFor(thingTemplate);
 
 	// initially not bound to an object
 	m_object = nullptr;

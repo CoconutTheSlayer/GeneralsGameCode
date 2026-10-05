@@ -101,6 +101,12 @@ on the current display and scales the image to fit.
   `resources/macos/GameData/Data/INI/Blood.ini`.
 - **Rally points** (Zero Hour): new combat units attack-move to a factory's rally point, fighting what they meet on
   the way. Ctrl+right-click sets a rally point they simply move to, as before.
+- **Model sizes** (Zero Hour): some models are far out of proportion, so they are drawn at a different size
+  without changing their size in the game: tanks 1.3 times larger, jets 1.5, helicopters 1.15, combat bikes 0.7.
+  `ScaleInfantry`, `ScaleVehicles`, `ScaleTanks`, `ScaleBikes`, `ScaleJets`, `ScaleHelicopters` and
+  `ScaleStructures` in `Options.ini` (0.25 to 4) change them; `GENERALS_ORIGINAL_SCALE=1` draws everything at the
+  original size. `GENERALS_LINEUP=TemplateA,TemplateB` places one of each in a row in the middle of the map, to
+  compare sizes.
 - **Production queue** (Zero Hour): factories queue up to 30 units; the queue shows the first 9 and "+N" for the rest.
 - **Unit stance** (Zero Hour): the Stance button on the command bar, or Ctrl+A, switches the selected units between
   Guard (the original behavior: fire at enemies in range) and Aggressive (attack anything in sight and chase it).

@@ -2046,14 +2046,14 @@ void W3DModelDraw::doDrawModule(const Matrix3D* transformMtx)
 	setPauseAnimation( !getDrawable()->getShouldAnimate(getW3DModelDrawModuleData()->m_animationsRequirePower) );
 
 	Matrix3D scaledTransform;
-	if (getDrawable()->getInstanceScale() != 1.0f)
+	if (getDrawable()->getDrawScale() != 1.0f)
 	{
 		// do custom scaling of the W3D model.
 		scaledTransform = *transformMtx;
-		scaledTransform.Scale(getDrawable()->getInstanceScale());
+		scaledTransform.Scale(getDrawable()->getDrawScale());
 		transformMtx = &scaledTransform;
 		if (m_renderObject)
-			m_renderObject->Set_ObjectScale(getDrawable()->getInstanceScale());
+			m_renderObject->Set_ObjectScale(getDrawable()->getDrawScale());
 	}
 
 	if (isAnimationComplete(m_renderObject))
@@ -2617,7 +2617,7 @@ void W3DModelDraw::recalcBonesForClientParticleSystems()
 							// ugh... kill the mtx so we get it in modelspace, not world space
 							Matrix3D originalTransform = m_renderObject->Get_Transform();	// save the transform
 							Matrix3D tmp(true);
-							tmp.Scale(getDrawable()->getScale());
+							tmp.Scale(getDrawable()->getDrawScale());
 							m_renderObject->Set_Transform(tmp);					// set to identity transform
 
 							const Matrix3D& boneTransform = m_renderObject->Get_Bone_Transform(boneIndex);
@@ -3590,10 +3590,10 @@ Int W3DModelDraw::getCurrentBonePositions(
 #ifdef DO_INV
 	Matrix3D inverse;
 	originalTransform.Get_Orthogonal_Inverse(inverse);
-	inverse.Scale(getDrawable()->getScale());
+	inverse.Scale(getDrawable()->getDrawScale());
 #else
 	Matrix3D tmp(true);
-	tmp.Scale(getDrawable()->getScale());
+	tmp.Scale(getDrawable()->getDrawScale());
 	m_renderObject->Set_Transform(tmp);					// set to identity transform
 #endif
 

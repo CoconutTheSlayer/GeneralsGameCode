@@ -838,6 +838,16 @@ Real OptionPreferences::getCameraZoomOutFactor()
 	return clamp(1.0f, factor, maxFactor);
 }
 
+// ScaleInfantry, ScaleVehicles, ScaleTanks, ScaleBikes, ScaleJets, ScaleHelicopters and ScaleStructures (0.25 to 4) change how large units and
+// buildings are drawn, without changing their size in the game.
+Real OptionPreferences::getModelScale(const char *key, Real defaultScale)
+{
+	OptionPreferences::const_iterator it = find(key);
+	if (it == end())
+		return defaultScale;
+	return clamp(0.25f, (Real)atof(it->second.str()), 4.0f);
+}
+
 // HealthBars = Selected (default), Damaged or All: which units and buildings show a health bar. Selected
 // shows it for selected objects and the one under the cursor, Damaged also for every damaged one, All for all.
 Int OptionPreferences::getHealthBarMode()
