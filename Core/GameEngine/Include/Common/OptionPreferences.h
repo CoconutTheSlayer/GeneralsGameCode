@@ -124,6 +124,7 @@ public:
 	Int getRenderFpsFontSize();
 	Real getCameraZoomOutFactor();
 	Int getHealthBarMode();
+	Int getBloodLevel();
 	Int getSystemTimeFontSize();
 	Int getGameTimeFontSize();
 	Int getPlayerInfoListFontSize();

@@ -52,6 +52,7 @@
 #include "GameLogic/Damage.h"
 #include "GameLogic/PartitionManager.h"
 #include "GameLogic/TerrainLogic.h"
+#include "GameClient/FXList.h"
 #include "GameLogic/Weapon.h"
 #include "GameLogic/Module/AIUpdate.h"
 #include "GameLogic/Module/ActiveBody.h"
@@ -561,6 +562,24 @@ void ActiveBody::attemptDamage( DamageInfo *damageInfo )
 //*****************************************************************************************
 //*****************************************************************************************
 #endif
+
+		// TheSuperHackers @feature A spray of blood when infantry is shot, at most every 8 frames per soldier.
+		if (amount > 0.0f && TheGlobalData->m_bloodLevel > 0 && obj->isKindOf(KINDOF_INFANTRY) && obj->getContainedBy() == nullptr &&
+				TheFXListStore)
+		{
+			const UnsignedInt now = TheGameLogic->getFrame();
+			const Bool longAgo = m_lastDamageTimestamp == 0xFFFFFFFF || now - m_lastDamageTimestamp >= 8;
+			switch (damageInfo->in.m_damageType)
+			{
+				case DAMAGE_SMALL_ARMS: case DAMAGE_GATTLING: case DAMAGE_SNIPER:
+				case DAMAGE_COMANCHE_VULCAN: case DAMAGE_ARMOR_PIERCING: case DAMAGE_INFANTRY_MISSILE: case DAMAGE_EXPLOSION:
+					if (longAgo)
+						FXList::doFXPos(TheFXListStore->findFXList("FX_InfantryBloodHit"), obj->getPosition());
+					break;
+				default:
+					break;
+			}
+		}
 
 		// record the actual damage done from this, and when it happened
 		damageInfo->out.m_actualDamageDealt = amount;

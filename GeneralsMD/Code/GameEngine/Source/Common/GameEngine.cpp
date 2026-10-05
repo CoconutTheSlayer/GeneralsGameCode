@@ -39,6 +39,9 @@
 #include "Common/PlayerList.h"
 #include "Common/GameAudio.h"
 #include "Common/GameEngine.h"
+#if defined(__APPLE__)
+#include <win32shim.h>
+#endif
 #include "Common/INI.h"
 #include "Common/INIException.h"
 #include "Common/MessageStream.h"
@@ -569,6 +572,19 @@ void GameEngine::init()
 
 
 		initSubsystem(TheFXListStore,"TheFXListStore", MSGNEW("GameEngineSubsystem") FXListStore(), &xferCRC, "Data\\INI\\Default\\FXList", "Data\\INI\\FXList");
+#if defined(__APPLE__)
+		// TheSuperHackers @feature Effects the fork adds (blood), from the art that comes with the application.
+		if (const char *extraData = Win32Shim_GetExtraDataDirectory())
+		{
+			AsciiString bloodINI;
+			bloodINI.format("%s/Data/INI/Blood.ini", extraData);
+			if (TheFileSystem->doesFileExist(bloodINI.str()))
+			{
+				INI ini;
+				ini.load(bloodINI, INI_LOAD_OVERWRITE, nullptr);
+			}
+		}
+#endif
 		initSubsystem(TheWeaponStore,"TheWeaponStore", MSGNEW("GameEngineSubsystem") WeaponStore(), &xferCRC, nullptr, "Data\\INI\\Weapon");
 		initSubsystem(TheObjectCreationListStore,"TheObjectCreationListStore", MSGNEW("GameEngineSubsystem") ObjectCreationListStore(), &xferCRC, "Data\\INI\\Default\\ObjectCreationList", "Data\\INI\\ObjectCreationList");
 		initSubsystem(TheLocomotorStore,"TheLocomotorStore", MSGNEW("GameEngineSubsystem") LocomotorStore(), &xferCRC, nullptr, "Data\\INI\\Locomotor");

@@ -99,6 +99,7 @@
 #include "GameLogic/Module/UpgradeModule.h"
 
 #include "GameLogic/Object.h"
+#include "GameClient/FXList.h"
 #include "GameLogic/PartitionManager.h"
 #include "GameLogic/PolygonTrigger.h"
 #include "GameLogic/ScriptEngine.h"
@@ -4640,6 +4641,31 @@ void Object::onDie( DamageInfo *damageInfo )
 		DieModuleInterface* die = (*d)->getDie();
 		if (die)
 			die->onDie(damageInfo);
+	}
+
+	// TheSuperHackers @feature Blood when infantry dies, more of it when run over or blown up. Deaths that are
+	// shown otherwise (burned, poisoned, lasered, drowned) and infantry inside buildings or vehicles get none.
+	if (TheGlobalData->m_bloodLevel > 0 && isKindOf(KINDOF_INFANTRY) && getContainedBy() == nullptr && TheFXListStore)
+	{
+		const char *fxName = nullptr;
+		switch (damageInfo->in.m_deathType)
+		{
+			case DEATH_BURNED: case DEATH_POISONED: case DEATH_POISONED_BETA: case DEATH_POISONED_GAMMA:
+			case DEATH_LASERED: case DEATH_FLOODED: case DEATH_NONE:
+				break;
+			case DEATH_CRUSHED: case DEATH_EXPLODED: case DEATH_SPLATTED: case DEATH_DETONATED: case DEATH_SUICIDED:
+				fxName = TheGlobalData->m_bloodLevel >= 2 ? "FX_InfantryBloodHeavy" : "FX_InfantryBlood";
+				break;
+			default:
+				fxName = "FX_InfantryBlood";
+				break;
+		}
+		if (fxName)
+		{
+			Coord3D pos = *getPosition();
+			pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
+			FXList::doFXPos(TheFXListStore->findFXList(fxName), &pos);
+		}
 	}
 
 	// When objects die we remove from the radar as they're really not interesting anymore

@@ -845,6 +845,19 @@ Int OptionPreferences::getHealthBarMode()
 	return 0;
 }
 
+// Blood = High (default), Low or Off: blood effects for infantry (see Data/INI/Blood.ini of the fork's art).
+Int OptionPreferences::getBloodLevel()
+{
+	OptionPreferences::const_iterator it = find("Blood");
+	if (it == end())
+		return 2;
+	if (it->second.compareNoCase("Off") == 0 || it->second.compareNoCase("No") == 0)
+		return 0;
+	if (it->second.compareNoCase("Low") == 0)
+		return 1;
+	return 2;
+}
+
 Int OptionPreferences::getRenderFpsFontSize()
 {
 	OptionPreferences::const_iterator it = find("RenderFpsFontSize");
