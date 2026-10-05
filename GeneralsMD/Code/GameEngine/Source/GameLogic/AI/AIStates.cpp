@@ -1924,6 +1924,21 @@ StateReturnType AIInternalMoveToState::update()
 				onPathDistToGoal = ai->getLocomotorDistanceToGoal();
 				return STATE_CONTINUE;
 			}
+			// TheSuperHackers @bugfix The path may only lead to the closest reachable cell because the goal was
+			// occupied or blocked when it was computed. Try once more from here, as m_tryOneMoreRepath intends,
+			// instead of stopping short of the goal for good.
+			if (m_tryOneMoreRepath)
+			{
+				m_tryOneMoreRepath = false;
+				Coord3D toGoal;
+				toGoal.x = obj->getPosition()->x - m_goalPosition.x;
+				toGoal.y = obj->getPosition()->y - m_goalPosition.y;
+				toGoal.z = 0;
+				if (toGoal.length() > 4*PATHFIND_CELL_SIZE_F && computePath())
+				{
+					return STATE_CONTINUE;
+				}
+			}
 		}
 		// we have reached the end of the path
 		if (getAdjustsDestination())

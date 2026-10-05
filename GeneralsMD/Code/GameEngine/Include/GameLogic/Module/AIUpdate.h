@@ -230,6 +230,14 @@ enum AIFreeToExitType CPP_11(: Int) // Note - written out in save/load xfer, don
  * The AIUpdateInterface module contains the interface to the AI system,
  * and performs the actual AI behaviors.
  */
+// Path computations done and failed, for GENERALS_PATH_STATS.
+struct AIPathStats
+{
+	UnsignedInt requests;
+	UnsignedInt failures;
+};
+extern AIPathStats TheAIPathStats;
+
 class AIUpdateInterface : public UpdateModule, public AICommandInterface
 {
 
@@ -730,6 +738,10 @@ private:
 	ICoord2D		m_pathfindGoalCell;					///< Cell we are moving towards.
 	ICoord2D		m_pathfindCurCell;					///< Cell we are currently occupying.
 	Int					m_blockedFrames;						///< Number of frames we've been blocked.
+	Int					m_unblockedFrames;					///< Number of frames in a row we have not been blocked since we were.
+	Coord3D			m_progressPos;							///< Where we were when the progress watchdog last saw us move.
+	UnsignedInt	m_progressFrame;						///< When the progress watchdog last saw us move, 0 if not watching.
+	Int					m_noProgressCount;					///< Watchdog periods in a row without progress.
 	Real				m_curMaxBlockedSpeed;				///< Max speed we can have and not run into blocking things.
 	Real				m_bumpSpeedLimit;						///< Max speed after bumping a unit.
 	UnsignedInt	m_ignoreCollisionsUntil;		///< Timer to cheat if we get stuck.

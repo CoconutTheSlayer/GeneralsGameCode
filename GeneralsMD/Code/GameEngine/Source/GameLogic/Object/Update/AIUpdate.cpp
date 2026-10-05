@@ -277,6 +277,10 @@ AIUpdateInterface::AIUpdateInterface( Thing *thing, const ModuleData* moduleData
 	m_canPathThroughUnits = FALSE;
 	m_randomlyOffsetMoodCheck = FALSE;
 	m_isAiDead = FALSE;
+	m_unblockedFrames = 0;
+	m_progressPos.zero();
+	m_progressFrame = 0;
+	m_noProgressCount = 0;
 	m_isRecruitable = TRUE; // Things default to being recruitable.
 	m_aggressiveStance = FALSE;
 	m_executingWaypointQueue = FALSE;
@@ -394,11 +398,19 @@ to call use the PathfindServicesInterface to do a pathfind operation.  This shou
 (and in fact is very hard to do because PathfindServicesInterace is private to the pathfinder)
 except by the pathfinder during pathfind queue processing.  jba */
 //-------------------------------------------------------------------------------------------------
+AIPathStats TheAIPathStats = { 0, 0 };
+
 void AIUpdateInterface::doPathfind( PathfindServicesInterface *pathfinder )
 {
 	if (!m_waitingForPath) {
 		return;
 	}
+	// Counts the computation and whether it produced no path, for GENERALS_PATH_STATS.
+	struct PathStatsScope
+	{
+		AIUpdateInterface *ai;
+		~PathStatsScope() { ++TheAIPathStats.requests; if (ai->getPath() == nullptr) ++TheAIPathStats.failures; }
+	} pathStatsScope = { this };
 	//CRCDEBUG_LOG(("AIUpdateInterface::doPathfind() for object %d", getObject()->getID()));
 	m_waitingForPath = FALSE;
 	if (m_isSafePath) {
@@ -1309,10 +1321,10 @@ Bool AIUpdateInterface::blockedBy(Object *other)
 
 	AIUpdateInterface* aiOther = other->getAI();
 
+	if (!aiOther) return FALSE; // Ignore it.
 	if (!aiOther->isDoingGroundMovement()) {
 		return FALSE; // Can't be blocked if the other is airborne.
 	}
-	if (!aiOther) return FALSE; // Ignore it.
 
 	if (getCurLocomotor() && getCurLocomotor()->isMovingBackwards()) {
 		return false; // don't collide.
@@ -1340,6 +1352,15 @@ Bool AIUpdateInterface::blockedBy(Object *other)
 #endif
 	}
 
+	// TheSuperHackers @bugfix Units that overlap heavily (for example several units placed on the same spot,
+	// or units that drove into each other while ignoring collisions) cannot get out of each other's way by
+	// blocking: with three or more on one spot every one waited for another forever. Let them drive apart.
+	{
+		const Real overlapRadius = 0.5f * min(obj->getGeometryInfo().getBoundingCircleRadius(), other->getGeometryInfo().getBoundingCircleRadius());
+		if (curDSqr < overlapRadius*overlapRadius) {
+			return FALSE;
+		}
+	}
 	if (curDSqr < PATHFIND_CELL_SIZE_F*PATHFIND_CELL_SIZE_F*0.0001f) {
 		// Somehow 2 units ended up on the same grid.
 		// Lowest path priority wins.
@@ -1384,7 +1405,6 @@ Bool AIUpdateInterface::blockedBy(Object *other)
 			return FALSE;	 // Off angle, and they're not moving, so we aren't moving into each other.
 		}
 	}
-
 
 	if (!aiOther->isAiInDeadState())
 	{
@@ -1723,6 +1743,13 @@ Bool AIUpdateInterface::computePath( PathfindServicesInterface *pathServices, Co
 		if (m_isBlockedAndStuck) {
 			theNewPath = pathServices->patchPath( getObject(), m_locomotorSet,
 				getPath(), m_isBlockedAndStuck);
+			// TheSuperHackers @bugfix If the path cannot be patched around the blocker, look for a whole new
+			// path to the destination before giving up. Giving up made the unit stop where it was stuck and
+			// forget its destination, so units of a group stayed behind at chokepoints.
+			if (theNewPath == nullptr) {
+				theNewPath = pathServices->findPath( getObject(), m_locomotorSet, getObject()->getPosition(),
+					destination);
+			}
 		}	else {
 			theNewPath = pathServices->findPath( getObject(), m_locomotorSet, getObject()->getPosition(),
 				destination);
@@ -2134,18 +2161,22 @@ UpdateSleepTime AIUpdateInterface::doLocomotor()
 
 	chooseGoodLocomotorFromCurrentSet();
 
+	// TheSuperHackers @bugfix A unit in a clump is often blocked only every other frame. Resetting the count
+	// on each unblocked frame kept it at 1, so the speed limit dropped to 0 on every blocked frame while the
+	// rules for units blocked for a while (repath, pass through, break the gridlock) never applied, and the
+	// unit stood still forever. The count now only resets after a few unblocked frames in a row.
+	Bool blocked = m_isBlocked;
 	if (m_isBlocked)
 	{
 		++m_blockedFrames;
+		m_unblockedFrames = 0;
 	}
-	else
+	else if (++m_unblockedFrames > LOGICFRAMES_PER_SECOND / 6)
 	{
 		m_blockedFrames = 0;
 	}
 
 	m_isBlocked = FALSE;
-
-	Bool blocked = m_blockedFrames > 0;
 	Bool requiresConstantCalling = TRUE;	// assume the worst.
 
 	if (m_curLocomotor)
@@ -2163,6 +2194,7 @@ UpdateSleepTime AIUpdateInterface::doLocomotor()
 			{
 				case POSITION_EXPLICIT:
 					{
+						m_progressFrame = 0;
 						Real speed = m_desiredSpeed;
 						Real myMaxSpeed = m_curLocomotor->getMaxSpeedForCondition(getObject()->getBodyModule()->getDamageState());
 						if( speed == FAST_AS_POSSIBLE || speed > myMaxSpeed )
@@ -2242,11 +2274,38 @@ UpdateSleepTime AIUpdateInterface::doLocomotor()
 							onPathDistToGoal+getPathExtraDistance(), speed, &blocked);
 
 						m_doFinalPosition = FALSE;
+
+						// TheSuperHackers @bugfix Progress watchdog. A ground unit trying to drive along its path that
+						// has not moved half a cell in 3 seconds is stuck, whatever the blocking logic thinks: in a
+						// clump of units the blocked state flickers and the recovery for blocked units never applied,
+						// so units stood still forever. Recompute the path, and if that did not help either, drive
+						// through friendly units for 2 seconds.
+						if (isDoingGroundMovement())
+						{
+							const Coord3D *pos = getObject()->getPosition();
+							const UnsignedInt now = TheGameLogic->getFrame();
+							Real px = pos->x - m_progressPos.x, py = pos->y - m_progressPos.y;
+							if (m_progressFrame == 0 || px*px + py*py > 0.25f*PATHFIND_CELL_SIZE_F*PATHFIND_CELL_SIZE_F)
+							{
+								m_progressPos = *pos;
+								m_progressFrame = now;
+								m_noProgressCount = 0;
+							}
+							else if (now - m_progressFrame > 3*LOGICFRAMES_PER_SECOND)
+							{
+								m_progressFrame = now;
+								++m_noProgressCount;
+								m_isBlockedAndStuck = TRUE;
+								if (m_noProgressCount >= 2)
+									setIgnoreCollisionTime(2*LOGICFRAMES_PER_SECOND);
+							}
+						}
 					}
 					break;
 
 				case ANGLE:
 					{
+						m_progressFrame = 0;
 						m_curLocomotor->locoUpdate_moveTowardsAngle(getObject(), m_locomotorGoalData.x);
 						m_doFinalPosition = FALSE;
 					}
@@ -2254,6 +2313,7 @@ UpdateSleepTime AIUpdateInterface::doLocomotor()
 
 				case NONE:
 					{
+						m_progressFrame = 0;
 						if (m_doFinalPosition)
 						{
 							Coord3D pos = *getObject()->getPosition();

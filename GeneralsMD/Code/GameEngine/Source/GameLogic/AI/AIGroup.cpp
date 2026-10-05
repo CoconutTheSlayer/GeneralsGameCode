@@ -1663,7 +1663,8 @@ void AIGroup::groupMoveToPosition( const Coord3D *p_posIn, Bool addWaypoint, Com
 		isFormation = false;
 		if (!addWaypoint) {
 			Int dx = (max.x-min.x)/PATHFIND_CELL_SIZE_F;
-			Int dy = (max.x-min.x)/PATHFIND_CELL_SIZE_F;
+			// TheSuperHackers @bugfix Use the group's height, not its width twice.
+			Int dy = (max.y-min.y)/PATHFIND_CELL_SIZE_F;
 			Int cells = (dx*dy);
 			if (cells<2000) {
 				groupTightenToPosition(pos, false, cmdSource);

@@ -115,6 +115,12 @@ on the current display and scales the image to fit.
 - The renderer runs the game's vs.1.1 and ps.1.1 shaders (translated to Metal), so the game uses its shader
   paths: single pass terrain with cloud shadows, water with soft shores and sparkles, swaying trees. Set
   `D3D8METAL_SHADERS=0` to report a card without shaders and use the fixed function paths instead.
+- Set `GENERALS_PATH_STATS=1` to print once a minute how long ground units were stuck (they had a path but moved
+  less than 3 units in 3 seconds), where, which unit types, and how many path computations failed.
+- Set `GENERALS_PATH_TEST=Template:count:ax:ay:bx:by` in a `-skirmish` run (not `-observe`) to spawn `count` units of
+  the player at map point A (fractions of the map size) and order them to point B as a group. It reports how many
+  arrived, gave up or got stuck, and ends after all of them stopped or 3 minutes, for example
+  `GENERALS_PATH_TEST=AmericaTankCrusader:20:0.2:0.2:0.8:0.8` on Leipzig Lowlands.
 - Set `GENERALS_LOOKAT=x,y` to move the camera once to that point of the map (fractions of its size), for
   screenshots of a particular place in `-skirmish` test runs.
 - Set `D3D8METAL_TRACE=1` to print the fixed function state of every draw call, the textures that are created and

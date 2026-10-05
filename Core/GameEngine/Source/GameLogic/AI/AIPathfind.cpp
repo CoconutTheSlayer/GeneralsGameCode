@@ -10345,8 +10345,9 @@ Path *Pathfinder::getMoveAwayFromPath(Object* obj, Object *otherObj,
 	ICoord2D startCellNdx;
 	Coord3D startPos = *obj->getPosition();
 	if (!centerInCell) {
+		// TheSuperHackers @bugfix Offset y as well, like the other searches, instead of x twice.
 		startPos.x += PATHFIND_CELL_SIZE_F*0.5f;
-		startPos.x += PATHFIND_CELL_SIZE_F*0.5f;
+		startPos.y += PATHFIND_CELL_SIZE_F*0.5f;
 	}
 	worldToCell(&startPos, &startCellNdx);
 	PathfindCell *parentCell = getClippedCell( obj->getLayer(), obj->getPosition() );
@@ -10532,8 +10533,9 @@ Path *Pathfinder::patchPath( const Object *obj, const LocomotorSet& locomotorSet
 	ICoord2D startCellNdx;
 	Coord3D startPos = *obj->getPosition();
 	if (!centerInCell) {
+		// TheSuperHackers @bugfix Offset y as well, like the other searches, instead of x twice.
 		startPos.x += PATHFIND_CELL_SIZE_F*0.5f;
-		startPos.x += PATHFIND_CELL_SIZE_F*0.5f;
+		startPos.y += PATHFIND_CELL_SIZE_F*0.5f;
 	}
 	worldToCell(&startPos, &startCellNdx);
 	//worldToCell(obj->getPosition(), &startCellNdx);

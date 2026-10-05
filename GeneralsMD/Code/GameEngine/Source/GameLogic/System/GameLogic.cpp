@@ -92,6 +92,7 @@
 #include "GameLogic/Module/DestroyModule.h"
 #include "GameLogic/Module/OpenContain.h"
 #include "GameLogic/PartitionManager.h"
+#include "GameLogic/Module/PhysicsUpdate.h"
 #include "GameLogic/PolygonTrigger.h"
 #include "GameLogic/ScriptActions.h"
 #include "GameLogic/ScriptConditions.h"
@@ -3953,6 +3954,188 @@ void GameLogic::update()
 				score->getTotalUnitsBuilt(), score->getTotalUnitsLost(), score->getTotalUnitsDestroyed(),
 				score->getTotalBuildingsBuilt(), score->getTotalBuildingsLost(), score->getTotalBuildingsDestroyed(),
 				score->getTotalMoneyEarned(), player->hasAnyObjects() ? 1 : 0);
+		}
+	}
+
+	// GENERALS_PATH_TEST=Template:count:ax:ay:bx:by spawns count units of the local player around point A
+	// (fractions of the map size) at 2 seconds, orders them to point B as a group at 3 seconds like the
+	// player would, and reports every second how many arrived and how long units were stuck, for tuning
+	// pathfinding. The test ends when all arrived or after 3 minutes.
+	static const char *pathTest = getenv("GENERALS_PATH_TEST");
+	if (pathTest && m_frame > 0 && ThePlayerList->getLocalPlayer())
+	{
+		static std::vector<ObjectID> testUnits;
+		static Coord3D testGoal;
+		static UnsignedInt orderFrame = 0, stuckSeconds = 0, doneFrame = 0;
+		static std::map<ObjectID, std::pair<Coord3D, UnsignedInt> > lastMove;
+		char name[128] = {};
+		Int count = 0;
+		Real ax = 0, ay = 0, bx = 0, by = 0;
+		if (sscanf(pathTest, "%127[^:]:%d:%f:%f:%f:%f", name, &count, &ax, &ay, &bx, &by) == 6)
+		{
+			Region3D extent;
+			TheTerrainLogic->getExtent(&extent);
+			auto mapPoint = [&](Real fx, Real fy) {
+				Coord3D c;
+				c.x = extent.lo.x + (extent.hi.x - extent.lo.x) * fx;
+				c.y = extent.lo.y + (extent.hi.y - extent.lo.y) * fy;
+				c.z = TheTerrainLogic->getGroundHeight(c.x, c.y);
+				return c;
+			};
+			Player *player = ThePlayerList->getLocalPlayer();
+			if (m_frame == 2 * LOGICFRAMES_PER_SECOND)
+			{
+				const ThingTemplate *tmpl = TheThingFactory->findTemplate(name);
+				Coord3D start = mapPoint(ax, ay);
+				for (Int i = 0; tmpl && i < count; ++i)
+				{
+					Object *obj = TheThingFactory->newObject(tmpl, player->getDefaultTeam());
+					FindPositionOptions options;
+					options.maxRadius = 400.0f;
+					options.startAngle = 0.0f;
+					options.flags = FPF_CLEAR_CELLS_ONLY;
+					// A grid 40 apart, each point moved to the nearest clear cell.
+					Coord3D gridPoint = start;
+					gridPoint.x += (i % 5 - 2) * 40.0f;
+					gridPoint.y += (i / 5 - 2) * 40.0f;
+					Coord3D pos = gridPoint;
+					options.maxRadius = 100.0f;
+					ThePartitionManager->findPositionAround(&gridPoint, &options, &pos);
+					obj->setPosition(&pos);
+					testUnits.push_back(obj->getID());
+				}
+				fprintf(stderr, "PATH_TEST spawned %d %s\n", (Int)testUnits.size(), name);
+			}
+			if (m_frame == 3 * LOGICFRAMES_PER_SECOND)
+			{
+				testGoal = mapPoint(bx, by);
+				AIGroupPtr group = TheAI->createGroup();
+				for (ObjectID id : testUnits)
+					if (Object *obj = findObjectByID(id))
+						group->add(obj);
+				group->groupMoveToPosition(&testGoal, false, CMD_FROM_PLAYER);
+				orderFrame = m_frame;
+			}
+			if (orderFrame && !doneFrame && m_frame % LOGICFRAMES_PER_SECOND == 0)
+			{
+				Int arrived = 0, alive = 0, stuckNow = 0, gaveUp = 0;
+				for (ObjectID id : testUnits)
+				{
+					Object *obj = findObjectByID(id);
+					if (obj == nullptr || obj->isEffectivelyDead())
+						continue;
+					++alive;
+					const Coord3D *pos = obj->getPosition();
+					Real dx = pos->x - testGoal.x, dy = pos->y - testGoal.y;
+					AIUpdateInterface *ai = obj->getAI();
+					// Units of a group spread out around the goal; idle within 350 counts as arrived,
+					// idle farther away as given up.
+					if (ai == nullptr || ai->isIdle())
+					{
+						if (dx * dx + dy * dy < 350.0f * 350.0f)
+							++arrived;
+						else
+							++gaveUp;
+						continue;
+					}
+					std::pair<Coord3D, UnsignedInt> &m = lastMove[id];
+					Real mx = pos->x - m.first.x, my = pos->y - m.first.y;
+					if (m.second == 0 || mx * mx + my * my > 9.0f)
+						m = std::make_pair(*pos, m_frame);
+					else if (m_frame - m.second >= 3 * LOGICFRAMES_PER_SECOND)
+					{
+						++stuckSeconds;
+						++stuckNow;
+					}
+				}
+				UnsignedInt seconds = (m_frame - orderFrame) / LOGICFRAMES_PER_SECOND;
+				if (seconds % 10 == 0)
+					fprintf(stderr, "PATH_TEST t=%u arrived %d/%d gaveUp %d stuckNow %d\n", seconds, arrived, alive, gaveUp, stuckNow);
+				if ((alive > 0 && arrived + gaveUp == alive) || seconds >= 180)
+				{
+					doneFrame = m_frame;
+					fprintf(stderr, "PATH_TEST_DONE time %u arrived %d/%d gaveUp %d stuckSeconds %u paths %u failed %u\n", seconds, arrived,
+						alive, gaveUp, stuckSeconds, TheAIPathStats.requests, TheAIPathStats.failures);
+					for (ObjectID id : testUnits)
+					{
+						Object *obj = findObjectByID(id);
+						if (obj == nullptr || obj->isEffectivelyDead())
+							continue;
+						AIUpdateInterface *ai = obj->getAI();
+						const Coord3D *pos = obj->getPosition();
+						Real dx = pos->x - testGoal.x, dy = pos->y - testGoal.y;
+						if ((ai == nullptr || ai->isIdle()) && dx * dx + dy * dy < 350.0f * 350.0f)
+							continue;
+						fprintf(stderr, "PATH_TEST_UNIT %u at (%.0f,%.0f) dist %.0f idle %d path %d waiting %d state %d blocked %d stuck %d\n",
+							(unsigned)id, pos->x, pos->y, sqrtf(dx * dx + dy * dy), ai ? ai->isIdle() : -1, ai && ai->getPath() ? 1 : 0,
+							ai ? ai->isWaitingForPath() : -1, ai ? (Int)ai->getCurrentStateID() : -1, ai ? ai->getNumFramesBlocked() : -1,
+							ai ? ai->isBlockedAndStuck() : -1);
+					}
+				}
+			}
+		}
+	}
+
+	// GENERALS_PATH_STATS=1 prints once a minute how often ground units were stuck (they had a path
+	// but moved less than 3 units in 3 seconds), where, and how many path computations failed.
+	static const Bool printPathStats = getenv("GENERALS_PATH_STATS") != nullptr;
+	if (printPathStats && m_frame > 0 && m_frame % LOGICFRAMES_PER_SECOND == 0)
+	{
+		struct Track { Coord3D pos; UnsignedInt since; UnsignedInt stuckSeconds; };
+		static std::map<ObjectID, Track> tracks;
+		static UnsignedInt stuckSeconds = 0, movingSeconds = 0, blockedAndStuck = 0;
+		static std::map<std::pair<Int, Int>, UnsignedInt> stuckCells;
+		static std::map<AsciiString, UnsignedInt> stuckTypes;
+		std::map<ObjectID, Track> next;
+		for (Object *obj = getFirstObject(); obj; obj = obj->getNextObject())
+		{
+			AIUpdateInterface *ai = obj->getAI();
+			if (ai == nullptr || obj->isEffectivelyDead() || obj->isKindOf(KINDOF_AIRCRAFT) || !ai->isDoingGroundMovement())
+				continue;
+			if (ai->getPath() == nullptr || ai->isWaitingForPath() || obj->isDisabled())
+				continue;
+			++movingSeconds;
+			if (ai->isBlockedAndStuck())
+				++blockedAndStuck;
+			const Coord3D *pos = obj->getPosition();
+			std::map<ObjectID, Track>::iterator it = tracks.find(obj->getID());
+			Track t;
+			if (it == tracks.end())
+				t.pos = *pos, t.since = m_frame, t.stuckSeconds = 0;
+			else
+				t = it->second;
+			Real dx = pos->x - t.pos.x, dy = pos->y - t.pos.y;
+			if (dx * dx + dy * dy > 9.0f)
+				t.pos = *pos, t.since = m_frame;
+			else if (m_frame - t.since >= 3 * LOGICFRAMES_PER_SECOND)
+			{
+				++stuckSeconds;
+				++t.stuckSeconds;
+				++stuckCells[std::make_pair((Int)(pos->x / 150.0f), (Int)(pos->y / 150.0f))];
+				++stuckTypes[obj->getTemplate()->getName()];
+			}
+			next[obj->getID()] = t;
+		}
+		tracks.swap(next);
+		if (m_frame % (60 * LOGICFRAMES_PER_SECOND) == 0)
+		{
+			std::vector<std::pair<UnsignedInt, std::pair<Int, Int> > > cells;
+			for (std::map<std::pair<Int, Int>, UnsignedInt>::iterator c = stuckCells.begin(); c != stuckCells.end(); ++c)
+				cells.push_back(std::make_pair(c->second, c->first));
+			std::sort(cells.rbegin(), cells.rend());
+			std::vector<std::pair<UnsignedInt, AsciiString> > types;
+			for (std::map<AsciiString, UnsignedInt>::iterator c = stuckTypes.begin(); c != stuckTypes.end(); ++c)
+				types.push_back(std::make_pair(c->second, c->first));
+			std::sort(types.rbegin(), types.rend());
+			fprintf(stderr, "PATH_STATS min %u moving %u stuck %u blockedAndStuck %u paths %u failed %u hot",
+				m_frame / (60 * LOGICFRAMES_PER_SECOND), movingSeconds, stuckSeconds, blockedAndStuck,
+				TheAIPathStats.requests, TheAIPathStats.failures);
+			for (size_t i = 0; i < cells.size() && i < 3; ++i)
+				fprintf(stderr, " (%d,%d)x%u", (cells[i].second.first * 150 + 75), (cells[i].second.second * 150 + 75), cells[i].first);
+			fprintf(stderr, " types");
+			for (size_t i = 0; i < types.size() && i < 3; ++i)
+				fprintf(stderr, " %s:%u", types[i].second.str(), types[i].first);
+			fprintf(stderr, "\n");
 		}
 	}
 
