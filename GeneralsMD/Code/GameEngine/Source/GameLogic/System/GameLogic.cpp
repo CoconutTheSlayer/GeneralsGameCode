@@ -29,6 +29,7 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#include "Common/Diagnostic/SimulationMathCrc.h"
 #include "Common/AudioAffect.h"
 #include "Common/AudioHandleSpecialValues.h"
 #include "Common/BuildAssistant.h"
@@ -3775,6 +3776,27 @@ void GameLogic::update()
 	{
 		m_CRC = getCRC( CRC_RECALC );
 		bool isPlayback = (TheRecorder && TheRecorder->isPlaybackMode());
+#if defined(__APPLE__)
+		// GENERALS_CRC_LOG=1 prints each game state CRC, to compare the simulation between builds
+		// and platforms.
+		static const bool crcLog = getenv("GENERALS_CRC_LOG") != nullptr;
+		if (crcLog)
+		{
+			// Also a CRC of a fixed set of math results, which differs if a platform computes them differently.
+			if (m_frame == 0)
+				fprintf(stderr, "CRC_LOG math %08X\n", SimulationMathCrc::calculate());
+			fprintf(stderr, "CRC_LOG frame %u crc %08X\n", m_frame, m_CRC);
+		}
+		// GENERALS_CRC_DUMP=<prefix> also writes the data of the CRCs of frames 0 and 100 to
+		// <prefix>_<frame>.dat, to find what differs.
+		static const char *crcDump = getenv("GENERALS_CRC_DUMP");
+		if (crcDump && (m_frame == 0 || m_frame == 100))
+		{
+			AsciiString name;
+			name.format("%s_%u.dat", crcDump, m_frame);
+			getCRC(CRC_RECALC, name);
+		}
+#endif
 
 		GameMessage *msg = newInstance(GameMessage)(GameMessage::MSG_LOGIC_CRC);
 		msg->appendIntegerArgument(m_CRC);

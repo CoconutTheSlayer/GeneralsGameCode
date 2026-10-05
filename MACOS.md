@@ -141,9 +141,25 @@ on the current display and scales the image to fit.
 
 ## Limitations
 
-- The Mac build cannot play multiplayer games or replays together with the Windows version. The game logic
-  depends on exact floating point behavior, which differs between compilers and CPU architectures, and network
-  packets use a different wide character size. Multiplayer between Macs running the same build works.
+- The Mac build cannot play multiplayer games or replays together with the original Windows version. The game
+  logic depends on exact floating point results, and network packets use a different wide character size.
+  Multiplayer between Macs running the same build works.
+
+## Deterministic simulation (towards crossplay)
+
+The simulation now computes bit identical results on Apple Silicon and on x86-64 (tested with the same replay on
+an arm64 and an x86-64 build, the latter under Rosetta): floating point contraction (fused multiply-add) is off
+everywhere, and `sin`, `cos`, `pow` and the other transcendental functions come from musl's implementations in
+`Dependencies/DetMath` instead of the platform's C library (`rts_detmath.h` is included in front of every C and
+C++ file and redirects the calls). Replays recorded before this change no longer play back. Still to do for
+Windows and Linux crossplay: the same flags there, sorting and hash map iteration that do not depend on the C++
+library, and a fixed wide character size in network packets.
+
+- `GENERALS_CRC_LOG=1` prints the game state CRC at every CRC frame (and a CRC of a fixed set of math results),
+  for example during `-headless -replay`; compare the output of two builds to find where they diverge.
+- `GENERALS_CRC_DUMP=<prefix>` writes the data behind the CRCs of frames 0 and 100 to `<prefix>_<frame>.dat`.
+- An x86-64 build for comparisons: build SDL3 for x86-64, then configure with
+  `-DCMAKE_OSX_ARCHITECTURES=x86_64 -DRTS_BUILD_OPTION_FFMPEG=OFF -DCMAKE_PREFIX_PATH=<SDL3 prefix>`.
 - Save games are not compatible with Windows save games.
 - The embedded web browser, crash dumps and the patch downloader are not available.
 

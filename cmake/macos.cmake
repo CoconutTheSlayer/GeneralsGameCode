@@ -31,6 +31,14 @@ add_compile_options(
     -Wno-undefined-var-template
 )
 
+# Deterministic simulation across platforms and CPUs (crossplay, replays): never fuse a multiply and
+# an add into one differently rounded operation, and take sin, cos, pow and the like from
+# Dependencies/DetMath instead of the platform's C library.
+add_compile_options(-ffp-contract=off)
+set(RTS_DETMATH_HEADER "${CMAKE_SOURCE_DIR}/Dependencies/DetMath/include/rts_detmath.h")
+add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:SHELL:-include ${RTS_DETMATH_HEADER}>")
+add_subdirectory(Dependencies/DetMath)
+
 # Tune for Apple Silicon. All Apple Silicon Macs implement the M1 feature set.
 if(CMAKE_OSX_ARCHITECTURES STREQUAL "arm64" OR (NOT CMAKE_OSX_ARCHITECTURES AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64"))
     add_compile_options(-mcpu=apple-m1)

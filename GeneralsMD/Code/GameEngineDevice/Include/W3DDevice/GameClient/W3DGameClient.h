@@ -119,6 +119,9 @@ protected:
 	virtual DisplayStringManager *createDisplayStringManager() override { return NEW W3DDisplayStringManager; }
 #ifdef RTS_HAS_FFMPEG
 	virtual VideoPlayerInterface *createVideoPlayer() { return NEW FFmpegVideoPlayer; }
+#elif defined(__APPLE__)
+	// Without FFmpeg the macOS build has no video decoder (Bink is Windows only).
+	virtual VideoPlayerInterface *createVideoPlayer() override { return NEW NullVideoPlayer; }
 #else
 	virtual VideoPlayerInterface *createVideoPlayer() override { return NEW BinkVideoPlayer; }
 #endif

@@ -17,6 +17,7 @@ target_include_directories(deps_win32shim PUBLIC ${CMAKE_SOURCE_DIR}/Dependencie
 target_compile_features(deps_win32shim PUBLIC cxx_std_20)
 target_link_libraries(deps_win32shim PUBLIC
     SDL3::SDL3
+    detmath
     "-framework CoreFoundation"
     "-framework CoreGraphics"
     "-framework CoreText"
