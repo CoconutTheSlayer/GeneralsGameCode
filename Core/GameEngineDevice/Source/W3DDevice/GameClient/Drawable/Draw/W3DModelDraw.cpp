@@ -2044,8 +2044,9 @@ void W3DModelDraw::adjustTransformMtx(Matrix3D& mtx) const
 
 #if defined(__APPLE__)
 //-------------------------------------------------------------------------------------------------
-// TheSuperHackers @feature RealScale draws units and buildings at their real world size next to the
-// infantry, whose models are 1.8 m soldiers at 10 world units per metre. The table gives the largest
+// TheSuperHackers @feature RealScale draws vehicles and aircraft at their real world size next to the
+// infantry (buildings keep their size: at real size they would cover their neighbours and the units in
+// front of them, since the game still uses their original footprint), whose models are 1.8 m soldiers at 10 world units per metre. The table gives the largest
 // horizontal size in metres (rotors included); the scale is that over the largest horizontal size of
 // the model as first created. Matched by name, so faction general variants (SupW_, Tank_, ...) and
 // hulks share their unit's size. Only the drawing changes.
@@ -2070,13 +2071,6 @@ static const RealSize RealSizes[] =
 	{ "ChinaVehicleTroopCrawler", 8.0f }, { "ChinaVehicleSupplyTruck", 8.0f }, { "ChinaVehicleDozer", 8.0f },
 	{ "ChinaVehicleInfernoCannon", 10.0f }, { "ChinaVehicleNukeLauncher", 15.0f }, { "ChinaVehicleListeningOutpost", 7.0f },
 	{ "ChinaVehicleHelix", 20.0f }, { "ChinaJetMIG", 20.0f }, { "GLAJetCargoPlane", 40.0f }, { "ChinaJetCargoPlane", 40.0f },
-	{ "ParticleCannonUplink", 60.0f }, { "NuclearMissileLauncher", 50.0f }, { "ScudStorm", 40.0f },
-	{ "CommandCenter", 70.0f }, { "Barracks", 40.0f }, { "WarFactory", 60.0f }, { "ArmsDealer", 50.0f },
-	{ "Airfield", 110.0f }, { "PowerPlant", 40.0f }, { "SupplyCenter", 50.0f }, { "SupplyDropZone", 60.0f },
-	{ "SupplyStash", 30.0f }, { "StrategyCenter", 60.0f }, { "PropagandaCenter", 35.0f }, { "InternetCenter", 40.0f },
-	{ "BlackMarket", 40.0f }, { "GLAPalace", 60.0f }, { "TunnelNetwork", 15.0f }, { "StingerSite", 20.0f },
-	{ "PatriotBattery", 15.0f }, { "GattlingCannon", 10.0f }, { "ChinaBunker", 15.0f }, { "FireBase", 25.0f },
-	{ "SpeakerTower", 8.0f },
 };
 
 static Real realSizeFor(const ThingTemplate *tmpl)
