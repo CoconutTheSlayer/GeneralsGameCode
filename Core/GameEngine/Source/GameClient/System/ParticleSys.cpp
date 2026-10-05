@@ -3264,7 +3264,15 @@ void ParticleSystemManager::update()
 					const Coord3D *pos = p->getPosition();
 					Smudge *smudge = set->addSmudgeToSet(p);
 					smudge->m_pos.Set(pos->x, pos->y, pos->z);
+#ifdef __APPLE__
+					// TheSuperHackers @tweak A small, smooth wobble of the refracted image reads as heat shimmer;
+					// a new random jump of up to 6% of the screen every frame shows hard edged copies instead.
+					const Real phase = (Real)(((UnsignedInt)(uintptr_t)p >> 4) % 1024) * 0.37f;
+					const Real t = (Real)TheGameClient->getFrame() * 0.45f;
+					smudge->m_offset.Set(0.004f * Sin(t + phase), 0.003f * Cos(t * 1.37f + phase * 0.6f));
+#else
 					smudge->m_offset.Set(GameClientRandomValueReal(-0.06f,0.06f), GameClientRandomValueReal(-0.06f,0.06f));
+#endif
 					smudge->m_size = p->getSize();
 					smudge->m_opacity = p->getAlpha();
 					smudge->m_draw = false;

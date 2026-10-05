@@ -1181,8 +1181,51 @@ HRESULT Device::CopyRects(IDirect3DSurface8* pSourceSurface, CONST RECT* pSource
 	Surface* dst = static_cast<Surface*>(pDestinationSurface);
 	if (src == nullptr || dst == nullptr)
 		return D3DERR_INVALIDCALL;
-	if (src->m_storage->renderTarget && src->m_storage->shadowStale)
-		readbackTexture(*src->m_storage, src->m_face, src->m_level);
+	TextureStorage& ss = *src->m_storage;
+	TextureStorage& ds = *dst->m_storage;
+	if (ss.renderTarget && ds.renderTarget && !ss.depthStencil && !ds.depthStencil && ss.texture != nil && ds.texture != nil
+		&& ss.gpuFormat == ds.gpuFormat && !IsCompressedFormat(ss.format))
+	{
+		// Between render targets the copy stays on the GPU (the heat effect copies the back buffer
+		// every frame); ending the pass resolves a multisampled source.
+		if (src == m_renderTarget && m_pendingClearFlags != 0)
+			renderEncoder();
+		endRenderEncoder();
+		id<MTLBlitCommandEncoder> blit = [commandBuffer() blitCommandEncoder];
+		UINT count = cRects ? cRects : 1;
+		for (UINT i = 0; i < count; ++i)
+		{
+			RECT r;
+			SetRect(&r, 0, 0, (int)src->width(), (int)src->height());
+			if (pSourceRectsArray)
+				r = pSourceRectsArray[i];
+			POINT p = pDestPointsArray ? pDestPointsArray[i] : POINT { r.left, r.top };
+			r.left = std::max<LONG>(r.left, 0);
+			r.top = std::max<LONG>(r.top, 0);
+			r.right = std::min<LONG>(r.right, (LONG)src->width());
+			r.bottom = std::min<LONG>(r.bottom, (LONG)src->height());
+			r.right = std::min<LONG>(r.right, r.left + (LONG)dst->width() - p.x);
+			r.bottom = std::min<LONG>(r.bottom, r.top + (LONG)dst->height() - p.y);
+			if (p.x < 0 || p.y < 0 || r.right <= r.left || r.bottom <= r.top)
+				continue;
+			[blit copyFromTexture:ss.texture
+					  sourceSlice:src->m_face
+					  sourceLevel:src->m_level
+					 sourceOrigin:MTLOriginMake(r.left, r.top, 0)
+					   sourceSize:MTLSizeMake(r.right - r.left, r.bottom - r.top, 1)
+						toTexture:ds.texture
+				 destinationSlice:dst->m_face
+				 destinationLevel:dst->m_level
+				destinationOrigin:MTLOriginMake(p.x, p.y, 0)];
+		}
+		[blit endEncoding];
+		markTextureUsed(ss);
+		markTextureUsed(ds);
+		ds.shadowStale = true;
+		return D3D_OK;
+	}
+	if (ss.renderTarget && ss.shadowStale)
+		readbackTexture(ss, src->m_face, src->m_level);
 
 	RECT full;
 	SetRect(&full, 0, 0, (int)src->width(), (int)src->height());

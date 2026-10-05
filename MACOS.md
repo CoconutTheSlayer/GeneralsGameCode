@@ -109,7 +109,10 @@ on the current display and scales the image to fit.
 - **Bigger explosions** (Zero Hour): destroyed vehicles, aircraft and buildings also throw sparks and burning
   debris, flash and leave a column of smoke over the wreck or ruin for a while; buildings shower embers. The
   effects are added to the original ones by `FXListAddition` blocks (an FXList block that adds to an existing list
-  instead of replacing it) in `resources/macos/GameData/Data/INI/Explosions.ini`.
+  instead of replacing it) in `resources/macos/GameData/Data/INI/Explosions.ini`. Hot air shimmers above
+  explosions and burning ruins when the Heat Effects detail option is on; it uses the engine's smudge particles,
+  which now wobble gently instead of jumping by up to 6% of the screen every frame, and the renderer copies the
+  screen for them on the GPU.
 - **Soft particles**: smoke, fire and explosion sprites fade out where they meet the ground, units and buildings
   instead of cutting into them with a hard edge (both games). `GENERALS_SOFT_PARTICLES` sets the fade distance
   in world units (default 12, 0 turns it off).
