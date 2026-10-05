@@ -324,6 +324,8 @@ static CommandStatus doSetRallyPointCommand( const CommandButton *command, const
 	GameMessage *msg = TheMessageStream->appendMessage( GameMessage::MSG_SET_RALLY_POINT );
 	msg->appendObjectIDArgument( draw->getObject()->getID() );
 	msg->appendLocationArgument( world );
+	// TheSuperHackers @feature New units attack-move to the rally point; Ctrl sets one they move to.
+	msg->appendBooleanArgument( !TheInGameUI->isInForceAttackMode() );
 
 	return COMMAND_COMPLETE;
 

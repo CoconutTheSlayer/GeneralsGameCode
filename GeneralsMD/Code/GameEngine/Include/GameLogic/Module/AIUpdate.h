@@ -418,6 +418,8 @@ public:
 	// they see and chase it, like computer players' units; Guard (the default) is the original behavior,
 	// which only fires at what is within weapon range.
 	Bool isAggressiveStance() const { return m_aggressiveStance; }
+	// TheSuperHackers @feature Attack-move to this position once the unit has left its factory.
+	void setPendingAttackMove(const Coord3D *pos) { m_pendingAttackMove = TRUE; m_pendingAttackMovePos = *pos; }
 	void setAggressiveStance(Bool aggressive) { m_aggressiveStance = aggressive; }
 	// Whether the unit's own target acquisition is limited like that of human players' units in Guard stance.
 	Bool isHumanGuardStance() const;
@@ -814,6 +816,8 @@ private:
 	Bool				m_isAiDead;									///< TRUE if dead
 	Bool				m_isRecruitable;						///< TRUE if recruitable by the ai.
 	Bool				m_aggressiveStance;					///< TRUE if the unit is in Aggressive stance (see isAggressiveStance).
+	Bool				m_pendingAttackMove;				///< attack-move to m_pendingAttackMovePos after leaving the factory
+	Coord3D			m_pendingAttackMovePos;
 	Bool				m_executingWaypointQueue;						///< if true, we are moving thru the waypoints
 	Bool				m_retryPath;								///< If true, we need to try the path a second time.  jba.
 	Bool				m_allowedToChase;						///< Allowed to pursue targets.

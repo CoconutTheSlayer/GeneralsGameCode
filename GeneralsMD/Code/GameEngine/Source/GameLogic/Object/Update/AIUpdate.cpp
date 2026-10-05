@@ -283,6 +283,8 @@ AIUpdateInterface::AIUpdateInterface( Thing *thing, const ModuleData* moduleData
 	m_noProgressCount = 0;
 	m_isRecruitable = TRUE; // Things default to being recruitable.
 	m_aggressiveStance = FALSE;
+	m_pendingAttackMove = FALSE;
+	m_pendingAttackMovePos.zero();
 	m_executingWaypointQueue = FALSE;
 	m_retryPath = FALSE;
 	m_isInUpdate = FALSE;
@@ -1026,6 +1028,23 @@ UpdateSleepTime AIUpdateInterface::update()
 	UpdateSleepTime subMachineSleep = UPDATE_SLEEP_FOREVER;
 
 	StateReturnType stRet = getStateMachine()->updateStateMachine();
+
+	// TheSuperHackers @feature A new unit that has left its factory attack-moves to the rally point. Any other
+	// order given meanwhile cancels that.
+	if (m_pendingAttackMove)
+	{
+		const StateID state = getStateMachine()->getCurrentStateID();
+		if (state == AI_IDLE)
+		{
+			m_pendingAttackMove = FALSE;
+			aiAttackMoveToPosition(&m_pendingAttackMovePos, NO_MAX_SHOTS_LIMIT, CMD_FROM_PLAYER);
+			stRet = STATE_CONTINUE;
+		}
+		else if (state != AI_FOLLOW_EXITPRODUCTION_PATH)
+		{
+			m_pendingAttackMove = FALSE;
+		}
+	}
 
 	if (IS_STATE_SLEEP(stRet))
 	{
@@ -5166,8 +5185,9 @@ void AIUpdateInterface::xfer( Xfer *xfer )
 {
   // version
 	// 6: TheSuperHackers @feature Unit stance (m_aggressiveStance)
+	// 7: TheSuperHackers @feature Attack-move rally point (m_pendingAttackMove)
 #if defined(__APPLE__)
-	const XferVersion currentVersion = 6;
+	const XferVersion currentVersion = 7;
 #elif RETAIL_COMPATIBLE_CRC || RETAIL_COMPATIBLE_XFER_SAVE
 	const XferVersion currentVersion = 4;
 #else
@@ -5402,6 +5422,11 @@ void AIUpdateInterface::xfer( Xfer *xfer )
 	if (version >= 6)
 	{
 		xfer->xferBool(&m_aggressiveStance);
+	}
+	if (version >= 7)
+	{
+		xfer->xferBool(&m_pendingAttackMove);
+		xfer->xferCoord3D(&m_pendingAttackMovePos);
 	}
 
 

@@ -740,6 +740,16 @@ void ControlBar::populateBuildQueue( Object *producer )
 
 	}
 
+	// TheSuperHackers @feature The queue can hold more entries than there are buttons; show how many more on
+	// the last button.
+	const Int hidden = pu->getProductionCount() - MAX_BUILD_QUEUE_BUTTONS;
+	if( hidden > 0 )
+	{
+		UnicodeString more;
+		more.format( L"+%d", hidden );
+		GadgetButtonSetText( m_queueData[ MAX_BUILD_QUEUE_BUTTONS - 1 ].control, more );
+	}
+
 	//
 	// save the count of things being produced in the build queue, when it changes we will
 	// repopulate the queue to visually show the change

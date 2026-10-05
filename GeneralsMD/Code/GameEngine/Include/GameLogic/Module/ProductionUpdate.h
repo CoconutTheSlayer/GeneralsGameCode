@@ -148,6 +148,9 @@ class ProductionUpdateInterface
 public:
 
 	virtual CanMakeType canQueueCreateUnit( const ThingTemplate *unitType ) const = 0;
+	// TheSuperHackers @feature Whether new units attack-move to the rally point instead of moving there.
+	virtual Bool isRallyAttackMove() const = 0;
+	virtual void setRallyAttackMove( Bool attackMove ) = 0;
 	virtual CanMakeType canQueueUpgrade( const UpgradeTemplate *upgrade ) const = 0;
 
 	virtual ProductionID requestUniqueUnitID() = 0;
@@ -201,6 +204,10 @@ public:
 	static ProductionUpdateInterface *getProductionUpdateInterfaceFromObject( Object *obj );
 
 	virtual CanMakeType canQueueCreateUnit( const ThingTemplate *unitType ) const override;
+
+	virtual Bool isRallyAttackMove() const override { return m_rallyAttackMove; }
+
+	virtual void setRallyAttackMove( Bool attackMove ) override { m_rallyAttackMove = attackMove; }
 	virtual CanMakeType canQueueUpgrade( const UpgradeTemplate *upgrade ) const override;
 
 	/** this method is used to request a unique ID to assign to the production of a single
@@ -265,5 +272,6 @@ protected:
 	ModelConditionFlags m_clearFlags;										///< flags to clear from model
 	ModelConditionFlags m_setFlags;											///< flags to set in model
 	Bool								m_flagsDirty;										///< clearFlags/setFlags needs to be set into the model
+	Bool								m_rallyAttackMove;							///< new units attack-move to the rally point
 
 };

@@ -101,7 +101,8 @@ ProductionUpdateModuleData::ProductionUpdateModuleData()
 	m_doorClosingTime = 0;
 	m_constructionCompleteDuration = 0;
 	m_quantityModifiers.clear();
-	m_maxQueueEntries = 9;
+	// TheSuperHackers @tweak Queue up to 30 entries; the queue display shows the first 9 and the number of the others.
+	m_maxQueueEntries = 30;
 	m_disabledTypesToProcess = MAKE_DISABLED_MASK(DISABLED_HELD);
 }
 
@@ -193,6 +194,7 @@ ProductionUpdate::ProductionUpdate( Thing *thing, const ModuleData* moduleData )
 	m_constructionCompleteFrame = 0;
 	m_clearFlags.clear();
 	m_setFlags.clear();
+	m_rallyAttackMove = TRUE;
 	m_flagsDirty = FALSE;
 	m_specialPowerConstructionCommandButton = nullptr;
 
@@ -1260,7 +1262,12 @@ void ProductionUpdate::xfer( Xfer *xfer )
 {
 
 	// version
+	// 2: TheSuperHackers @feature Attack-move rally point (m_rallyAttackMove)
+#if defined(__APPLE__)
+	XferVersion currentVersion = 2;
+#else
 	XferVersion currentVersion = 1;
+#endif
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
 
@@ -1424,6 +1431,9 @@ void ProductionUpdate::xfer( Xfer *xfer )
 
 	// flags dirty
 	xfer->xferBool( &m_flagsDirty );
+
+	if( version >= 2 )
+		xfer->xferBool( &m_rallyAttackMove );
 
 }
 

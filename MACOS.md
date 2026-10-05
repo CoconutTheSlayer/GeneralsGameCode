@@ -92,6 +92,9 @@ on the current display and scales the image to fit.
 - **Health bars**: `HealthBars` in `Options.ini` is `Selected` (default, as on Windows), `Damaged` (also every damaged
   unit and building of the players) or `All`. Alt+H cycles through them in a game and saves the choice. Health bars
   get thicker at high resolutions.
+- **Rally points** (Zero Hour): new combat units attack-move to a factory's rally point, fighting what they meet on
+  the way. Ctrl+right-click sets a rally point they simply move to, as before.
+- **Production queue** (Zero Hour): factories queue up to 30 units; the queue shows the first 9 and "+N" for the rest.
 - **Unit stance** (Zero Hour): the Stance button on the command bar, or Ctrl+A, switches the selected units between
   Guard (the original behavior: fire at enemies in range) and Aggressive (attack anything in sight and chase it).
 

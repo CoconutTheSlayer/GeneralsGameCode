@@ -2251,6 +2251,8 @@ GameMessage::Type CommandTranslator::handleSetRallyPointCommand( const Coord3D *
 				GameMessage *newMsg = TheMessageStream->appendMessage(msgType);
 				newMsg->appendObjectIDArgument(draw->getObject()->getID());
 				newMsg->appendLocationArgument(*pos);
+				// TheSuperHackers @feature New units attack-move to the rally point; Ctrl sets one they move to.
+				newMsg->appendBooleanArgument(!TheInGameUI->isInForceAttackMode());
 			}
 		}
 	} else if (type == DO_HINT) {

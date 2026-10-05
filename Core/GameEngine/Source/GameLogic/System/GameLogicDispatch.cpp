@@ -992,6 +992,16 @@ bool GameLogic::onSetRallyPoint(MAYBE_UNUSED GameMessage *msg)
 
 	doSetRallyPoint( obj, dest );
 
+#if !RTS_GENERALS
+	// TheSuperHackers @feature Whether new units attack-move to the rally point.
+	if( msg->getArgumentCount() >= 3 )
+	{
+		ProductionUpdateInterface *production = obj->getProductionUpdateInterface();
+		if( production )
+			production->setRallyAttackMove( msg->getArgument( 2 )->boolean );
+	}
+#endif
+
 	return true;
 }
 

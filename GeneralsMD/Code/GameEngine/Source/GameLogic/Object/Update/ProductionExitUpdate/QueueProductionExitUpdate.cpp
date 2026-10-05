@@ -36,7 +36,9 @@
 #include "GameLogic/AI.h"
 #include "GameLogic/AIPathfind.h"
 #include "GameLogic/Object.h"
+#include "Common/Player.h"
 #include "GameLogic/Module/AIUpdate.h"
+#include "GameLogic/Module/ProductionUpdate.h"
 #include "GameLogic/Module/PhysicsUpdate.h"
 #include "GameLogic/Module/QueueProductionExitUpdate.h"
 
@@ -142,7 +144,17 @@ void QueueProductionExitUpdate::exitObjectViaDoor( Object *newObj, ExitDoorType 
 			if (ai && ai->isDoingGroundMovement())
 			{
 				if (TheAI->pathfinder()->adjustDestination(newObj, ai->getLocomotorSet(), &tmp))
-					exitPath.push_back(tmp);
+				{
+					// TheSuperHackers @feature Combat units of human players attack-move from the factory exit to the
+					// rally point, unless it was set with Ctrl for a plain move. The AI handles its new units itself.
+					const ProductionUpdateInterface *production = getObject()->getProductionUpdateInterface();
+					const Player *owner = getObject()->getControllingPlayer();
+					if (production && production->isRallyAttackMove() && newObj->isKindOf(KINDOF_CAN_ATTACK) &&
+							owner && owner->getPlayerType() == PLAYER_HUMAN)
+						ai->setPendingAttackMove(&tmp);
+					else
+						exitPath.push_back(tmp);
+				}
 
 			}
 		} else {
