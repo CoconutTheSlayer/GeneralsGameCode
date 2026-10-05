@@ -370,8 +370,6 @@ id<MTLRenderCommandEncoder> Device::renderEncoder()
 
 	m_encoder = [commandBuffer() renderCommandEncoderWithDescriptor:pass];
 	m_encoderState.reset();
-	rt.shadowStale = true;
-	markTextureUsed(rt);
 	return m_encoder;
 }
 
@@ -406,10 +404,28 @@ void Device::drawClearQuad(DWORD flags, D3DCOLOR color, float z, DWORD stencil, 
 
 HRESULT Device::Clear(DWORD Count, CONST D3DRECT* pRects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil)
 {
+	std::vector<D3DRECT> rects;
+	if (Count != 0 && pRects != nullptr)
+		rects.assign(pRects, pRects + Count);
+	syncState();
+	if (m_frontRenderTarget && (Flags & D3DCLEAR_TARGET))
+	{
+		TextureStorage& rt = *m_frontRenderTarget->m_storage;
+		rt.lastUsedSerial = m_currentSerial;
+		rt.shadowStale = true;
+	}
+	submit([this, rects = std::move(rects), Flags, Color, Z, Stencil] { execClear(rects, Flags, Color, Z, Stencil); });
+	return D3D_OK;
+}
+
+void Device::execClear(const std::vector<D3DRECT>& rects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil)
+{
+	const DWORD Count = (DWORD)rects.size();
+	const D3DRECT* pRects = rects.empty() ? nullptr : rects.data();
 	if (m_depthStencil == nullptr)
 		Flags &= ~(D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL);
 	if (Flags == 0)
-		return D3D_OK;
+		return;
 
 	unsigned rtW = m_renderTarget->width();
 	unsigned rtH = m_renderTarget->height();
@@ -428,7 +444,7 @@ HRESULT Device::Clear(DWORD Count, CONST D3DRECT* pRects, DWORD Flags, D3DCOLOR 
 		m_pendingClearDepth = Z;
 		m_pendingClearStencil = Stencil & 0xFF;
 		m_pendingClearFlags |= Flags;
-		return D3D_OK;
+		return;
 	}
 
 	auto clip = [&](LONG x1, LONG y1, LONG x2, LONG y2) {
@@ -452,7 +468,6 @@ HRESULT Device::Clear(DWORD Count, CONST D3DRECT* pRects, DWORD Flags, D3DCOLOR 
 		for (DWORD i = 0; i < Count; ++i)
 			clip(pRects[i].x1, pRects[i].y1, pRects[i].x2, pRects[i].y2);
 	}
-	return D3D_OK;
 }
 
 //-----------------------------------------------------------------------------
@@ -1300,7 +1315,6 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 		if (st && st->texture)
 		{
 			tex = st->texture;
-			markTextureUsed(*st);
 			if (st == m_renderTarget->m_storage.get())
 				tex = nil; // feedback loops are undefined in D3D; avoid them here
 		}
@@ -1343,20 +1357,43 @@ void Device::bindVertexBuffer(id<MTLBuffer> buffer, NSUInteger offset)
 	es.vertexOffset = offset;
 }
 
+//-----------------------------------------------------------------------------
+// Draw calls. The game thread resolves the buffers the draw reads (and copies the data of UP
+// draws and generated indices into transient memory), so later locks and renames of the buffers
+// do not affect it; the render thread encodes it.
+//-----------------------------------------------------------------------------
+void Device::issueDraw(const DrawCommand& c)
+{
+	markDrawResources();
+	syncState();
+	submit([this, c] { execDraw(c); });
+}
+
+void Device::execDraw(const DrawCommand& c)
+{
+	m_state.streams[0].stride = c.stride;
+	bool ok;
+	beginDraw(c.type, ok);
+	if (!ok)
+		return;
+	bindVertexBuffer(c.vertexBuffer, c.vertexOffset);
+	if (c.indexBuffer == nil)
+		[m_encoder drawPrimitives:c.mtlType vertexStart:c.start vertexCount:c.count];
+	else
+		[m_encoder drawIndexedPrimitives:c.mtlType indexCount:c.count indexType:c.indexType indexBuffer:c.indexBuffer
+					   indexBufferOffset:c.indexOffset instanceCount:1 baseVertex:c.baseVertex baseInstance:0];
+}
+
 HRESULT Device::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
 {
-	VertexBuffer* vb = m_state.streams[0].buffer;
+	VertexBuffer* vb = m_front.streams[0].buffer;
 	if (vb == nullptr || PrimitiveCount == 0)
 		return D3D_OK;
-	bool ok;
-	beginDraw(PrimitiveType, ok);
-	if (!ok)
-		return D3D_OK;
-	id<MTLRenderCommandEncoder> enc = m_encoder;
-	bindVertexBuffer(vb->m_storage.buffer, 0);
 	vb->m_storage.lastUsedSerial = m_currentSerial;
-
-	unsigned count = vertexCountFor(PrimitiveType, PrimitiveCount);
+	DrawCommand c {};
+	c.type = PrimitiveType;
+	c.stride = m_front.streams[0].stride;
+	c.vertexBuffer = vb->m_storage.buffer;
 	if (PrimitiveType == D3DPT_TRIANGLEFAN)
 	{
 		Transient idx = allocTransient(PrimitiveCount * 3 * 4, 4);
@@ -1367,33 +1404,39 @@ HRESULT Device::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, 
 			out[i * 3 + 1] = StartVertex + i + 1;
 			out[i * 3 + 2] = StartVertex + i + 2;
 		}
-		[enc drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:PrimitiveCount * 3 indexType:MTLIndexTypeUInt32 indexBuffer:idx.buffer indexBufferOffset:idx.offset];
-		return D3D_OK;
+		c.indexBuffer = idx.buffer;
+		c.indexOffset = idx.offset;
+		c.indexType = MTLIndexTypeUInt32;
+		c.mtlType = MTLPrimitiveTypeTriangle;
+		c.count = PrimitiveCount * 3;
 	}
-	[enc drawPrimitives:primitiveType(PrimitiveType) vertexStart:StartVertex vertexCount:count];
+	else
+	{
+		c.mtlType = primitiveType(PrimitiveType);
+		c.start = StartVertex;
+		c.count = vertexCountFor(PrimitiveType, PrimitiveCount);
+	}
+	issueDraw(c);
 	return D3D_OK;
 }
 
 HRESULT Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT, UINT, UINT startIndex, UINT primCount)
 {
-	VertexBuffer* vb = m_state.streams[0].buffer;
-	IndexBuffer* ib = m_state.indices;
+	VertexBuffer* vb = m_front.streams[0].buffer;
+	IndexBuffer* ib = m_front.indices;
 	if (vb == nullptr || ib == nullptr || primCount == 0)
 		return D3D_OK;
-	bool ok;
-	beginDraw(PrimitiveType, ok);
-	if (!ok)
-		return D3D_OK;
-	id<MTLRenderCommandEncoder> enc = m_encoder;
-	bindVertexBuffer(vb->m_storage.buffer, 0);
 	vb->m_storage.lastUsedSerial = m_currentSerial;
 	ib->m_storage.lastUsedSerial = m_currentSerial;
 
 	bool is32 = ib->m_format == D3DFMT_INDEX32;
 	unsigned indexSize = is32 ? 4 : 2;
-	unsigned count = vertexCountFor(PrimitiveType, primCount);
 	NSUInteger offset = (NSUInteger)startIndex * indexSize;
-	NSInteger baseVertex = (NSInteger)m_state.baseVertexIndex;
+	DrawCommand c {};
+	c.type = PrimitiveType;
+	c.stride = m_front.streams[0].stride;
+	c.vertexBuffer = vb->m_storage.buffer;
+	c.baseVertex = (NSInteger)m_front.baseVertexIndex;
 
 	if (PrimitiveType == D3DPT_TRIANGLEFAN)
 	{
@@ -1407,11 +1450,16 @@ HRESULT Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT, UINT,
 			out[i * 3 + 1] = read(i + 1);
 			out[i * 3 + 2] = read(i + 2);
 		}
-		[enc drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:primCount * 3 indexType:MTLIndexTypeUInt32 indexBuffer:idx.buffer
-				 indexBufferOffset:idx.offset instanceCount:1 baseVertex:baseVertex baseInstance:0];
+		c.indexBuffer = idx.buffer;
+		c.indexOffset = idx.offset;
+		c.indexType = MTLIndexTypeUInt32;
+		c.mtlType = MTLPrimitiveTypeTriangle;
+		c.count = primCount * 3;
+		issueDraw(c);
 		return D3D_OK;
 	}
 
+	unsigned count = vertexCountFor(PrimitiveType, primCount);
 	id<MTLBuffer> indexBuffer = ib->m_storage.buffer;
 	if (offset % 4 != 0)
 	{
@@ -1421,8 +1469,12 @@ HRESULT Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT, UINT,
 		indexBuffer = idx.buffer;
 		offset = idx.offset;
 	}
-	[enc drawIndexedPrimitives:primitiveType(PrimitiveType) indexCount:count indexType:is32 ? MTLIndexTypeUInt32 : MTLIndexTypeUInt16 indexBuffer:indexBuffer
-			 indexBufferOffset:offset instanceCount:1 baseVertex:baseVertex baseInstance:0];
+	c.indexBuffer = indexBuffer;
+	c.indexOffset = offset;
+	c.indexType = is32 ? MTLIndexTypeUInt32 : MTLIndexTypeUInt16;
+	c.mtlType = primitiveType(PrimitiveType);
+	c.count = count;
+	issueDraw(c);
 	return D3D_OK;
 }
 
@@ -1434,15 +1486,11 @@ HRESULT Device::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCo
 	Transient vtx = allocTransient((NSUInteger)count * VertexStreamZeroStride, 16);
 	memcpy(vtx.cpu, pVertexStreamZeroData, (size_t)count * VertexStreamZeroStride);
 
-	// D3D8 semantics: stream 0 is reset after an UP draw.
-	SetStreamSource(0, nullptr, VertexStreamZeroStride);
-	bool ok;
-	beginDraw(PrimitiveType, ok);
-	m_state.streams[0].stride = 0;
-	if (!ok)
-		return D3D_OK;
-	id<MTLRenderCommandEncoder> enc = m_encoder;
-	bindVertexBuffer(vtx.buffer, vtx.offset);
+	DrawCommand c {};
+	c.type = PrimitiveType;
+	c.stride = VertexStreamZeroStride;
+	c.vertexBuffer = vtx.buffer;
+	c.vertexOffset = vtx.offset;
 	if (PrimitiveType == D3DPT_TRIANGLEFAN)
 	{
 		Transient idx = allocTransient(PrimitiveCount * 3 * 4, 4);
@@ -1453,10 +1501,20 @@ HRESULT Device::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCo
 			out[i * 3 + 1] = i + 1;
 			out[i * 3 + 2] = i + 2;
 		}
-		[enc drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:PrimitiveCount * 3 indexType:MTLIndexTypeUInt32 indexBuffer:idx.buffer indexBufferOffset:idx.offset];
-		return D3D_OK;
+		c.indexBuffer = idx.buffer;
+		c.indexOffset = idx.offset;
+		c.indexType = MTLIndexTypeUInt32;
+		c.mtlType = MTLPrimitiveTypeTriangle;
+		c.count = PrimitiveCount * 3;
 	}
-	[enc drawPrimitives:primitiveType(PrimitiveType) vertexStart:0 vertexCount:count];
+	else
+	{
+		c.mtlType = primitiveType(PrimitiveType);
+		c.count = count;
+	}
+	// D3D8 semantics: stream 0 is reset after an UP draw.
+	SetStreamSource(0, nullptr, 0);
+	issueDraw(c);
 	return D3D_OK;
 }
 
@@ -1494,17 +1552,19 @@ HRESULT Device::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinV
 		memcpy(idx.cpu, pIndexData, (size_t)count * indexSize);
 	}
 
-	SetStreamSource(0, nullptr, VertexStreamZeroStride);
+	DrawCommand c {};
+	c.type = PrimitiveType;
+	c.stride = VertexStreamZeroStride;
+	c.vertexBuffer = vtx.buffer;
+	c.vertexOffset = vtx.offset;
+	c.indexBuffer = idx.buffer;
+	c.indexOffset = idx.offset;
+	c.indexType = indexType;
+	c.mtlType = PrimitiveType == D3DPT_TRIANGLEFAN ? MTLPrimitiveTypeTriangle : primitiveType(PrimitiveType);
+	c.count = count;
+	SetStreamSource(0, nullptr, 0);
 	SetIndices(nullptr, 0);
-	bool ok;
-	beginDraw(PrimitiveType, ok);
-	m_state.streams[0].stride = 0;
-	if (!ok)
-		return D3D_OK;
-	id<MTLRenderCommandEncoder> enc = m_encoder;
-	bindVertexBuffer(vtx.buffer, vtx.offset);
-	[enc drawIndexedPrimitives:PrimitiveType == D3DPT_TRIANGLEFAN ? MTLPrimitiveTypeTriangle : primitiveType(PrimitiveType) indexCount:count indexType:indexType
-				   indexBuffer:idx.buffer indexBufferOffset:idx.offset];
+	issueDraw(c);
 	return D3D_OK;
 }
 

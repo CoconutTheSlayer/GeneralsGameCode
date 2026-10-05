@@ -115,12 +115,28 @@ Device::Device(Direct3D* d3d, HWND window, DWORD behaviorFlags, D3DPRESENT_PARAM
 		WORD v = (WORD)(i * 257);
 		m_gammaRamp.red[i] = m_gammaRamp.green[i] = m_gammaRamp.blue[i] = v;
 	}
+	m_execGammaRamp = m_gammaRamp;
 }
 
 Device::~Device()
 {
+	stopWorker();
 	if (m_commandBuffer)
-		flush(true);
+	{
+		execFlush(m_currentSerial, true);
+		afterFlush();
+	}
+	for (int i = 0; i < MAX_STAGES; ++i)
+	{
+		if (m_front.textures[i])
+			m_front.textures[i]->Release();
+		if (m_state.textures[i])
+			m_state.textures[i]->Release();
+	}
+	if (m_frontRenderTarget)
+		m_frontRenderTarget->Release();
+	if (m_frontDepthStencil)
+		m_frontDepthStencil->Release();
 	if (m_backBuffer)
 		m_backBuffer->Release();
 	if (m_depthBuffer)
@@ -239,6 +255,14 @@ bool Device::initialize()
 	resetState();
 	loadPipelineCache();
 	g_currentDevice = this;
+	// Encode on a render thread unless D3D8METAL_THREADED=0.
+	{
+		const char* env = getenv("D3D8METAL_THREADED");
+		m_threaded = env == nullptr || atoi(env) != 0;
+		if (m_threaded)
+			m_worker = std::thread([this] { workerMain(); });
+		fprintf(stderr, "d3d8metal: render thread %s\n", m_threaded ? "on" : "off");
+	}
 	return true;
 }
 
@@ -336,6 +360,16 @@ bool Device::createSwapChainResources()
 	if (m_depthStencil)
 		m_depthStencil->AddRef();
 	m_pendingClearFlags = 0;
+
+	if (m_frontRenderTarget)
+		m_frontRenderTarget->Release();
+	m_frontRenderTarget = m_backBuffer;
+	m_frontRenderTarget->AddRef();
+	if (m_frontDepthStencil)
+		m_frontDepthStencil->Release();
+	m_frontDepthStencil = m_depthBuffer;
+	if (m_frontDepthStencil)
+		m_frontDepthStencil->AddRef();
 	return true;
 }
 
@@ -343,7 +377,36 @@ void Device::resetState()
 {
 	++m_vsConstantsVersion;
 	++m_psConstantsVersion;
-	DeviceState& s = m_state;
+	resetDeviceState(m_state);
+	// The game thread's copy starts out the same, with its own texture references (none).
+	for (int i = 0; i < MAX_STAGES; ++i)
+	{
+		if (m_front.textures[i])
+			m_front.textures[i]->Release();
+	}
+	for (int i = 0; i < MAX_STREAMS; ++i)
+	{
+		if (m_front.streams[i].buffer)
+			m_front.streams[i].buffer->Release();
+	}
+	if (m_front.indices)
+		m_front.indices->Release();
+	resetDeviceState(m_front);
+	m_dirtyRenderStates.clear();
+	m_dirtyStageStates.clear();
+	m_dirtyTransforms.clear();
+	memset(m_renderStateDirty, 0, sizeof(m_renderStateDirty));
+	memset(m_stageStateDirty, 0, sizeof(m_stageStateDirty));
+	memset(m_transformDirty, 0, sizeof(m_transformDirty));
+	m_dirtyMisc = 0;
+	m_vsDirtyLo = 96;
+	m_vsDirtyHi = 0;
+	m_psDirtyLo = 8;
+	m_psDirtyHi = 0;
+}
+
+void Device::resetDeviceState(DeviceState& s)
+{
 	memset(s.renderStates, 0, sizeof(s.renderStates));
 	DWORD* rs = s.renderStates;
 	rs[D3DRS_ZENABLE] = m_params.EnableAutoDepthStencil ? D3DZB_TRUE : D3DZB_FALSE;
@@ -447,21 +510,6 @@ id<MTLCommandBuffer> Device::commandBuffer()
 	if (m_commandBuffer == nil)
 	{
 		m_commandBuffer = [m_queue commandBuffer];
-		// Recycle buffers whose GPU use has completed.
-		uint64_t done = m_completedSerial.load();
-		auto recycle = [done](std::vector<std::pair<uint64_t, id<MTLBuffer>>>& list, const std::function<void(id<MTLBuffer>)>& reuse) {
-			size_t keep = 0;
-			for (size_t i = 0; i < list.size(); ++i)
-			{
-				if (list[i].first <= done)
-					reuse(list[i].second);
-				else
-					list[keep++] = list[i];
-			}
-			list.resize(keep);
-		};
-		recycle(m_retiredTransient, [this](id<MTLBuffer> b) { m_transientBuffers.push_back(b); });
-		recycle(m_retiredBuffers, [this](id<MTLBuffer> b) { releaseBuffer(b); });
 	}
 	return m_commandBuffer;
 }
@@ -490,19 +538,14 @@ void Device::endRenderEncoder()
 	}
 }
 
-void Device::flush(bool wait)
+// Commits the command buffer with the given serial. The game thread accounts for it with
+// afterFlush(), so serials only ever change there.
+void Device::execFlush(uint64_t serial, bool wait)
 {
 	endRenderEncoder();
 	if (m_commandBuffer == nil)
-		return;
-	if (m_transientCurrent)
-	{
-		m_retiredTransient.push_back({ m_currentSerial, m_transientCurrent });
-		m_transientCurrent = nil;
-		m_transientOffset = 0;
-	}
+		commandBuffer(); // an empty one still completes the serial
 	// A serial completes when its command buffer and the uploads ahead of it have.
-	uint64_t serial = m_currentSerial;
 	std::atomic<uint64_t>* completed = &m_completedSerial;
 	std::atomic<int>* pending = new std::atomic<int>(m_uploadCommandBuffer ? 2 : 1);
 	void (^done)(id<MTLCommandBuffer>) = ^(id<MTLCommandBuffer>) {
@@ -530,13 +573,12 @@ void Device::flush(bool wait)
 	if (wait)
 		[m_commandBuffer waitUntilCompleted];
 	m_commandBuffer = nil;
-	++m_currentSerial;
 }
 
 Device::Transient Device::allocTransient(NSUInteger length, NSUInteger alignment)
 {
+	// Game thread only: the render thread only reads the buffers it is given.
 	const NSUInteger kChunk = 4 * 1024 * 1024;
-	commandBuffer();
 	NSUInteger offset = (m_transientOffset + alignment - 1) & ~(alignment - 1);
 	if (m_transientCurrent == nil || offset + length > [m_transientCurrent length])
 	{
@@ -727,8 +769,6 @@ void Device::uploadTexture(TextureStorage& storage, unsigned face, unsigned leve
 	// its draws, which ends the current render pass. Other textures are updated by the
 	// upload command buffer that runs ahead of it.
 	bool inOrder = storage.lastUsedSerial == m_currentSerial;
-	if (inOrder)
-		endRenderEncoder();
 	Transient staging = allocTransient((NSUInteger)dstPitch * dstRows, 16);
 	if (native16)
 	{
@@ -751,18 +791,25 @@ void Device::uploadTexture(TextureStorage& storage, unsigned face, unsigned leve
 		ConvertToBGRA8(storage.format, src, srcPitch, (uint8_t*)staging.cpu, dstPitch, rw, rh);
 	}
 
-	id<MTLBlitCommandEncoder> blit = inOrder ? [commandBuffer() blitCommandEncoder] : uploadEncoder();
-	[blit copyFromBuffer:staging.buffer
-			  sourceOffset:staging.offset
-		 sourceBytesPerRow:dstPitch
-	   sourceBytesPerImage:(NSUInteger)dstPitch * dstRows
-				sourceSize:MTLSizeMake(rw, rh, 1)
-				 toTexture:storage.texture
-		  destinationSlice:face
-		  destinationLevel:level
-		 destinationOrigin:MTLOriginMake((NSUInteger)rect.left, (NSUInteger)rect.top, 0)];
-	if (inOrder)
-		[blit endEncoding];
+	id<MTLTexture> texture = storage.texture;
+	id<MTLBuffer> stagingBuffer = staging.buffer;
+	const NSUInteger stagingOffset = staging.offset;
+	submit([this, inOrder, texture, stagingBuffer, stagingOffset, dstPitch, dstRows, rw, rh, face, level, rect] {
+		if (inOrder)
+			endRenderEncoder();
+		id<MTLBlitCommandEncoder> blit = inOrder ? [commandBuffer() blitCommandEncoder] : uploadEncoder();
+		[blit copyFromBuffer:stagingBuffer
+				  sourceOffset:stagingOffset
+			 sourceBytesPerRow:dstPitch
+		   sourceBytesPerImage:(NSUInteger)dstPitch * dstRows
+					sourceSize:MTLSizeMake(rw, rh, 1)
+					 toTexture:texture
+			  destinationSlice:face
+			  destinationLevel:level
+			 destinationOrigin:MTLOriginMake((NSUInteger)rect.left, (NSUInteger)rect.top, 0)];
+		if (inOrder)
+			[blit endEncoding];
+	});
 }
 
 void Device::readbackTexture(TextureStorage& storage, unsigned face, unsigned level)
@@ -771,6 +818,10 @@ void Device::readbackTexture(TextureStorage& storage, unsigned face, unsigned le
 		return;
 	unsigned w = storage.levelWidth(level);
 	unsigned h = storage.levelHeight(level);
+	// Everything recorded so far has to run first; the render thread then stays idle while the
+	// game thread uses its state below.
+	syncState();
+	drain();
 	endRenderEncoder();
 	NSUInteger bytes = (NSUInteger)w * h * 4;
 	if (m_readbackBuffer == nil || [m_readbackBuffer length] < bytes)
@@ -787,7 +838,8 @@ void Device::readbackTexture(TextureStorage& storage, unsigned face, unsigned le
 	  destinationBytesPerRow:(NSUInteger)w * 4
 	destinationBytesPerImage:(NSUInteger)w * h * 4];
 	[blit endEncoding];
-	flush(true);
+	execFlush(m_currentSerial, true);
+	afterFlush();
 	std::vector<uint8_t>& shadow = storage.shadow(face, level);
 	ConvertFromBGRA8(storage.format, (const uint8_t*)[buffer contents], w * 4, shadow.data(), RowPitch(storage.format, w), w, h);
 	storage.shadowStale = false;
@@ -824,14 +876,13 @@ void Device::updateLetterbox()
 		(float)(vw * toPoints), (float)(vh * toPoints));
 }
 
-void Device::presentToDrawable()
+void Device::presentToDrawable(const MTLViewport& viewport)
 {
-	updateLetterbox();
 	id<CAMetalDrawable> drawable = [m_layer nextDrawable];
 	if (drawable == nil)
 		return;
 	if (g_gammaTexture == nil)
-		g_gammaTexture = createGammaTexture(m_mtlDevice, m_gammaRamp);
+		g_gammaTexture = createGammaTexture(m_mtlDevice, m_execGammaRamp);
 
 	MTLRenderPassDescriptor* pass = [MTLRenderPassDescriptor renderPassDescriptor];
 	pass.colorAttachments[0].texture = drawable.texture;
@@ -839,7 +890,7 @@ void Device::presentToDrawable()
 	pass.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 1);
 	pass.colorAttachments[0].storeAction = MTLStoreActionStore;
 	id<MTLRenderCommandEncoder> enc = [commandBuffer() renderCommandEncoderWithDescriptor:pass];
-	[enc setViewport:m_presentViewport];
+	[enc setViewport:viewport];
 	[enc setRenderPipelineState:m_presentPipeline];
 	[enc setFragmentTexture:m_backBuffer->m_storage->texture atIndex:0];
 	[enc setFragmentTexture:g_gammaTexture atIndex:1];
@@ -884,6 +935,41 @@ void Device::writeScreenshotIfRequested()
 
 HRESULT Device::Present(CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*)
 {
+	syncState();
+	writeScreenshotIfRequested();
+	// The window is the game thread's; the render thread gets the letterbox rectangle.
+	updateLetterbox();
+	const MTLViewport viewport = m_presentViewport;
+	// Touching /tmp/d3d8metal_trace traces the draws of the next frame.
+	const bool trace = access("/tmp/d3d8metal_trace", F_OK) == 0;
+	if (trace)
+		unlink("/tmp/d3d8metal_trace");
+
+	// Stay at most one frame ahead of the render thread.
+	while (m_presentsSubmitted > m_presentsDone.load(std::memory_order_acquire) + 1)
+	{
+		std::unique_lock<std::mutex> lock(m_ringMutex);
+		m_producerWaiting.store(true);
+		m_producerWake.wait_for(lock, std::chrono::milliseconds(1));
+		m_producerWaiting.store(false);
+	}
+	const uint64_t serial = m_currentSerial;
+	++m_presentsSubmitted;
+	submit([this, serial, viewport, trace] {
+		execPresent(serial, viewport);
+		m_traceFrame = trace;
+		if (trace)
+			fprintf(stderr, "d3d8metal: ===== tracing one frame =====\n");
+		m_presentsDone.fetch_add(1, std::memory_order_release);
+	});
+	afterFlush();
+	m_backBuffer->m_storage->lastUsedSerial = serial;
+	m_backBuffer->m_storage->shadowStale = true;
+	return D3D_OK;
+}
+
+void Device::execPresent(uint64_t serial, MTLViewport viewport)
+{
 	endRenderEncoder();
 	// Apply a pending clear that never got a draw.
 	if (m_pendingClearFlags)
@@ -891,30 +977,29 @@ HRESULT Device::Present(CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*)
 		renderEncoder();
 		endRenderEncoder();
 	}
-	writeScreenshotIfRequested();
-	// Touching /tmp/d3d8metal_trace traces the draws of the next frame.
-	m_traceFrame = access("/tmp/d3d8metal_trace", F_OK) == 0;
-	if (m_traceFrame)
-	{
-		unlink("/tmp/d3d8metal_trace");
-		fprintf(stderr, "d3d8metal: ===== tracing one frame =====\n");
-	}
 	dispatch_semaphore_wait(m_frameSemaphore, DISPATCH_TIME_FOREVER);
-	presentToDrawable();
+	presentToDrawable(viewport);
 	dispatch_semaphore_t sem = m_frameSemaphore;
 	[commandBuffer() addCompletedHandler:^(id<MTLCommandBuffer>) {
 		dispatch_semaphore_signal(sem);
 	}];
-	flush(false);
-	m_backBuffer->m_storage->shadowStale = true;
-	return D3D_OK;
+	execFlush(serial, false);
 }
 
 HRESULT Device::Reset(D3DPRESENT_PARAMETERS* params)
 {
 	if (params == nullptr)
 		return D3DERR_INVALIDCALL;
-	flush(true);
+	syncState();
+	drain();
+	execFlush(m_currentSerial, true);
+	afterFlush();
+	for (int i = 0; i < MAX_STAGES; ++i)
+	{
+		if (m_state.textures[i])
+			m_state.textures[i]->Release();
+		m_state.textures[i] = nullptr;
+	}
 	m_params = *params;
 	if (!createSwapChainResources())
 		return D3DERR_NOTAVAILABLE;
@@ -946,7 +1031,11 @@ void Device::SetGammaRamp(DWORD, CONST D3DGAMMARAMP* pRamp)
 	if (pRamp == nullptr)
 		return;
 	m_gammaRamp = *pRamp;
-	g_gammaTexture = createGammaTexture(m_mtlDevice, m_gammaRamp);
+	const D3DGAMMARAMP ramp = *pRamp;
+	submit([this, ramp] {
+		m_execGammaRamp = ramp;
+		g_gammaTexture = createGammaTexture(m_mtlDevice, m_execGammaRamp);
+	});
 }
 
 void Device::GetGammaRamp(D3DGAMMARAMP* pRamp)
@@ -1188,10 +1277,13 @@ HRESULT Device::CopyRects(IDirect3DSurface8* pSourceSurface, CONST RECT* pSource
 	{
 		// Between render targets the copy stays on the GPU (the heat effect copies the back buffer
 		// every frame); ending the pass resolves a multisampled source.
-		if (src == m_renderTarget && m_pendingClearFlags != 0)
-			renderEncoder();
-		endRenderEncoder();
-		id<MTLBlitCommandEncoder> blit = [commandBuffer() blitCommandEncoder];
+		struct Copy
+		{
+			MTLOrigin from;
+			MTLSize size;
+			MTLOrigin to;
+		};
+		std::vector<Copy> copies;
 		UINT count = cRects ? cRects : 1;
 		for (UINT i = 0; i < count; ++i)
 		{
@@ -1208,17 +1300,32 @@ HRESULT Device::CopyRects(IDirect3DSurface8* pSourceSurface, CONST RECT* pSource
 			r.bottom = std::min<LONG>(r.bottom, r.top + (LONG)dst->height() - p.y);
 			if (p.x < 0 || p.y < 0 || r.right <= r.left || r.bottom <= r.top)
 				continue;
-			[blit copyFromTexture:ss.texture
-					  sourceSlice:src->m_face
-					  sourceLevel:src->m_level
-					 sourceOrigin:MTLOriginMake(r.left, r.top, 0)
-					   sourceSize:MTLSizeMake(r.right - r.left, r.bottom - r.top, 1)
-						toTexture:ds.texture
-				 destinationSlice:dst->m_face
-				 destinationLevel:dst->m_level
-				destinationOrigin:MTLOriginMake(p.x, p.y, 0)];
+			copies.push_back({ MTLOriginMake(r.left, r.top, 0), MTLSizeMake(r.right - r.left, r.bottom - r.top, 1), MTLOriginMake(p.x, p.y, 0) });
 		}
-		[blit endEncoding];
+		syncState();
+		id<MTLTexture> from = ss.texture, to = ds.texture;
+		const NSUInteger fromSlice = src->m_face, fromLevel = src->m_level, toSlice = dst->m_face, toLevel = dst->m_level;
+		// Only compared with the render thread's render target, never used.
+		const void* srcSurface = src;
+		submit([this, copies = std::move(copies), from, to, fromSlice, fromLevel, toSlice, toLevel, srcSurface] {
+			if (srcSurface == m_renderTarget && m_pendingClearFlags != 0)
+				renderEncoder();
+			endRenderEncoder();
+			id<MTLBlitCommandEncoder> blit = [commandBuffer() blitCommandEncoder];
+			for (const Copy& c : copies)
+			{
+				[blit copyFromTexture:from
+						  sourceSlice:fromSlice
+						  sourceLevel:fromLevel
+						 sourceOrigin:c.from
+						   sourceSize:c.size
+							toTexture:to
+					 destinationSlice:toSlice
+					 destinationLevel:toLevel
+					destinationOrigin:c.to];
+			}
+			[blit endEncoding];
+		});
 		markTextureUsed(ss);
 		markTextureUsed(ds);
 		ds.shadowStale = true;
@@ -1303,6 +1410,45 @@ HRESULT Device::SetRenderTarget(IDirect3DSurface8* pRenderTarget, IDirect3DSurfa
 {
 	Surface* rt = static_cast<Surface*>(pRenderTarget);
 	Surface* ds = static_cast<Surface*>(pNewZStencil);
+	// Changes made before belong to the old render target.
+	syncState();
+	if (rt)
+	{
+		rt->AddRef();
+		if (m_frontRenderTarget)
+			m_frontRenderTarget->Release();
+		m_frontRenderTarget = rt;
+		// D3D resets the viewport to the full render target; the render thread does the same.
+		m_front.viewport.X = 0;
+		m_front.viewport.Y = 0;
+		m_front.viewport.Width = rt->width();
+		m_front.viewport.Height = rt->height();
+		m_front.viewport.MinZ = 0.0f;
+		m_front.viewport.MaxZ = 1.0f;
+	}
+	if (ds)
+		ds->AddRef();
+	if (m_frontDepthStencil)
+		m_frontDepthStencil->Release();
+	m_frontDepthStencil = ds;
+
+	// The command holds references until the render thread has taken its own.
+	if (rt)
+		rt->AddRef();
+	if (ds)
+		ds->AddRef();
+	submit([this, rt, ds] {
+		execSetRenderTarget(rt, ds);
+		if (rt)
+			rt->Release();
+		if (ds)
+			ds->Release();
+	});
+	return D3D_OK;
+}
+
+void Device::execSetRenderTarget(Surface* rt, Surface* ds)
+{
 	endRenderEncoder();
 	if (m_pendingClearFlags)
 		m_pendingClearFlags = 0;
@@ -1329,15 +1475,14 @@ HRESULT Device::SetRenderTarget(IDirect3DSurface8* pRenderTarget, IDirect3DSurfa
 		m_state.viewport.MinZ = 0.0f;
 		m_state.viewport.MaxZ = 1.0f;
 	}
-	return D3D_OK;
 }
 
 HRESULT Device::GetRenderTarget(IDirect3DSurface8** ppRenderTarget)
 {
 	if (ppRenderTarget == nullptr)
 		return D3DERR_INVALIDCALL;
-	m_renderTarget->AddRef();
-	*ppRenderTarget = m_renderTarget;
+	m_frontRenderTarget->AddRef();
+	*ppRenderTarget = m_frontRenderTarget;
 	return D3D_OK;
 }
 
@@ -1345,13 +1490,13 @@ HRESULT Device::GetDepthStencilSurface(IDirect3DSurface8** ppZStencilSurface)
 {
 	if (ppZStencilSurface == nullptr)
 		return D3DERR_INVALIDCALL;
-	if (m_depthStencil == nullptr)
+	if (m_frontDepthStencil == nullptr)
 	{
 		*ppZStencilSurface = nullptr;
 		return D3DERR_NOTFOUND;
 	}
-	m_depthStencil->AddRef();
-	*ppZStencilSurface = m_depthStencil;
+	m_frontDepthStencil->AddRef();
+	*ppZStencilSurface = m_frontDepthStencil;
 	return D3D_OK;
 }
 
@@ -1362,7 +1507,12 @@ HRESULT Device::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatr
 {
 	if ((unsigned)State >= 512 || pMatrix == nullptr)
 		return D3DERR_INVALIDCALL;
-	m_state.transforms[State] = *pMatrix;
+	m_front.transforms[State] = *pMatrix;
+	if (!m_transformDirty[State])
+	{
+		m_transformDirty[State] = true;
+		m_dirtyTransforms.push_back((uint16_t)State);
+	}
 	return D3D_OK;
 }
 
@@ -1370,7 +1520,7 @@ HRESULT Device::GetTransform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* pMatrix)
 {
 	if ((unsigned)State >= 512 || pMatrix == nullptr)
 		return D3DERR_INVALIDCALL;
-	*pMatrix = m_state.transforms[State];
+	*pMatrix = m_front.transforms[State];
 	return D3D_OK;
 }
 
@@ -1378,7 +1528,7 @@ HRESULT Device::MultiplyTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* 
 {
 	if ((unsigned)State >= 512 || pMatrix == nullptr)
 		return D3DERR_INVALIDCALL;
-	D3DMATRIX a = m_state.transforms[State];
+	D3DMATRIX a = m_front.transforms[State];
 	D3DMATRIX r;
 	for (int i = 0; i < 4; ++i)
 		for (int j = 0; j < 4; ++j)
@@ -1388,15 +1538,15 @@ HRESULT Device::MultiplyTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* 
 				v += a.m[i][k] * pMatrix->m[k][j];
 			r.m[i][j] = v;
 		}
-	m_state.transforms[State] = r;
-	return D3D_OK;
+	return SetTransform(State, &r);
 }
 
 HRESULT Device::SetViewport(CONST D3DVIEWPORT8* pViewport)
 {
 	if (pViewport == nullptr)
 		return D3DERR_INVALIDCALL;
-	m_state.viewport = *pViewport;
+	m_front.viewport = *pViewport;
+	m_dirtyMisc |= DIRTY_VIEWPORT;
 	return D3D_OK;
 }
 
@@ -1404,7 +1554,7 @@ HRESULT Device::GetViewport(D3DVIEWPORT8* pViewport)
 {
 	if (pViewport == nullptr)
 		return D3DERR_INVALIDCALL;
-	*pViewport = m_state.viewport;
+	*pViewport = m_front.viewport;
 	return D3D_OK;
 }
 
@@ -1412,7 +1562,8 @@ HRESULT Device::SetMaterial(CONST D3DMATERIAL8* pMaterial)
 {
 	if (pMaterial == nullptr)
 		return D3DERR_INVALIDCALL;
-	m_state.material = *pMaterial;
+	m_front.material = *pMaterial;
+	m_dirtyMisc |= DIRTY_MATERIAL;
 	return D3D_OK;
 }
 
@@ -1420,7 +1571,7 @@ HRESULT Device::GetMaterial(D3DMATERIAL8* pMaterial)
 {
 	if (pMaterial == nullptr)
 		return D3DERR_INVALIDCALL;
-	*pMaterial = m_state.material;
+	*pMaterial = m_front.material;
 	return D3D_OK;
 }
 
@@ -1428,7 +1579,8 @@ HRESULT Device::SetLight(DWORD Index, CONST D3DLIGHT8* light)
 {
 	if (Index >= MAX_LIGHTS || light == nullptr)
 		return D3DERR_INVALIDCALL;
-	m_state.lights[Index] = *light;
+	m_front.lights[Index] = *light;
+	m_dirtyMisc |= DIRTY_LIGHT0 << Index;
 	return D3D_OK;
 }
 
@@ -1436,7 +1588,7 @@ HRESULT Device::GetLight(DWORD Index, D3DLIGHT8* light)
 {
 	if (Index >= MAX_LIGHTS || light == nullptr)
 		return D3DERR_INVALIDCALL;
-	*light = m_state.lights[Index];
+	*light = m_front.lights[Index];
 	return D3D_OK;
 }
 
@@ -1444,7 +1596,8 @@ HRESULT Device::LightEnable(DWORD Index, BOOL Enable)
 {
 	if (Index >= MAX_LIGHTS)
 		return D3DERR_INVALIDCALL;
-	m_state.lightEnabled[Index] = Enable != FALSE;
+	m_front.lightEnabled[Index] = Enable != FALSE;
+	m_dirtyMisc |= DIRTY_LIGHT0 << Index;
 	return D3D_OK;
 }
 
@@ -1452,7 +1605,7 @@ HRESULT Device::GetLightEnable(DWORD Index, BOOL* pEnable)
 {
 	if (Index >= MAX_LIGHTS || pEnable == nullptr)
 		return D3DERR_INVALIDCALL;
-	*pEnable = m_state.lightEnabled[Index];
+	*pEnable = m_front.lightEnabled[Index];
 	return D3D_OK;
 }
 
@@ -1460,7 +1613,8 @@ HRESULT Device::SetClipPlane(DWORD Index, CONST float* pPlane)
 {
 	if (Index >= MAX_CLIP_PLANES || pPlane == nullptr)
 		return D3DERR_INVALIDCALL;
-	memcpy(m_state.clipPlanes[Index], pPlane, sizeof(float) * 4);
+	memcpy(m_front.clipPlanes[Index], pPlane, sizeof(float) * 4);
+	m_dirtyMisc |= DIRTY_CLIP0 << Index;
 	return D3D_OK;
 }
 
@@ -1468,7 +1622,7 @@ HRESULT Device::GetClipPlane(DWORD Index, float* pPlane)
 {
 	if (Index >= MAX_CLIP_PLANES || pPlane == nullptr)
 		return D3DERR_INVALIDCALL;
-	memcpy(pPlane, m_state.clipPlanes[Index], sizeof(float) * 4);
+	memcpy(pPlane, m_front.clipPlanes[Index], sizeof(float) * 4);
 	return D3D_OK;
 }
 
@@ -1476,9 +1630,11 @@ HRESULT Device::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value)
 {
 	if ((unsigned)State >= 256)
 		return D3DERR_INVALIDCALL;
-	if (State == RS_SOFT_PARTICLES && Value != 0 && m_state.renderStates[State] == 0)
-		m_softDepthValid = false; // the scene may have changed since the last copy
-	m_state.renderStates[State] = Value;
+	if (m_front.renderStates[State] != Value)
+	{
+		m_front.renderStates[State] = Value;
+		markRenderState((unsigned)State);
+	}
 	return D3D_OK;
 }
 
@@ -1486,7 +1642,7 @@ HRESULT Device::GetRenderState(D3DRENDERSTATETYPE State, DWORD* pValue)
 {
 	if ((unsigned)State >= 256 || pValue == nullptr)
 		return D3DERR_INVALIDCALL;
-	*pValue = m_state.renderStates[State];
+	*pValue = m_front.renderStates[State];
 	return D3D_OK;
 }
 
@@ -1504,7 +1660,7 @@ HRESULT Device::EndStateBlock(DWORD* pToken)
 		return D3DERR_INVALIDCALL;
 	m_recordingStateBlock = false;
 	*pToken = m_nextStateBlock++;
-	m_stateBlocks[*pToken] = m_state;
+	m_stateBlocks[*pToken] = m_front;
 	return D3D_OK;
 }
 
@@ -1513,9 +1669,8 @@ HRESULT Device::ApplyStateBlock(DWORD Token)
 	auto it = m_stateBlocks.find(Token);
 	if (it == m_stateBlocks.end())
 		return D3DERR_INVALIDCALL;
-	m_state = it->second;
-	++m_vsConstantsVersion;
-	++m_psConstantsVersion;
+	m_front = it->second;
+	markAllDirty();
 	return D3D_OK;
 }
 
@@ -1524,7 +1679,7 @@ HRESULT Device::CaptureStateBlock(DWORD Token)
 	auto it = m_stateBlocks.find(Token);
 	if (it == m_stateBlocks.end())
 		return D3DERR_INVALIDCALL;
-	it->second = m_state;
+	it->second = m_front;
 	return D3D_OK;
 }
 
@@ -1539,7 +1694,7 @@ HRESULT Device::CreateStateBlock(D3DSTATEBLOCKTYPE, DWORD* pToken)
 	if (pToken == nullptr)
 		return D3DERR_INVALIDCALL;
 	*pToken = m_nextStateBlock++;
-	m_stateBlocks[*pToken] = m_state;
+	m_stateBlocks[*pToken] = m_front;
 	return D3D_OK;
 }
 
@@ -1556,7 +1711,7 @@ HRESULT Device::GetTexture(DWORD Stage, IDirect3DBaseTexture8** ppTexture)
 {
 	if (Stage >= MAX_STAGES || ppTexture == nullptr)
 		return D3DERR_INVALIDCALL;
-	*ppTexture = m_state.textures[Stage];
+	*ppTexture = m_front.textures[Stage];
 	if (*ppTexture)
 		(*ppTexture)->AddRef();
 	return D3D_OK;
@@ -1566,11 +1721,14 @@ HRESULT Device::SetTexture(DWORD Stage, IDirect3DBaseTexture8* pTexture)
 {
 	if (Stage >= MAX_STAGES)
 		return D3DERR_INVALIDCALL;
+	if (m_front.textures[Stage] == pTexture)
+		return D3D_OK;
 	if (pTexture)
 		pTexture->AddRef();
-	if (m_state.textures[Stage])
-		m_state.textures[Stage]->Release();
-	m_state.textures[Stage] = pTexture;
+	if (m_front.textures[Stage])
+		m_front.textures[Stage]->Release();
+	m_front.textures[Stage] = pTexture;
+	m_dirtyMisc |= DIRTY_TEXTURE0 << Stage;
 	return D3D_OK;
 }
 
@@ -1578,7 +1736,7 @@ HRESULT Device::GetTextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type,
 {
 	if (Stage >= MAX_STAGES || (unsigned)Type >= 32 || pValue == nullptr)
 		return D3DERR_INVALIDCALL;
-	*pValue = m_state.stageStates[Stage][Type];
+	*pValue = m_front.stageStates[Stage][Type];
 	return D3D_OK;
 }
 
@@ -1586,7 +1744,16 @@ HRESULT Device::SetTextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type,
 {
 	if (Stage >= MAX_STAGES || (unsigned)Type >= 32)
 		return D3DERR_INVALIDCALL;
-	m_state.stageStates[Stage][Type] = Value;
+	if (m_front.stageStates[Stage][Type] != Value)
+	{
+		m_front.stageStates[Stage][Type] = Value;
+		const unsigned index = Stage * 32 + (unsigned)Type;
+		if (!m_stageStateDirty[index])
+		{
+			m_stageStateDirty[index] = true;
+			m_dirtyStageStates.push_back((uint16_t)index);
+		}
+	}
 	return D3D_OK;
 }
 
@@ -1705,14 +1872,15 @@ HRESULT Device::CreateVertexShader(CONST DWORD* pDeclaration, CONST DWORD* pFunc
 		obj.hash = RegisterShaderCode(obj.function);
 	}
 	DWORD handle = (m_nextShaderHandle++ << 1) | 1; // bit 0 distinguishes handles from FVF codes
-	m_vertexShaders[handle] = obj;
+	submit([this, handle, obj = std::move(obj)] { m_vertexShaders[handle] = obj; });
 	*pHandle = handle;
 	return D3D_OK;
 }
 
 HRESULT Device::SetVertexShader(DWORD Handle)
 {
-	m_state.vertexShader = Handle;
+	m_front.vertexShader = Handle;
+	m_dirtyMisc |= DIRTY_VERTEX_SHADER;
 	return D3D_OK;
 }
 
@@ -1720,13 +1888,14 @@ HRESULT Device::GetVertexShader(DWORD* pHandle)
 {
 	if (pHandle == nullptr)
 		return D3DERR_INVALIDCALL;
-	*pHandle = m_state.vertexShader;
+	*pHandle = m_front.vertexShader;
 	return D3D_OK;
 }
 
 HRESULT Device::DeleteVertexShader(DWORD Handle)
 {
-	m_vertexShaders.erase(Handle);
+	syncState();
+	submit([this, Handle] { m_vertexShaders.erase(Handle); });
 	return D3D_OK;
 }
 
@@ -1734,8 +1903,9 @@ HRESULT Device::SetVertexShaderConstant(DWORD Register, CONST void* pConstantDat
 {
 	if (Register + ConstantCount > 96 || pConstantData == nullptr)
 		return D3DERR_INVALIDCALL;
-	memcpy(m_state.vsConstants[Register], pConstantData, ConstantCount * 16);
-	++m_vsConstantsVersion;
+	memcpy(m_front.vsConstants[Register], pConstantData, ConstantCount * 16);
+	m_vsDirtyLo = std::min(m_vsDirtyLo, (int)Register);
+	m_vsDirtyHi = std::max(m_vsDirtyHi, (int)(Register + ConstantCount));
 	return D3D_OK;
 }
 
@@ -1743,7 +1913,7 @@ HRESULT Device::GetVertexShaderConstant(DWORD Register, void* pConstantData, DWO
 {
 	if (Register + ConstantCount > 96 || pConstantData == nullptr)
 		return D3DERR_INVALIDCALL;
-	memcpy(pConstantData, m_state.vsConstants[Register], ConstantCount * 16);
+	memcpy(pConstantData, m_front.vsConstants[Register], ConstantCount * 16);
 	return D3D_OK;
 }
 
@@ -1754,10 +1924,10 @@ HRESULT Device::SetStreamSource(UINT StreamNumber, IDirect3DVertexBuffer8* pStre
 	VertexBuffer* vb = static_cast<VertexBuffer*>(pStreamData);
 	if (vb)
 		vb->AddRef();
-	if (m_state.streams[StreamNumber].buffer)
-		m_state.streams[StreamNumber].buffer->Release();
-	m_state.streams[StreamNumber].buffer = vb;
-	m_state.streams[StreamNumber].stride = Stride;
+	if (m_front.streams[StreamNumber].buffer)
+		m_front.streams[StreamNumber].buffer->Release();
+	m_front.streams[StreamNumber].buffer = vb;
+	m_front.streams[StreamNumber].stride = Stride;
 	return D3D_OK;
 }
 
@@ -1765,10 +1935,10 @@ HRESULT Device::GetStreamSource(UINT StreamNumber, IDirect3DVertexBuffer8** ppSt
 {
 	if (StreamNumber >= MAX_STREAMS || ppStreamData == nullptr || pStride == nullptr)
 		return D3DERR_INVALIDCALL;
-	*ppStreamData = m_state.streams[StreamNumber].buffer;
+	*ppStreamData = m_front.streams[StreamNumber].buffer;
 	if (*ppStreamData)
 		(*ppStreamData)->AddRef();
-	*pStride = m_state.streams[StreamNumber].stride;
+	*pStride = m_front.streams[StreamNumber].stride;
 	return D3D_OK;
 }
 
@@ -1777,10 +1947,10 @@ HRESULT Device::SetIndices(IDirect3DIndexBuffer8* pIndexData, UINT BaseVertexInd
 	IndexBuffer* ib = static_cast<IndexBuffer*>(pIndexData);
 	if (ib)
 		ib->AddRef();
-	if (m_state.indices)
-		m_state.indices->Release();
-	m_state.indices = ib;
-	m_state.baseVertexIndex = BaseVertexIndex;
+	if (m_front.indices)
+		m_front.indices->Release();
+	m_front.indices = ib;
+	m_front.baseVertexIndex = BaseVertexIndex;
 	return D3D_OK;
 }
 
@@ -1788,10 +1958,10 @@ HRESULT Device::GetIndices(IDirect3DIndexBuffer8** ppIndexData, UINT* pBaseVerte
 {
 	if (ppIndexData == nullptr || pBaseVertexIndex == nullptr)
 		return D3DERR_INVALIDCALL;
-	*ppIndexData = m_state.indices;
+	*ppIndexData = m_front.indices;
 	if (*ppIndexData)
 		(*ppIndexData)->AddRef();
-	*pBaseVertexIndex = m_state.baseVertexIndex;
+	*pBaseVertexIndex = m_front.baseVertexIndex;
 	return D3D_OK;
 }
 
@@ -1812,14 +1982,15 @@ HRESULT Device::CreatePixelShader(CONST DWORD* pFunction, DWORD* pHandle)
 	obj.hash = RegisterShaderCode(obj.function);
 	obj.textureCount = info.textureCount;
 	DWORD handle = m_nextShaderHandle++;
-	m_pixelShaders[handle] = obj;
+	submit([this, handle, obj = std::move(obj)] { m_pixelShaders[handle] = obj; });
 	*pHandle = handle;
 	return D3D_OK;
 }
 
 HRESULT Device::SetPixelShader(DWORD Handle)
 {
-	m_state.pixelShader = Handle;
+	m_front.pixelShader = Handle;
+	m_dirtyMisc |= DIRTY_PIXEL_SHADER;
 	return D3D_OK;
 }
 
@@ -1827,13 +1998,14 @@ HRESULT Device::GetPixelShader(DWORD* pHandle)
 {
 	if (pHandle == nullptr)
 		return D3DERR_INVALIDCALL;
-	*pHandle = m_state.pixelShader;
+	*pHandle = m_front.pixelShader;
 	return D3D_OK;
 }
 
 HRESULT Device::DeletePixelShader(DWORD Handle)
 {
-	m_pixelShaders.erase(Handle);
+	syncState();
+	submit([this, Handle] { m_pixelShaders.erase(Handle); });
 	return D3D_OK;
 }
 
@@ -1841,8 +2013,9 @@ HRESULT Device::SetPixelShaderConstant(DWORD Register, CONST void* pConstantData
 {
 	if (Register + ConstantCount > 8 || pConstantData == nullptr)
 		return D3DERR_INVALIDCALL;
-	memcpy(m_state.psConstants[Register], pConstantData, ConstantCount * 16);
-	++m_psConstantsVersion;
+	memcpy(m_front.psConstants[Register], pConstantData, ConstantCount * 16);
+	m_psDirtyLo = std::min(m_psDirtyLo, (int)Register);
+	m_psDirtyHi = std::max(m_psDirtyHi, (int)(Register + ConstantCount));
 	return D3D_OK;
 }
 
@@ -1850,7 +2023,7 @@ HRESULT Device::GetPixelShaderConstant(DWORD Register, void* pConstantData, DWOR
 {
 	if (Register + ConstantCount > 8 || pConstantData == nullptr)
 		return D3DERR_INVALIDCALL;
-	memcpy(pConstantData, m_state.psConstants[Register], ConstantCount * 16);
+	memcpy(pConstantData, m_front.psConstants[Register], ConstantCount * 16);
 	return D3D_OK;
 }
 

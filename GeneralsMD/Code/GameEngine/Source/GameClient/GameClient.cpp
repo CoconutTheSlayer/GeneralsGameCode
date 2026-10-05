@@ -634,9 +634,36 @@ void GameClient::update()
 		}
 	}
 
+	// GENERALS_FPS_LOG=1 prints the frame rate, the particle count and the game thread CPU time per frame every two seconds.
+	if (getenv("GENERALS_FPS_LOG"))
+	{
+		static UnsignedInt startMs = 0, frames = 0;
+		static double startCpu = 0.0;
+		const UnsignedInt now = timeGetTime();
+		struct timespec ts;
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts);
+		const double cpu = ts.tv_sec * 1000.0 + ts.tv_nsec / 1.0e6;
+		if (startMs == 0)
+		{
+			startMs = now;
+			startCpu = cpu;
+		}
+		++frames;
+		if (now - startMs >= 2000)
+		{
+			// Also the game thread's CPU time per frame, which waiting for the display does not count.
+			fprintf(stderr, "FPS %.1f particles %u logic frame %u cpu %.2f ms\n", frames * 1000.0f / (now - startMs),
+				TheParticleSystemManager ? TheParticleSystemManager->getParticleCount() : 0, TheGameLogic->getFrame(),
+				(cpu - startCpu) / frames);
+			startMs = now;
+			startCpu = cpu;
+			frames = 0;
+		}
+	}
+
 	// GENERALS_FX_TEST=FX_A,FX_B,... plays the listed effect lists one after another, every two
 	// seconds (GENERALS_FX_TEST_EVERY seconds), where the camera looks, for screenshots of explosions
-	// and smoke.
+	// and smoke. GENERALS_FX_TEST_SPREAD=radius scatters them around that point instead.
 	{
 		static const char *fxTest = getenv("GENERALS_FX_TEST");
 		static UnsignedInt nextFrame = 90;
@@ -654,6 +681,13 @@ void GameClient::update()
 				if (const FXList *fx = TheFXListStore->findFXList(name.str()))
 				{
 					Coord3D pos = TheTacticalView->getPosition();
+					static const char *spread = getenv("GENERALS_FX_TEST_SPREAD");
+					if (spread)
+					{
+						const Real radius = (Real)atof(spread);
+						pos.x += GameClientRandomValueReal(-radius, radius);
+						pos.y += GameClientRandomValueReal(-radius, radius);
+					}
 					pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
 					FXList::doFXPos(fx, &pos);
 					fprintf(stderr, "FX_TEST frame %u %s\n", TheGameLogic->getFrame(), name.str());
@@ -662,7 +696,7 @@ void GameClient::update()
 					fprintf(stderr, "FX_TEST unknown effect %s\n", name.str());
 			}
 			static const char *every = getenv("GENERALS_FX_TEST_EVERY");
-			nextFrame = TheGameLogic->getFrame() + (every ? max(1, atoi(every)) : 2) * LOGICFRAMES_PER_SECOND;
+			nextFrame = TheGameLogic->getFrame() + (every ? max(1, (Int)(atof(every) * LOGICFRAMES_PER_SECOND)) : 2 * LOGICFRAMES_PER_SECOND);
 		}
 	}
 #endif

@@ -176,6 +176,9 @@ on the current display and scales the image to fit.
 - Set `GENERALS_FX_TEST=FX_A,FX_B` (Zero Hour) to play those effect lists from `FXList.ini` one after another, every
   two seconds (`GENERALS_FX_TEST_EVERY` seconds), where the camera looks, for example
   `FX_GenericTankDeathExplosion,FX_LargeStructureDeath`.
+- The renderer encodes Metal commands on its own render thread; the game thread records the D3D calls into a
+  queue. `D3D8METAL_THREADED=0` does everything on the game thread, to compare. `GENERALS_FPS_LOG=1` prints the
+  frame rate and the game thread's CPU time per frame every two seconds.
 - Set `D3D8METAL_TRACE=1` to print the fixed function state of every draw call, the textures that are created and
   the shader compile times.
 - The renderer lists every pipeline it builds in `~/Library/Caches/<bundle id>/pipelines.bin` and builds those

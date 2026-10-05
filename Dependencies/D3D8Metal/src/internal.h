@@ -38,6 +38,9 @@
 #include <d3d8.h>
 
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 #include <map>
 #include <memory>
 #include <string>
@@ -558,7 +561,6 @@ private:
 	id<MTLRenderCommandEncoder> renderEncoder();
 	void endRenderEncoder();
 	id<MTLTexture> activeDepthTexture();
-	void flush(bool wait);
 	Transient allocTransient(NSUInteger length, NSUInteger alignment = 16);
 	void beginDraw(D3DPRIMITIVETYPE type, bool& ok);
 	void bindVertexBuffer(id<MTLBuffer> buffer, NSUInteger offset);
@@ -580,8 +582,116 @@ private:
 	void loadPipelineCache();
 	void recordPipeline(const PipelineKey& key);
 	id<MTLDepthStencilState> depthStencilFor();
-	void presentToDrawable();
+	void presentToDrawable(const MTLViewport& viewport);
 	void updateLetterbox();
+
+	//-------------------------------------------------------------------------
+	// Render thread. The D3D calls of the game (the front end, on the game thread) keep their
+	// own copy of the device state in m_front and send what changed before each operation that
+	// uses it, together with the operation, through a ring buffer to the render thread. That
+	// thread applies the changes to m_state and does all Metal encoding. Operations that read
+	// GPU results wait until it is idle and then run on the game thread. D3D8METAL_THREADED=0
+	// runs everything on the game thread, through the same ring buffer.
+	//-------------------------------------------------------------------------
+	struct RecordHeader
+	{
+		void (*run)(Device*, void*); // null for the padding before the ring wraps around
+		uint64_t size;               // header included
+	};
+	void* reserveRecord(size_t payload);
+	void commitRecord(void (*run)(Device*, void*));
+	template <class F> void submit(F&& f)
+	{
+		using Fn = typename std::decay<F>::type;
+		void* p = reserveRecord(sizeof(Fn));
+		new (p) Fn(std::forward<F>(f));
+		commitRecord([](Device*, void* payload) {
+			Fn* fn = static_cast<Fn*>(payload);
+			(*fn)();
+			fn->~Fn();
+		});
+	}
+	// Waits until the render thread has run everything submitted; the game thread may then use
+	// the render thread's state until it submits again.
+	void drain();
+	void workerMain();
+	void runRecords(uint64_t head);
+	void stopWorker();
+
+	std::unique_ptr<uint8_t[]> m_ring;
+	size_t m_ringSize = 0;
+	size_t m_ringReserved = 0; // record being written: position and size
+	size_t m_ringRecordSize = 0;
+	std::atomic<uint64_t> m_ringHead { 0 }; // bytes written, by the game thread
+	std::atomic<uint64_t> m_ringTail { 0 }; // bytes run, by the render thread
+	std::mutex m_ringMutex;
+	std::condition_variable m_workerWake;
+	std::condition_variable m_producerWake;
+	std::atomic<bool> m_workerSleeping { false };
+	std::atomic<bool> m_producerWaiting { false };
+	std::atomic<bool> m_quit { false };
+	std::thread m_worker;
+	bool m_threaded = false;
+	bool m_running = false; // ring records being run (inline mode)
+
+	// Front end: the state the game sees, and what changed since it was last sent.
+	DeviceState m_front;
+	Surface* m_frontRenderTarget = nullptr;
+	Surface* m_frontDepthStencil = nullptr;
+	std::vector<uint16_t> m_dirtyRenderStates;
+	std::vector<uint16_t> m_dirtyStageStates; // stage * 32 + type
+	std::vector<uint16_t> m_dirtyTransforms;
+	bool m_renderStateDirty[256] {};
+	bool m_stageStateDirty[MAX_STAGES * 32] {};
+	bool m_transformDirty[512] {};
+	enum : uint32_t
+	{
+		DIRTY_VIEWPORT = 1u << 0,
+		DIRTY_MATERIAL = 1u << 1,
+		DIRTY_VERTEX_SHADER = 1u << 2,
+		DIRTY_PIXEL_SHADER = 1u << 3,
+		DIRTY_LIGHT0 = 1u << 8,       // 8 lights
+		DIRTY_CLIP0 = 1u << 16,       // 6 clip planes
+		DIRTY_TEXTURE0 = 1u << 24,    // 8 stages
+	};
+	uint32_t m_dirtyMisc = 0;
+	int m_vsDirtyLo = 96, m_vsDirtyHi = 0;
+	int m_psDirtyLo = 8, m_psDirtyHi = 0;
+	std::vector<uint8_t> m_deltaBuffer;
+	void markRenderState(unsigned index);
+	void markAllDirty();
+	void syncState();
+	void applyState(const uint8_t* data, size_t size);
+	// Records the resources the next draw uses, for buffer renaming and upload ordering.
+	void markDrawResources();
+	// Accounts for a flush of the command buffer with serial m_currentSerial.
+	void afterFlush();
+	void execFlush(uint64_t serial, bool wait);
+	void resetDeviceState(DeviceState& s);
+
+	struct DrawCommand
+	{
+		D3DPRIMITIVETYPE type;
+		UINT stride;
+		id<MTLBuffer> vertexBuffer;
+		NSUInteger vertexOffset;
+		id<MTLBuffer> indexBuffer; // nil for non-indexed draws
+		NSUInteger indexOffset;
+		MTLIndexType indexType;
+		MTLPrimitiveType mtlType;
+		NSUInteger start; // first vertex or index count
+		NSUInteger count;
+		NSInteger baseVertex;
+	};
+	void issueDraw(const DrawCommand& c);
+	void execDraw(const DrawCommand& c);
+	void execClear(const std::vector<D3DRECT>& rects, DWORD flags, D3DCOLOR color, float z, DWORD stencil);
+	void execSetRenderTarget(Surface* rt, Surface* ds);
+	void execPresent(uint64_t serial, MTLViewport viewport);
+
+	uint64_t m_presentsSubmitted = 0;
+	std::atomic<uint64_t> m_presentsDone { 0 };
+	D3DGAMMARAMP m_execGammaRamp {};
 
 	Direct3D* m_d3d;
 	HWND m_window;

@@ -6,6 +6,7 @@ set(D3D8METAL_SRC
     src/draw.mm
     src/formats.cpp
     src/formats.h
+    src/frontend.mm
     src/internal.h
     src/resources.mm
     src/shadergen.cpp
