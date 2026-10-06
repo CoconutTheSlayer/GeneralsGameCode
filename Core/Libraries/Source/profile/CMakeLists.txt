@@ -16,7 +16,8 @@ set(PROFILE_SRC
     "profile.h"
 )
 
-if(RTS_POSIX_PORT)
+# The legacy profiler is x86 code; the other builds have no profiler.
+if(RTS_POSIX_PORT OR IS_MINGW64)
     add_library(core_profile_legacy STATIC profile_macos.cpp)
     target_include_directories(core_profile_legacy INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(core_profile_legacy PRIVATE core_wwcommon corei_always)

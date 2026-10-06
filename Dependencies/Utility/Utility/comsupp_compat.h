@@ -51,6 +51,8 @@
 #include <oleauto.h>
 #include <comdef.h>
 
+// MinGW-w64 14 and later define these in comutil.h.
+#if __MINGW64_VERSION_MAJOR < 14
 namespace _com_util
 {
 
@@ -135,6 +137,7 @@ inline char* WINAPI ConvertBSTRToString(BSTR pSrc)
 }
 
 }
+#endif // __MINGW64_VERSION_MAJOR < 14
 
 // Provide vtMissing global variable
 // Use inline variable (C++17) to avoid multiple definition errors

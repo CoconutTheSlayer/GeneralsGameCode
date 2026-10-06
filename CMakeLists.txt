@@ -54,6 +54,9 @@ if(MINGW)
     include(cmake/mingw.cmake)
     include(cmake/reactos-atl.cmake)
     include(cmake/widl.cmake)
+    if(IS_MINGW64)
+        include(cmake/windows-x64.cmake)
+    endif()
 endif()
 
 # The non-Windows ports (macOS and Linux) share the Win32 replacement layer and most settings.

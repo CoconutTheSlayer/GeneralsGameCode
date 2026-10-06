@@ -36,7 +36,8 @@
 
 #pragma once
 
-#if defined(_WIN32)
+// 32-bit Windows only: the register dumps and stack walking are x86 code.
+#if defined(_WIN32) && !defined(_WIN64)
 
 #include "win.h"
 /*

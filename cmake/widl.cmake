@@ -3,8 +3,15 @@
 
 if(MINGW)
     # Find widl executable
+    if(IS_MINGW64)
+        set(WIDL_NAMES x86_64-w64-mingw32-widl widl widl-stable)
+        set(WIDL_TARGET_FLAG --win64)
+    else()
+        set(WIDL_NAMES widl widl-stable)
+        set(WIDL_TARGET_FLAG --win32)
+    endif()
     find_program(WIDL_EXECUTABLE
-        NAMES widl widl-stable
+        NAMES ${WIDL_NAMES}
         DOC "Wine IDL compiler for MinGW-w64"
     )
 
@@ -36,6 +43,7 @@ if(MINGW)
                 /usr/include/wine-development/windows
                 /opt/wine-stable/include/wine/windows
                 /usr/local/include/wine/windows
+                /opt/llvm-mingw/generic-w64-mingw32/include
             NO_DEFAULT_PATH
             NO_CMAKE_FIND_ROOT_PATH
             DOC "Wine Windows headers directory"
@@ -68,7 +76,7 @@ if(MINGW)
 
         # Build widl flags with dynamically detected Wine paths
         set(WIDL_FLAGS
-            --win32
+            ${WIDL_TARGET_FLAG}
             -I${idl_dir}
             ${WIDL_INCLUDE_PATHS}
             -D__WIDL__

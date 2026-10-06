@@ -47,7 +47,7 @@
  * Exception_Handler -- Exception handler filter function                                      *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
- #if defined(_WIN32)
+ #if defined(_WIN32) && !defined(_WIN64)
 
 #include	"always.h"
 #include <windows.h>

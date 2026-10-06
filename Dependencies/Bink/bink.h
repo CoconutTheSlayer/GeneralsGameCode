@@ -64,7 +64,7 @@ void __stdcall BinkSetVolume(HBINK handle, unsigned int trackid, int volume);
 void __stdcall BinkNextFrame(HBINK handle);
 void __stdcall BinkGoto(HBINK handle, unsigned int frame, int flags);
 
-#define BinkSoundUseDirectSound(x) BinkSetSoundSystem(BinkOpenDirectSound, (unsigned long)x)
+#define BinkSoundUseDirectSound(x) BinkSetSoundSystem(BinkOpenDirectSound, (unsigned long)(uintptr_t)x)
 
 #ifdef __cplusplus
 } // extern "C"

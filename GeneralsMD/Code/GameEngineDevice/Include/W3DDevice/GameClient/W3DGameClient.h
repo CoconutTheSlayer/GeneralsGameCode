@@ -119,8 +119,8 @@ protected:
 	virtual DisplayStringManager *createDisplayStringManager() override { return NEW W3DDisplayStringManager; }
 #ifdef RTS_HAS_FFMPEG
 	virtual VideoPlayerInterface *createVideoPlayer() { return NEW FFmpegVideoPlayer; }
-#elif defined(RTS_POSIX_PORT)
-	// Without FFmpeg the macOS build has no video decoder (Bink is Windows only).
+#elif defined(RTS_POSIX_PORT) || defined(_WIN64)
+	// Without FFmpeg the macOS, Linux and Windows x64 builds have no video decoder (Bink is 32-bit Windows only).
 	virtual VideoPlayerInterface *createVideoPlayer() override { return NEW NullVideoPlayer; }
 #else
 	virtual VideoPlayerInterface *createVideoPlayer() override { return NEW BinkVideoPlayer; }

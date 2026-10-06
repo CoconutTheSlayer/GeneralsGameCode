@@ -33,6 +33,20 @@ target_link_libraries(z_generals PRIVATE
     )
 endif()
 
+if(IS_MINGW64)
+    # Run time libraries next to the executable: SDL3, and DXVK's Direct3D 8 (Vulkan) when the
+    # DXVK_WINDOWS_DIR environment variable names an extracted DXVK release.
+    add_custom_command(TARGET z_generals POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL3::SDL3> $<TARGET_FILE_DIR:z_generals>
+    )
+    if(DEFINED ENV{DXVK_WINDOWS_DIR})
+        add_custom_command(TARGET z_generals POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $ENV{DXVK_WINDOWS_DIR}/x64/d3d8.dll $ENV{DXVK_WINDOWS_DIR}/x64/d3d9.dll $<TARGET_FILE_DIR:z_generals>
+        )
+    endif()
+endif()
+
 # TODO Originally referred to build host and user, replace with git info perhaps?
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/GeneratedVersion.h
 "#pragma once

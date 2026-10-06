@@ -3776,7 +3776,7 @@ void GameLogic::update()
 	{
 		m_CRC = getCRC( CRC_RECALC );
 		bool isPlayback = (TheRecorder && TheRecorder->isPlaybackMode());
-#if defined(RTS_POSIX_PORT)
+#if defined(RTS_POSIX_PORT) || defined(_WIN64)
 		// GENERALS_CRC_LOG=1 prints each game state CRC, to compare the simulation between builds
 		// and platforms.
 		static const bool crcLog = getenv("GENERALS_CRC_LOG") != nullptr;
@@ -3786,6 +3786,7 @@ void GameLogic::update()
 			if (m_frame == 0)
 				fprintf(stderr, "CRC_LOG math %08X\n", SimulationMathCrc::calculate());
 			fprintf(stderr, "CRC_LOG frame %u crc %08X\n", m_frame, m_CRC);
+			fflush(stderr); // Windows buffers stderr when it is not a console.
 		}
 		// GENERALS_CRC_DUMP=<prefix> also writes the data of the CRCs of frames 0 and 100 to
 		// <prefix>_<frame>.dat, to find what differs.

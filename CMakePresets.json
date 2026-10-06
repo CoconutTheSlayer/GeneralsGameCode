@@ -253,6 +253,17 @@
                 "RTS_BUILD_GENERALS_TOOLS": "OFF",
                 "RTS_BUILD_OPTION_FFMPEG": "OFF"
             }
+        },
+        {
+            "name": "windows-x64",
+            "displayName": "Windows x64 (MinGW-w64 clang, cross)",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "toolchainFile": "${sourceDir}/cmake/toolchains/llvm-mingw-x86_64.cmake",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
         }
     ],
     "buildPresets": [

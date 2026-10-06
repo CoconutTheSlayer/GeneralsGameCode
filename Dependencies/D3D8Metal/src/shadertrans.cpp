@@ -49,7 +49,7 @@ enum RegType
 };
 
 const DWORD COISSUE = 0x40000000;
-const DWORD RELATIVE = 0x2000;
+const DWORD REG_RELATIVE = 0x2000;
 
 struct OpInfo
 {
@@ -255,7 +255,7 @@ public:
 			case REG_TEMP: return "r[" + std::to_string(n) + "]";
 			case REG_INPUT: return "v[" + std::to_string(n) + "]";
 			case REG_CONST:
-				if (t & RELATIVE)
+				if (t & REG_RELATIVE)
 					return "vc[clamp(a0 + " + std::to_string(n) + ", 0, 95)]";
 				return "vc[" + std::to_string(n) + "]";
 			case REG_ADDR_TEXTURE: return "float4(float(a0))";
@@ -683,7 +683,7 @@ bool parseRegister(AsmContext& ctx, std::string text, DWORD& token, bool& relati
 		ctx.error("unknown register '" + text + "'");
 		return false;
 	}
-	token = 0x80000000u | (type << 28) | (num & 0x7FF) | (relative ? RELATIVE : 0);
+	token = 0x80000000u | (type << 28) | (num & 0x7FF) | (relative ? REG_RELATIVE : 0);
 	return true;
 }
 
@@ -732,7 +732,7 @@ bool parseDest(AsmContext& ctx, const std::string& text, DWORD& token, unsigned 
 	}
 	if (m == 0)
 		m = 15;
-	token = (token & ~RELATIVE) | (m << 16) | (modifiers << 20);
+	token = (token & ~REG_RELATIVE) | (m << 16) | (modifiers << 20);
 	return true;
 }
 

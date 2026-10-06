@@ -115,6 +115,99 @@ void DumpExceptionInfo( unsigned int u, EXCEPTION_POINTERS* e_info )
 
 AsciiString g_LastErrorDump;
 
+#elif (defined(RTS_DEBUG) || defined(IG_DEBUG_STACKTRACE)) && defined(_WIN64)
+
+#include "Common/StackDump.h"
+#include "Common/Debug.h"
+
+// Windows x64 implementation: the frames come from CaptureStackBackTrace and are written as module
+// and offset, which resolve to functions with the executable's debug file.
+
+void StackDumpDefaultHandler(const char*line)
+{
+	DEBUG_LOG((line));
+}
+
+void GetFunctionDetails(void *pointer, char*name, char*filename, unsigned int* linenumber, unsigned int* address)
+{
+	if (name)
+		strcpy(name, "<unknown>");
+	if (filename)
+		strcpy(filename, "<unknown>");
+	if (linenumber)
+		*linenumber = 0;
+	if (address)
+		*address = (unsigned int)(uintptr_t)pointer;
+	HMODULE module = nullptr;
+	if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)pointer, &module))
+		return;
+	char path[MAX_PATH];
+	if (GetModuleFileNameA(module, path, MAX_PATH) == 0)
+		return;
+	const char* base = strrchr(path, '\\');
+	base = base ? base + 1 : path;
+	if (name)
+		snprintf(name, 512, "%s+0x%llx", base, (unsigned long long)((uintptr_t)pointer - (uintptr_t)module));
+	if (filename)
+		strlcpy(filename, path, 512);
+}
+
+void WriteStackLine(void*address, void (*callback)(const char*))
+{
+	char name[512];
+	char filename[512];
+	unsigned int line;
+	unsigned int addr;
+	GetFunctionDetails(address, name, filename, &line, &addr);
+	char text[1200];
+	snprintf(text, sizeof(text), "  %p %s", address, name);
+	callback(text);
+}
+
+void FillStackAddresses(void**addresses, unsigned int count, unsigned int skip)
+{
+	unsigned int n = CaptureStackBackTrace(skip + 1, count, addresses, nullptr);
+	while (n < count)
+		addresses[n++] = nullptr;
+}
+
+void StackDumpFromAddresses(void**addresses, unsigned int count, void (*callback)(const char *))
+{
+	if (callback == nullptr)
+		callback = StackDumpDefaultHandler;
+	for (unsigned int i = 0; i < count && addresses[i] != nullptr; ++i)
+		WriteStackLine(addresses[i], callback);
+}
+
+void StackDump(void (*callback)(const char*))
+{
+	void *addresses[62];
+	FillStackAddresses(addresses, 62, 1);
+	StackDumpFromAddresses(addresses, 62, callback);
+}
+
+void StackDumpFromContext(DWORD, DWORD, DWORD, void (*callback)(const char*))
+{
+	StackDump(callback);
+}
+
+void DumpExceptionInfo( unsigned int u, EXCEPTION_POINTERS* e_info )
+{
+	if (e_info && e_info->ContextRecord)
+	{
+		char name[512];
+		GetFunctionDetails((void*)e_info->ContextRecord->Rip, name, nullptr, nullptr, nullptr);
+		DEBUG_LOG(("Exception %08X at %s", u, name));
+	}
+	else
+	{
+		DEBUG_LOG(("Exception %08X", u));
+	}
+	StackDump(nullptr);
+}
+
+AsciiString g_LastErrorDump;
+
 #elif defined(RTS_DEBUG) || defined(IG_DEBUG_STACKTRACE)
 
 #pragma pack(push, 8)
