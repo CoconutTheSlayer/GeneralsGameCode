@@ -4001,10 +4001,13 @@ void GameLogic::update()
 			if (const ThingTemplate *tmpl = TheThingFactory->findTemplate(name))
 			{
 				Object *obj = TheThingFactory->newObject(tmpl, ThePlayerList->getLocalPlayer()->getDefaultTeam());
-				Coord3D at = pos;
-				at.z = TheTerrainLogic->getGroundHeight(at.x, at.y);
-				obj->setPosition(&at);
-				obj->setOrientation(-PI * 0.75f);
+				if (obj != nullptr)
+				{
+					Coord3D at = pos;
+					at.z = TheTerrainLogic->getGroundHeight(at.x, at.y);
+					obj->setPosition(&at);
+					obj->setOrientation(-PI * 0.75f);
+				}
 			}
 			else
 				fprintf(stderr, "LINEUP unknown %s\n", name.str());
@@ -4045,6 +4048,8 @@ void GameLogic::update()
 				for (Int i = 0; tmpl && i < count; ++i)
 				{
 					Object *obj = TheThingFactory->newObject(tmpl, player->getDefaultTeam());
+					if (obj == nullptr)
+						continue;
 					FindPositionOptions options;
 					options.maxRadius = 400.0f;
 					options.startAngle = 0.0f;

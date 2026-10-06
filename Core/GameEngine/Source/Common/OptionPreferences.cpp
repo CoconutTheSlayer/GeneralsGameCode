@@ -828,13 +828,18 @@ Real OptionPreferences::getCameraZoomOutFactor()
 #if defined(RTS_POSIX_PORT)
 	// GENERALS_CAMERA_ZOOM_OUT overrides the option, for test runs.
 	if (const char *value = getenv("GENERALS_CAMERA_ZOOM_OUT"))
-		return clamp(1.0f, (Real)atof(value), maxFactor);
+	{
+		const Real factor = (Real)atof(value);
+		return factor >= 1.0f ? clamp(1.0f, factor, maxFactor) : defaultFactor; // also rejects NaN
+	}
 #endif
 	OptionPreferences::const_iterator it = find("CameraZoomOutFactor");
 	if (it == end())
 		return defaultFactor;
 
 	Real factor = (Real)atof(it->second.str());
+	if (!(factor >= 1.0f)) // also rejects NaN, which clamp lets through
+		return defaultFactor;
 	return clamp(1.0f, factor, maxFactor);
 }
 
@@ -845,7 +850,10 @@ Real OptionPreferences::getModelScale(const char *key, Real defaultScale)
 	OptionPreferences::const_iterator it = find(key);
 	if (it == end())
 		return defaultScale;
-	return clamp(0.25f, (Real)atof(it->second.str()), 4.0f);
+	const Real scale = (Real)atof(it->second.str());
+	if (!(scale > 0.0f)) // also rejects NaN, which clamp lets through
+		return defaultScale;
+	return clamp(0.25f, scale, 4.0f);
 }
 
 // RealScale = yes draws vehicles and aircraft at their real world size next to the
