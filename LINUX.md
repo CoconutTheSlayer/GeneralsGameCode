@@ -52,3 +52,7 @@ Without a display, Xvfb and Mesa's software Vulkan driver (lavapipe) are enough 
             -noaudio -win -xres 1280 -yres 800 -skirmish 'Tournament Desert' -observe -opponents 2"
 
 On a desktop, run the executable directly with a Vulkan driver installed and DXVK on the library path.
+
+`scripts/crossplay/check_replay_crc.sh <name>.rep` plays a replay on every platform build present
+(macOS arm64 and x86-64, Linux arm64 and x86-64, Windows x64 under Wine) and checks that all of them
+compute the same CRCs.

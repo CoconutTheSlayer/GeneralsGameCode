@@ -46,3 +46,7 @@ Then, with the Zero Hour folder mounted at `/game` and the build at `/out`:
         xvfb-run -a wine /out/generalszh.exe -useCwd -headless -replay <name>.rep
 
 `WINEDLLOVERRIDES` makes Wine use DXVK's Direct3D instead of its own.
+
+`scripts/crossplay/check_replay_crc.sh <name>.rep` plays a replay on every platform build present
+(macOS arm64 and x86-64, Linux arm64 and x86-64, Windows x64 under Wine) and checks that all of them
+compute the same CRCs.
