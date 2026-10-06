@@ -1190,7 +1190,8 @@ CommandAvailability ControlBar::getCommandAvailability( const CommandButton *com
 		return COMMAND_RESTRICTED;
 	}
 
-	Bool queueMaxed = pu ? ( pu->getProductionCount() == MAX_BUILD_QUEUE_BUTTONS ) : FALSE;
+	// The queue can hold more than the buttons show (see ProductionUpdate).
+	Bool queueMaxed = pu ? ( pu->getProductionCount() >= pu->getMaxProductionCount() ) : FALSE;
 
 	switch( command->getCommandType() )
 	{
