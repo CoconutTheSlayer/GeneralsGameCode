@@ -382,9 +382,9 @@ void SetLastError(DWORD err);
 #define _stricmp strcasecmp
 #define _strnicmp strncasecmp
 #define _strcmpi strcasecmp
-// Like the Windows one, _strdup returns null for a null string instead of crashing.
+// Like the Windows ones, _strdup and _wcsdup return null for a null string instead of crashing.
 static inline char* _strdup(const char* s) { return s ? strdup(s) : NULL; }
-#define _wcsdup wcsdup
+static inline wchar_t* _wcsdup(const wchar_t* s) { return s ? wcsdup(s) : NULL; }
 #define _wcsnicmp wcsncasecmp
 #define wcsnicmp wcsncasecmp
 #define _snprintf snprintf

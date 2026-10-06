@@ -79,7 +79,10 @@ inline int WSAStartup(WORD version, LPWSADATA data)
 inline int WSACleanup() { return 0; }
 inline int WSAGetLastError() { return errno; }
 inline void WSASetLastError(int err) { errno = err; }
-inline int closesocket(SOCKET s) { return close(s); }
+// GameSpy's gsplatformsocket.h defines closesocket as close on Unix; with that macro in effect this
+// line would define a close(SOCKET) that calls itself.
+#undef closesocket
+inline int closesocket(SOCKET s) { return ::close((int)s); }
 inline int ioctlsocket(SOCKET s, long cmd, u_long* arg)
 {
 	if (cmd == (long)FIONBIO)
