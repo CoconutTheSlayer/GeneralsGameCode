@@ -541,7 +541,9 @@ void W3DParticleSystemManager::renderGroundBatch(RenderInfoClass& rinfo, Unsigne
 	DX8Wrapper::Set_Shader(shader);
 	DX8Wrapper::Set_Texture(0, m_batchTexture.Peek());
 
+	// The dynamic buffers count their vertices and indices in 16 bits, so a draw stays well below 65536 of either.
 	const Int maxVertices = 16384;
+	const Int maxIndices = 49152;
 	UnsignedInt first = 0;
 	while (first < pointCount)
 	{
@@ -552,10 +554,11 @@ void W3DParticleSystemManager::renderGroundBatch(RenderInfoClass& rinfo, Unsigne
 		{
 			const Int cells = groundGridCells(sizeArray[last]);
 			const Int verts = (cells + 1) * (cells + 1);
-			if (last > first && vertexCount + verts > maxVertices)
+			const Int indices = cells * cells * 6;
+			if (last > first && (vertexCount + verts > maxVertices || indexCount + indices > maxIndices))
 				break;
 			vertexCount += verts;
-			indexCount += cells * cells * 6;
+			indexCount += indices;
 			++last;
 		}
 
