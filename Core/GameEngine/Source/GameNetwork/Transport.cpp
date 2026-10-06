@@ -110,10 +110,18 @@ Bool Transport::init( UnsignedInt ip, UnsignedShort port )
 	if (!m_udpsock)
 		return false;
 
+	UnsignedInt bindIP = ip;
+#if defined(RTS_POSIX_PORT)
+	// Unlike Windows, Linux and macOS do not deliver broadcasts to a socket bound to one address,
+	// and the LAN lobby announces games and join requests by broadcast. Bind to all addresses,
+	// except for the loopback address of each instance when several run on one machine.
+	if ((ip >> 24) != 127)
+		bindIP = INADDR_ANY;
+#endif
 	int retval = -1;
 	time_t now = timeGetTime();
 	while ((retval != 0) && ((timeGetTime() - now) < 1000)) {
-		retval = m_udpsock->Bind(ip, port);
+		retval = m_udpsock->Bind(bindIP, port);
 	}
 
 	if (retval != 0) {
