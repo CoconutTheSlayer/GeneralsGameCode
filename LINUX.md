@@ -15,7 +15,9 @@ deterministic math in `Dependencies/DetMath`. Code shared by both ports is under
   and hands DXVK the SDL windows behind the Win32 shim's window handles. The Docker image builds
   DXVK into `/opt/dxvk`.
 - Soft particles are not implemented on DXVK yet; particles are drawn as in the original game.
-- Fonts have approximate metrics and draw nothing until the GDI layer renders with FreeType.
+- Text is drawn with FreeType. fontconfig finds the fonts, so Arial, Times New Roman and Courier use
+  metric compatible fonts such as Liberation. Without any fonts installed the metrics are
+  approximate and no text is drawn, which is enough for headless runs.
 
 ## Building with Docker
 

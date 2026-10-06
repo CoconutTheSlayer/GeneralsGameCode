@@ -16,7 +16,8 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// gdi32 subset: memory DCs, DIB sections and TrueType text rendered with CoreText.
+// gdi32 subset: memory DCs, DIB sections and TrueType text rendered with CoreText on macOS
+// and FreeType (fonts found with fontconfig) elsewhere.
 // The game rasterizes its UI font glyphs this way (render2dsentence.cpp).
 
 #define NOMINMAX
@@ -28,9 +29,10 @@
 #include <CoreGraphics/CoreGraphics.h>
 #include <CoreText/CoreText.h>
 #else
-// TODO: rasterize with FreeType. Until then fonts on Linux have approximate metrics and draw
-// nothing, which is enough for headless runs.
-typedef void* CTFontRef;
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_OUTLINE_H
+#include <fontconfig/fontconfig.h>
 #endif
 
 #include <cmath>
@@ -63,9 +65,18 @@ struct Font : GdiObject
 #if defined(__APPLE__)
 		if (ctFont)
 			CFRelease(ctFont);
+#else
+		if (ftFace)
+			FT_Done_Face(ftFace);
 #endif
 	}
+#if defined(__APPLE__)
 	CTFontRef ctFont = nullptr;
+#else
+	FT_Face ftFace = nullptr;
+	bool syntheticBold = false;
+	bool syntheticItalic = false;
+#endif
 	float scaleX = 1.0f;
 	int ascent = 0;
 	int descent = 0;
@@ -186,20 +197,163 @@ Font* createFont(int height, int width, int weight, bool italic, const char* fac
 }
 
 #else
+FT_Library ftLibrary()
+{
+	static FT_Library library = [] {
+		FT_Library lib = nullptr;
+		if (FT_Init_FreeType(&lib) != 0)
+			lib = nullptr;
+		FcInit();
+		return lib;
+	}();
+	return library;
+}
+
+// The font file fontconfig picks for a face name, so that "Arial" finds a metric compatible font.
+std::string findFontFile(const char* faceName, bool bold, bool italic, int* index)
+{
+	FcPattern* pattern = FcPatternCreate();
+	FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*)((faceName && *faceName) ? faceName : "Arial"));
+	FcPatternAddInteger(pattern, FC_WEIGHT, bold ? FC_WEIGHT_BOLD : FC_WEIGHT_REGULAR);
+	FcPatternAddInteger(pattern, FC_SLANT, italic ? FC_SLANT_ITALIC : FC_SLANT_ROMAN);
+	FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
+	FcConfigSubstitute(nullptr, pattern, FcMatchPattern);
+	FcDefaultSubstitute(pattern);
+	FcResult result;
+	FcPattern* match = FcFontMatch(nullptr, pattern, &result);
+	std::string path;
+	*index = 0;
+	if (match)
+	{
+		FcChar8* file = nullptr;
+		if (FcPatternGetString(match, FC_FILE, 0, &file) == FcResultMatch)
+			path = (const char*)file;
+		if (FcPatternGetInteger(match, FC_INDEX, 0, index) != FcResultMatch)
+			*index = 0;
+		FcPatternDestroy(match);
+	}
+	FcPatternDestroy(pattern);
+	return path;
+}
+
+float ascentOf(FT_Face face)
+{
+	return (float)FT_MulFix(face->ascender, face->size->metrics.y_scale) / 64.0f;
+}
+
+float descentOf(FT_Face face)
+{
+	return (float)FT_MulFix(-face->descender, face->size->metrics.y_scale) / 64.0f;
+}
+
+void setSize(FT_Face face, float size)
+{
+	FT_Set_Char_Size(face, 0, (FT_F26Dot6)lroundf(size * 64.0f), 72, 72);
+}
+
+const FT_Int32 LOAD_FLAGS = FT_LOAD_TARGET_LIGHT;
+
+// Unhinted advance, so that measured and drawn text have the same width.
+float advanceOf(FT_Face face, FT_ULong ch)
+{
+	if (FT_Load_Char(face, ch, LOAD_FLAGS) != 0)
+		return 0.0f;
+	return (float)face->glyph->linearHoriAdvance / 65536.0f;
+}
+
 Font* createFont(int height, int width, int weight, bool italic, const char* faceName)
 {
-	(void)italic;
-	(void)faceName;
 	Font* f = new Font();
 	f->weight = weight;
-	const int size = height < 0 ? -height : (height ? height : 12);
-	f->ascent = (size * 4 + 4) / 5;
-	f->descent = size - f->ascent + 1;
+	bool bold = weight >= FW_SEMIBOLD;
+
+	// Negative heights are the em height; positive heights are the cell height.
+	float size = height < 0 ? (float)-height : (float)(height ? height : 12);
+	FT_Face face = nullptr;
+	if (FT_Library lib = ftLibrary())
+	{
+		int index = 0;
+		std::string path = findFontFile(faceName, bold, italic, &index);
+		if (path.empty() || FT_New_Face(lib, path.c_str(), index, &face) != 0)
+			face = nullptr;
+	}
+	if (face == nullptr)
+	{
+		// No fonts installed: approximate metrics, nothing is drawn.
+		f->ascent = ((int)size * 4 + 4) / 5;
+		f->descent = (int)size - f->ascent + 1;
+		f->height = f->ascent + f->descent;
+		f->internalLeading = std::max(0, f->height - (int)size);
+		f->aveCharWidth = width > 0 ? width : ((int)size + 1) / 2;
+		f->maxCharWidth = f->aveCharWidth * 2;
+		return f;
+	}
+	setSize(face, size);
+	if (height > 0)
+	{
+		float cell = ascentOf(face) + descentOf(face);
+		if (cell > 0.0f)
+		{
+			size = size * size / cell;
+			setSize(face, size);
+		}
+	}
+	f->ftFace = face;
+	f->syntheticBold = bold && !(face->style_flags & FT_STYLE_FLAG_BOLD);
+	f->syntheticItalic = italic && !(face->style_flags & FT_STYLE_FLAG_ITALIC);
+
+	float naturalAve = advanceOf(face, 'x');
+	if (width > 0 && naturalAve > 0.0f)
+		f->scaleX = (float)width / naturalAve;
+
+	f->ascent = (int)ceilf(ascentOf(face));
+	f->descent = (int)ceilf(descentOf(face));
 	f->height = f->ascent + f->descent;
-	f->internalLeading = std::max(0, f->height - size);
-	f->aveCharWidth = width > 0 ? width : (size + 1) / 2;
-	f->maxCharWidth = f->aveCharWidth * 2;
+	f->internalLeading = std::max(0, f->height - (int)lroundf(size));
+	f->aveCharWidth = (int)lroundf(naturalAve * f->scaleX);
+	f->maxCharWidth = (int)lroundf(advanceOf(face, 'W') * f->scaleX);
 	return f;
+}
+
+// Lays out a line: calls draw(glyph slot, pen x) for each character when rendering, and returns the
+// width in pixels.
+template <typename Draw>
+float layoutLine(Font* font, const wchar_t* str, int len, bool render, Draw draw)
+{
+	FT_Face face = font->ftFace;
+	FT_Matrix matrix;
+	matrix.xx = (FT_Fixed)lroundf(font->scaleX * 65536.0f);
+	matrix.xy = font->syntheticItalic ? 0x3333 : 0; // about 11 degrees of slant
+	matrix.yx = 0;
+	matrix.yy = 0x10000;
+	FT_Set_Transform(face, &matrix, nullptr);
+	const bool kerning = FT_HAS_KERNING(face);
+	FT_UInt previous = 0;
+	float pen = 0.0f;
+	for (int i = 0; i < len; ++i)
+	{
+		FT_UInt glyph = FT_Get_Char_Index(face, (FT_ULong)(uint32_t)str[i]);
+		if (kerning && previous && glyph)
+		{
+			FT_Vector delta;
+			if (FT_Get_Kerning(face, previous, glyph, FT_KERNING_UNFITTED, &delta) == 0)
+				pen += (float)delta.x / 64.0f * font->scaleX;
+		}
+		previous = glyph;
+		if (FT_Load_Glyph(face, glyph, LOAD_FLAGS) != 0)
+			continue;
+		FT_GlyphSlot slot = face->glyph;
+		if (render)
+		{
+			if (font->syntheticBold && slot->format == FT_GLYPH_FORMAT_OUTLINE)
+				FT_Outline_Embolden(&slot->outline, FT_MulFix(face->units_per_EM, face->size->metrics.y_scale) / 24);
+			if (FT_Render_Glyph(slot, FT_RENDER_MODE_NORMAL) == 0)
+				draw(slot, pen);
+		}
+		pen += (float)slot->linearHoriAdvance / 65536.0f * font->scaleX;
+	}
+	FT_Set_Transform(face, nullptr, nullptr);
+	return pen;
 }
 
 #endif
@@ -387,8 +541,9 @@ HFONT CreateFontIndirect(const LOGFONT* lf)
 int AddFontResource(LPCSTR fileName)
 {
 #if !defined(__APPLE__)
-	(void)fileName;
-	return 1;
+	ftLibrary();
+	std::string path = Win32Shim_TranslatePath(fileName);
+	return FcConfigAppFontAddFile(nullptr, (const FcChar8*)path.c_str()) ? 1 : 0;
 #else
 	std::string path = Win32Shim_TranslatePath(fileName);
 	CFStringRef str = CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
@@ -403,6 +558,7 @@ int AddFontResource(LPCSTR fileName)
 BOOL RemoveFontResource(LPCSTR fileName)
 {
 #if !defined(__APPLE__)
+	// fontconfig cannot remove one application font; it stays registered until exit.
 	(void)fileName;
 	return TRUE;
 #else
@@ -461,8 +617,14 @@ BOOL GetTextExtentPoint32W(HDC hdc, LPCWSTR str, int len, LPSIZE size)
 	size->cx = 0;
 	size->cy = f->height;
 #if !defined(__APPLE__)
-	(void)str;
-	size->cx = len > 0 ? (LONG)len * f->aveCharWidth : 0;
+	if (len <= 0)
+		return TRUE;
+	if (f->ftFace == nullptr)
+	{
+		size->cx = (LONG)len * f->aveCharWidth;
+		return TRUE;
+	}
+	size->cx = (LONG)lroundf(layoutLine(f, str, len, false, [](FT_GlyphSlot, float) {}));
 	return TRUE;
 #else
 	if (f->ctFont == nullptr || len <= 0)
@@ -530,10 +692,33 @@ BOOL ExtTextOutW(HDC hdc, int x, int y, UINT options, const RECT* rect, LPCWSTR 
 		}
 	}
 #if !defined(__APPLE__)
-	(void)x;
-	(void)y;
-	(void)str;
-	(void)len;
+	if (f->ftFace == nullptr || len == 0)
+		return TRUE;
+	bool clip = (options & ETO_CLIPPED) && rect;
+	// GDI positions text by its top-left cell corner.
+	int baseline = y + f->ascent;
+	layoutLine(f, str, (int)len, true, [&](FT_GlyphSlot slot, float pen) {
+		const FT_Bitmap& glyph = slot->bitmap;
+		if (glyph.pixel_mode != FT_PIXEL_MODE_GRAY)
+			return;
+		int left = x + (int)lroundf(pen) + slot->bitmap_left;
+		int top = baseline - slot->bitmap_top;
+		for (unsigned int row = 0; row < glyph.rows; ++row)
+		{
+			const uint8_t* src = glyph.buffer + (ptrdiff_t)row * glyph.pitch;
+			int py = top + (int)row;
+			for (unsigned int col = 0; col < glyph.width; ++col)
+			{
+				int c = src[col];
+				if (c == 0)
+					continue;
+				int px = left + (int)col;
+				if (clip && (px < rect->left || px >= rect->right || py < rect->top || py >= rect->bottom))
+					continue;
+				writePixel(bmp, px, py, dc->textColor, c, true);
+			}
+		}
+	});
 	return TRUE;
 #else
 	if (f->ctFont == nullptr || len == 0)

@@ -27,7 +27,9 @@ if(APPLE)
         "-framework IOKit"
     )
 else()
-    target_link_libraries(deps_win32shim PUBLIC pthread dl)
+    find_package(Freetype REQUIRED)
+    find_package(Fontconfig REQUIRED)
+    target_link_libraries(deps_win32shim PUBLIC pthread dl Freetype::Freetype Fontconfig::Fontconfig)
 endif()
 
 add_executable(win32shim_test EXCLUDE_FROM_ALL tests/shimtest.cpp)

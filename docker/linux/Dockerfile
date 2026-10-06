@@ -3,7 +3,8 @@
 FROM debian:trixie
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         clang clang-tools lld cmake ninja-build git ca-certificates pkg-config python3 \
-        libsdl3-dev zlib1g-dev \
+        libsdl3-dev zlib1g-dev libfreetype-dev libfontconfig-dev \
+        fonts-liberation fonts-dejavu-core \
         meson glslang-tools libvulkan-dev \
         mesa-vulkan-drivers vulkan-tools xvfb xauth x11-utils imagemagick python3-pil \
     && rm -rf /var/lib/apt/lists/*
