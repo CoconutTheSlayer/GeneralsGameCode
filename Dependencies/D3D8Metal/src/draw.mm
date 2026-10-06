@@ -1432,6 +1432,10 @@ HRESULT Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT, UINT,
 	bool is32 = ib->m_format == D3DFMT_INDEX32;
 	unsigned indexSize = is32 ? 4 : 2;
 	NSUInteger offset = (NSUInteger)startIndex * indexSize;
+	// Indices read past the end of the index buffer would come from other memory.
+	const NSUInteger indicesRead = PrimitiveType == D3DPT_TRIANGLEFAN ? (NSUInteger)primCount + 2 : vertexCountFor(PrimitiveType, primCount);
+	if (offset + indicesRead * indexSize > ib->m_storage.length)
+		return D3DERR_INVALIDCALL;
 	DrawCommand c {};
 	c.type = PrimitiveType;
 	c.stride = m_front.streams[0].stride;

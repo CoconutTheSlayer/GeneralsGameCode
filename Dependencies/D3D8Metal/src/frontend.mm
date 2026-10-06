@@ -532,7 +532,7 @@ void Device::afterFlush()
 	++m_currentSerial;
 
 	// Recycle buffers whose GPU use has completed.
-	const uint64_t done = m_completedSerial.load();
+	const uint64_t done = m_completedSerial->load();
 	auto recycle = [done](std::vector<std::pair<uint64_t, id<MTLBuffer>>>& list, const std::function<void(id<MTLBuffer>)>& reuse) {
 		size_t keep = 0;
 		for (size_t i = 0; i < list.size(); ++i)

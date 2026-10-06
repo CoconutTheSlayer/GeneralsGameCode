@@ -133,6 +133,13 @@ Device::~Device()
 		if (m_state.textures[i])
 			m_state.textures[i]->Release();
 	}
+	for (int i = 0; i < MAX_STREAMS; ++i)
+	{
+		if (m_front.streams[i].buffer)
+			m_front.streams[i].buffer->Release();
+	}
+	if (m_front.indices)
+		m_front.indices->Release();
 	if (m_frontRenderTarget)
 		m_frontRenderTarget->Release();
 	if (m_frontDepthStencil)
@@ -546,7 +553,7 @@ void Device::execFlush(uint64_t serial, bool wait)
 	if (m_commandBuffer == nil)
 		commandBuffer(); // an empty one still completes the serial
 	// A serial completes when its command buffer and the uploads ahead of it have.
-	std::atomic<uint64_t>* completed = &m_completedSerial;
+	std::shared_ptr<std::atomic<uint64_t>> completed = m_completedSerial;
 	std::atomic<int>* pending = new std::atomic<int>(m_uploadCommandBuffer ? 2 : 1);
 	void (^done)(id<MTLCommandBuffer>) = ^(id<MTLCommandBuffer>) {
 		if (pending->fetch_sub(1) != 1)
@@ -1341,6 +1348,12 @@ HRESULT Device::CopyRects(IDirect3DSurface8* pSourceSurface, CONST RECT* pSource
 	{
 		RECT r = pSourceRectsArray ? pSourceRectsArray[i] : full;
 		POINT p = pDestPointsArray ? pDestPointsArray[i] : POINT { r.left, r.top };
+		// Keep the copy inside both surfaces: a source rectangle starting outside it moves the
+		// destination along, and a destination outside it is skipped.
+		if (r.left < 0) { p.x -= r.left; r.left = 0; }
+		if (r.top < 0) { p.y -= r.top; r.top = 0; }
+		if (p.x < 0 || p.y < 0)
+			continue;
 		r.right = std::min<LONG>(r.right, (LONG)src->width());
 		r.bottom = std::min<LONG>(r.bottom, (LONG)src->height());
 		if (p.x + (r.right - r.left) > (LONG)dst->width())
@@ -1375,6 +1388,8 @@ HRESULT Device::UpdateTexture(IDirect3DBaseTexture8* pSourceTexture, IDirect3DBa
 	else
 		return D3DERR_INVALIDCALL;
 
+	if (src->format != dst->format)
+		return D3DERR_INVALIDCALL;
 	// Source levels may be a superset of the destination levels (skip the top ones).
 	unsigned skip = 0;
 	while (skip < src->levels && src->levelWidth(skip) > dst->width)
@@ -1384,6 +1399,9 @@ HRESULT Device::UpdateTexture(IDirect3DBaseTexture8* pSourceTexture, IDirect3DBa
 		for (unsigned level = 0; level < dst->levels && level + skip < src->levels; ++level)
 		{
 			if (src->shadows.empty() || src->shadows[face * src->levels + level + skip].empty())
+				continue;
+			// Only copy levels of the same size: the upload reads the destination's dimensions.
+			if (src->levelWidth(level + skip) != dst->levelWidth(level) || src->levelHeight(level + skip) != dst->levelHeight(level))
 				continue;
 			dst->shadow(face, level) = src->shadow(face, level + skip);
 			RECT r;

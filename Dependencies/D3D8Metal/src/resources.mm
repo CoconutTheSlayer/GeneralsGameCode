@@ -79,7 +79,13 @@ HRESULT lockLevel(Device* device, TextureStorage& storage, unsigned face, unsign
 	unsigned w = storage.levelWidth(level);
 	unsigned h = storage.levelHeight(level);
 	if (rect)
+	{
+		// A rectangle outside the level would point the caller outside the shadow copy.
+		if (rect->left < 0 || rect->top < 0 || rect->right > (LONG)w || rect->bottom > (LONG)h
+			|| rect->left > rect->right || rect->top > rect->bottom)
+			return D3DERR_INVALIDCALL;
 		lockRect = *rect;
+	}
 	else
 		SetRect(&lockRect, 0, 0, (int)w, (int)h);
 
@@ -280,6 +286,8 @@ HRESULT lockBuffer(Device* device, BufferStorage& storage, UINT offset, UINT siz
 		return D3DERR_INVALIDCALL;
 	if (size == 0)
 		size = storage.length - offset;
+	if (size > storage.length - offset)
+		return D3DERR_INVALIDCALL;
 
 	bool inFlight = device->isInFlight(storage.lastUsedSerial) || storage.lastUsedSerial == device->currentSerial();
 	if (inFlight && !(flags & D3DLOCK_NOOVERWRITE) && !(flags & D3DLOCK_READONLY))

@@ -531,7 +531,7 @@ public:
 	// Serial of the command buffer currently being recorded.
 	uint64_t currentSerial() const { return m_currentSerial; }
 	// True if the GPU may still access a resource last used at serial.
-	bool isInFlight(uint64_t serial) const { return serial >= m_completedSerial.load() + 1 && serial != 0; }
+	bool isInFlight(uint64_t serial) const { return serial >= m_completedSerial->load() + 1 && serial != 0; }
 
 	std::shared_ptr<TextureStorage> createStorage(unsigned width, unsigned height, unsigned levels, unsigned faces, DWORD usage, D3DFORMAT format, D3DPOOL pool);
 	// Uploads a region of a texture level from CPU memory in the D3D format.
@@ -712,7 +712,8 @@ private:
 	id<MTLBlitCommandEncoder> m_uploadBlit = nil;
 	dispatch_semaphore_t m_frameSemaphore;
 	uint64_t m_currentSerial = 1;
-	std::atomic<uint64_t> m_completedSerial { 0 };
+	// Shared with the command buffer completion handlers, which can run after the device is gone.
+	std::shared_ptr<std::atomic<uint64_t>> m_completedSerial = std::make_shared<std::atomic<uint64_t>>(0);
 
 	// Transient upload ring for UP draws and generated indices.
 	std::vector<id<MTLBuffer>> m_transientBuffers;
