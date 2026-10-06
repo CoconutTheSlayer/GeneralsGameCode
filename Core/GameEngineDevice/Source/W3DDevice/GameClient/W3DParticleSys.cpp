@@ -269,7 +269,8 @@ void W3DParticleSystemManager::doParticles(RenderInfoClass &rinfo)
 			RGBAArray[pointCount].Z = color->blue;
 			RGBAArray[pointCount].W = p->getAlpha();
 
-			angleArray[pointCount] = (uint8)(p->getAngle() * 255.0f / (2.0f * PI));
+			// Wrap angles beyond a full turn instead of converting out of range values.
+			angleArray[pointCount] = (uint8)(RealToIntLikeX86(p->getAngle() * 255.0f / (2.0f * PI)) & 0xFF);
 
 			if (++pointCount == MAX_POINTS_PER_GROUP)
 			{
@@ -570,7 +571,7 @@ void W3DParticleSystemManager::renderGroundBatch(RenderInfoClass& rinfo, Unsigne
 			VertexFormatXYZNDUV2 *vb = vbLock.Get_Formatted_Vertex_Array();
 			unsigned short *ib = ibLock.Get_Index_Array();
 			if (vb == nullptr || ib == nullptr)
-				return;
+				break;
 
 			Int base = 0;
 			for (UnsignedInt i = first; i < last; ++i)

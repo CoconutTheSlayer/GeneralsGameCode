@@ -78,5 +78,13 @@ template <typename Type, size_t Size> char (*ArraySizeHelper(Type(&)[Size]))[Siz
 #define REAL_TO_UNSIGNEDBYTE(x)		((UnsignedByte)(x))
 #define REAL_TO_CHAR(x)						((Char)(x))
 #define DOUBLE_TO_REAL(x)					((Real)(x))
+
+// TheSuperHackers @bugfix Converts to Int the way x86 does on every CPU: truncating, with NaN and
+// values out of range giving INT_MIN. ARM gives 0 for NaN and saturates instead, so simulation code
+// that can meet such values must use this, or ARM and x86 machines compute different games.
+inline int RealToIntLikeX86(float x)
+{
+	return (x >= -2147483648.0f && x < 2147483648.0f) ? (int)x : (int)0x80000000;
+}
 #define DOUBLE_TO_INT(x)					((Int)(x))
 #define INT_TO_REAL(x)						((Real)(x))
