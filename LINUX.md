@@ -56,3 +56,7 @@ On a desktop, run the executable directly with a Vulkan driver installed and DXV
 `scripts/crossplay/check_replay_crc.sh <name>.rep` plays a replay on every platform build present
 (macOS arm64 and x86-64, Linux arm64 and x86-64, Windows x64 under Wine) and checks that all of them
 compute the same CRCs.
+
+`scripts/crossplay/lan_match.sh` plays a live LAN game between the Linux build (host) and the Windows x64
+build under Wine (joiner) with two AI players, and checks that both compute the same CRCs. The players
+are driven by `GENERALS_LAN_TEST=host:<name>` or `join:<name>` (GameNetwork/LANAutoTest.h).

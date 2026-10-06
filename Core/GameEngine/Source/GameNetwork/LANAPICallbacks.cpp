@@ -45,6 +45,7 @@
 #include "GameLogic/GameLogic.h"
 #include "GameNetwork/FileTransfer.h"
 #include "GameNetwork/LANAPICallbacks.h"
+#include "GameNetwork/LANAutoTest.h"
 #include "GameNetwork/networkutil.h"
 
 LANAPI *TheLAN = nullptr;
@@ -677,6 +678,14 @@ void LANAPI::OnInActive(UnsignedInt IP) {
 
 void LANAPI::OnChat( UnicodeString player, UnsignedInt ip, UnicodeString message, ChatType format )
 {
+	if (GetLANTestRole() != LAN_TEST_NONE)
+	{
+		UnicodeString line(player);
+		line.concat(L": ");
+		line.concat(message);
+		PrintLANTestText("chat", line);
+	}
+
 	GameWindow *chatWindow = nullptr;
 
 	if (m_inLobby)

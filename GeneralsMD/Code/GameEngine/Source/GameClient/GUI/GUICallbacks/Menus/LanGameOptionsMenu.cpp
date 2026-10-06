@@ -56,6 +56,7 @@
 #include "GameNetwork/LANAPI.h"
 #include "GameNetwork/IPEnumeration.h"
 #include "GameNetwork/LANAPICallbacks.h"
+#include "GameNetwork/LANAutoTest.h"
 #include "Common/MultiplayerSettings.h"
 #include "GameClient/GameText.h"
 #include "GameNetwork/GUIUtil.h"
@@ -1068,10 +1069,71 @@ void LanGameOptionsMenuShutdown( WindowLayout *layout, void *userData )
 //-------------------------------------------------------------------------------------------------
 /** Lan Game Options menu update method */
 //-------------------------------------------------------------------------------------------------
+// GENERALS_LAN_TEST: the host adds two AI players, both players say hello (with characters outside
+// ASCII), the joining player accepts, and the host starts the game once everybody has accepted.
+static void LanGameOptionsTestUpdate()
+{
+	UnicodeString name;
+	const LANTestRole role = GetLANTestRole(&name);
+	LANGameInfo *game = TheLAN ? TheLAN->GetMyGame() : nullptr;
+	if (role == LAN_TEST_NONE || game == nullptr || game->isGameInProgress() || LANbuttonPushed)
+		return;
+	static Int frames = 0;
+	static Bool started = FALSE;
+	++frames;
+	if (role == LAN_TEST_HOST && frames == 30)
+	{
+		// Two AI armies, so that the game state keeps changing and the CRCs mean something.
+		for (Int i = 2; i < 4; ++i)
+		{
+			LANGameSlot *slot = game->getLANSlot(i);
+			if (slot && slot->getState() == SLOT_OPEN)
+				slot->setState(SLOT_BRUTAL_AI);
+		}
+		game->resetAccepted();
+		TheLAN->RequestGameOptions(GenerateGameOptionsString(), true);
+		lanUpdateSlotList();
+	}
+	if (frames == 60)
+	{
+		UnicodeString message(L"hello from ");
+		message.concat(name);
+		message.concat(L" \u20AC\u00E4\u4E2D");
+		TheLAN->RequestChat(message, LANAPIInterface::LANCHAT_NORMAL);
+	}
+	if (role == LAN_TEST_JOIN && frames == 120)
+	{
+		TheLAN->RequestAccept();
+		EnableAcceptControls(TRUE, game, comboBoxPlayer, comboBoxColor, comboBoxPlayerTemplate,
+			comboBoxTeam, buttonAccept, buttonStart, buttonMapStartPosition);
+	}
+	if (role == LAN_TEST_HOST && !started && frames > 180 && frames % 30 == 0)
+	{
+		Int humans = 0;
+		Bool allAccepted = TRUE;
+		for (Int i = 0; i < MAX_SLOTS; ++i)
+		{
+			GameSlot *slot = game->getSlot(i);
+			if (slot && slot->isHuman())
+			{
+				++humans;
+				if (i != game->getLocalSlotNum() && !slot->isAccepted())
+					allAccepted = FALSE;
+			}
+		}
+		if (humans >= 2 && allAccepted)
+		{
+			started = TRUE;
+			StartPressed();
+		}
+	}
+}
+
 void LanGameOptionsMenuUpdate( WindowLayout * layout, void *userData)
 {
 	if(LANisShuttingDown && TheShell->isAnimFinished() && TheTransitionHandler->isFinished())
 		shutdownComplete(layout);
+	LanGameOptionsTestUpdate();
 	//TheLAN->update(); // this is handled in the lobby
 }
 

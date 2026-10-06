@@ -73,6 +73,7 @@
 #include "GameNetwork/GameSpy/MainMenuUtils.h"
 
 #include "GameClient/InGameUI.h"
+#include "GameNetwork/LANAutoTest.h"
 
 
 // PRIVATE DATA ///////////////////////////////////////////////////////////////////////////////////
@@ -821,6 +822,11 @@ void MainMenuUpdate( WindowLayout *layout, void *userData )
 
 	if(dontAllowTransitions && TheTransitionHandler->isFinished())
 		dontAllowTransitions = FALSE;
+
+	// GENERALS_LAN_TEST: open the LAN lobby once the menu is up.
+	static Int lanTestDelay = 60;
+	if (GetLANTestRole() != LAN_TEST_NONE && lanTestDelay > 0 && !dontAllowTransitions && buttonNetwork && --lanTestDelay == 0)
+		TheWindowManager->winSendSystemMsg(buttonNetwork->winGetParent(), GBM_SELECTED, (WindowMsgData)buttonNetwork, networkID);
 
 	if(showLogo && dontAllowTransitions == FALSE)
 	{

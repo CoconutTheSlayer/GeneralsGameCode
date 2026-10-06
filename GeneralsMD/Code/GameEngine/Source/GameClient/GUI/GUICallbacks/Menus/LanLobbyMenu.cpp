@@ -60,6 +60,7 @@
 #include "GameNetwork/IPEnumeration.h"
 #include "GameNetwork/LANAPICallbacks.h"
 #include "GameNetwork/LANGameInfo.h"
+#include "GameNetwork/LANAutoTest.h"
 
 Bool LANisShuttingDown = false;
 Bool LANbuttonPushed = false;
@@ -446,6 +447,12 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	GadgetListBoxAddEntryText(listboxChatWindow, str, chatSystemColor, -1, 0);
 #endif
 
+	if (GetLANTestRole() != LAN_TEST_NONE)
+	{
+		fprintf(stderr, "LAN_TEST ip %d.%d.%d.%d\n", PRINTF_IP_AS_4_INTS(IP));
+		fflush(stderr);
+	}
+
 	// TheLAN->init() sets us to be in a LAN menu screen automatically.
 	TheLAN->init();
 	if (TheLAN->SetLocalIP(IP) == FALSE) {
@@ -467,6 +474,13 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	GadgetListBoxReset(listboxGames);
 
 	defaultName.truncateTo(g_lanPlayerNameLength);
+	UnicodeString testName;
+	if (GetLANTestRole(&testName) != LAN_TEST_NONE && !testName.isEmpty())
+	{
+		defaultName = testName;
+		defaultName.truncateTo(g_lanPlayerNameLength);
+		GadgetTextEntrySetText(textEntryPlayerName, defaultName);
+	}
 	TheLAN->RequestSetName(defaultName);
 	TheLAN->RequestLocations();
 
@@ -587,6 +601,8 @@ void LanLobbyMenuShutdown( WindowLayout *layout, void *userData )
 //-------------------------------------------------------------------------------------------------
 /** Lan Lobby menu update method */
 //-------------------------------------------------------------------------------------------------
+static void LanLobbyTestUpdate();
+
 void LanLobbyMenuUpdate( WindowLayout * layout, void *userData)
 {
 	if (TheGameLogic->isInShellGame() && TheGameLogic->getFrame() == 1)
@@ -610,7 +626,10 @@ void LanLobbyMenuUpdate( WindowLayout * layout, void *userData)
 		shutdownComplete(layout);
 
 	if (TheShell->isAnimFinished() && !LANbuttonPushed && TheLAN)
+	{
 		TheLAN->update();
+		LanLobbyTestUpdate();
+	}
 
 	if (LANSocketErrorDetected == TRUE) {
 		LANSocketErrorDetected = FALSE;
@@ -623,6 +642,30 @@ void LanLobbyMenuUpdate( WindowLayout * layout, void *userData)
 	}
 
 
+}
+
+// GENERALS_LAN_TEST: the host creates a game, the other player joins the first game listed.
+static void LanLobbyTestUpdate()
+{
+	static Int delay = 60;
+	const LANTestRole role = GetLANTestRole();
+	if (role == LAN_TEST_NONE || TheLAN == nullptr || TheLAN->GetMyGame() != nullptr || LANbuttonPushed)
+		return;
+	if (delay > 0)
+	{
+		--delay;
+		return;
+	}
+	if (role == LAN_TEST_HOST)
+	{
+		TheLAN->RequestGameCreate(L"", FALSE);
+		delay = 300;
+	}
+	else if (LANGameInfo *game = TheLAN->LookupGameByListOffset(0))
+	{
+		TheLAN->RequestGameJoin(game);
+		delay = 300;
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
