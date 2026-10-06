@@ -346,7 +346,17 @@ void SortingRendererClass::Insert_To_Sorted_List(SortingNodeStruct *state)
 
 void SortingRendererClass::Insert_To_Sorting_Pool(SortingNodeStruct* state)
 {
-	if (overlapping_node_count>=MAX_OVERLAPPING_NODES) {
+	// TheSuperHackers @bugfix The dynamic vertex buffer and the pool's vertex indices are 16 bit, so
+	// a pool of more than 65535 vertices (many particles, for example) wrapped around and overflowed the
+	// buffer. Draw the nodes collected so far first when this one would not fit, or the pool is full.
+	// Nodes arrive back to front, so the drawing order stays correct.
+	static const unsigned MAX_POOL_VERTICES = 32768;
+	if (overlapping_node_count > 0 &&
+		(overlapping_node_count >= MAX_OVERLAPPING_NODES || overlapping_vertex_count + state->vertex_count > MAX_POOL_VERTICES)) {
+		Flush_Sorting_Pool();
+	}
+
+	if (overlapping_node_count>=MAX_OVERLAPPING_NODES || state->vertex_count > MAX_POOL_VERTICES) {
 		Release_Refs(state);
 		delete state;
 		WWASSERT(0);
@@ -598,7 +608,7 @@ void SortingRendererClass::Flush_Sorting_Pool()
 
 // ----------------------------------------------------------------------------
 
-#ifdef RTS_POSIX_PORT
+#if defined(__APPLE__)
 // TheSuperHackers @feature The Metal renderer fades translucent sprites drawn while this render state
 // is set (outside the Direct3D 8 range) where they come within this many units of the scene behind
 // them. GENERALS_SOFT_PARTICLES sets the distance, 0 turns it off.
@@ -628,7 +638,7 @@ static void Set_Soft_Particles(float distance)
 void SortingRendererClass::Flush()
 {
 	WWPROFILE("SortingRenderer::Flush");
-#ifdef RTS_POSIX_PORT
+#if defined(__APPLE__)
 	Set_Soft_Particles(Soft_Particle_Distance());
 #endif
 	Matrix4x4 old_view;
@@ -669,7 +679,7 @@ void SortingRendererClass::Flush()
 	DX8Wrapper::Set_Index_Buffer(nullptr,0);
 	DX8Wrapper::Set_Vertex_Buffer(nullptr);
 	total_sorting_vertices=0;
-#ifdef RTS_POSIX_PORT
+#if defined(__APPLE__)
 	Set_Soft_Particles(0.0f);
 #endif
 
