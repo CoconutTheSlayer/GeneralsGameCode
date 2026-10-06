@@ -25,6 +25,7 @@
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
 #include "Common/Recorder.h"
+#include "Common/WireChar.h"
 #include "Common/file.h"
 #include "Common/FileSystem.h"
 #include "Common/PlayerList.h"
@@ -838,8 +839,12 @@ void RecorderClass::writeArgument(GameMessageArgumentDataType type, const GameMe
 			m_file->write( &(arg.timestamp), sizeof(arg.timestamp) );
 			break;
 		case ARGUMENTDATATYPE_WIDECHAR:
-			m_file->write( &(arg.wChar), sizeof(arg.wChar) );
+		{
+			// UTF-16 on every platform, like the text in the header (see Common/WireChar.h).
+			const WireChar c = toWireChar(arg.wChar);
+			m_file->write( &c, sizeof(c) );
 			break;
+		}
 		default:
 			DEBUG_LOG(("Unknown GameMessageArgumentDataType in RecorderClass::writeArgument"));
 			break;
@@ -1558,8 +1563,9 @@ void RecorderClass::readArgument(GameMessageArgumentDataType type, GameMessage *
 			break;
 		}
 		case ARGUMENTDATATYPE_WIDECHAR: {
-			WideChar theid;
-			m_file->read(&theid, sizeof(theid));
+			WireChar wire = 0;
+			m_file->read(&wire, sizeof(wire));
+			const WideChar theid = fromWireChar(wire);
 			msg->appendWideCharArgument(theid);
 #ifdef DEBUG_LOGGING
 			if (m_doingAnalysis)

@@ -28,6 +28,7 @@
 
 #pragma once
 
+#include "Common/WireChar.h"
 #include "GameNetwork/Transport.h"
 #include "GameNetwork/NetworkInterface.h"
 #include "GameNetwork/NetworkDefs.h"
@@ -44,7 +45,7 @@ static const Int g_lanHostNameLength = 1;
 static const Int g_lanGameNameLength = 16; // reduced length because of game option length
 static const Int g_lanGameNameReservedLength = 16; // save N wchars for ID info
 static const Int g_lanMaxChatLength = 100;
-static const Int m_lanMaxOptionsLength = MAX_LANAPI_PACKET_SIZE - ( 8 + (g_lanGameNameLength+1)*(Int)sizeof(WideChar) + 4 + (g_lanPlayerNameLength+1)*(Int)sizeof(WideChar)
+static const Int m_lanMaxOptionsLength = MAX_LANAPI_PACKET_SIZE - ( 8 + (g_lanGameNameLength+1)*(Int)sizeof(WireChar) + 4 + (g_lanPlayerNameLength+1)*(Int)sizeof(WireChar)
 																														+ (g_lanLoginNameLength+1) + (g_lanHostNameLength+1) );
 static const Int g_maxSerialLength = 23; // including the trailing '\0'
 
@@ -172,7 +173,7 @@ struct LANMessage
 		MSG_REQUEST_GAME_INFO,	///< For direct connect, get the game info from a specific IP Address
 	} messageType;
 
-	WideChar name[g_lanPlayerNameLength+1]; ///< My name, for convenience
+	WireChar name[g_lanPlayerNameLength+1]; ///< My name, for convenience (UTF-16, see Common/WireChar.h)
 	char userName[g_lanLoginNameLength+1];	///< login name, for convenience
 	char hostName[g_lanHostNameLength+1];		///< machine name, for convenience
 
@@ -189,13 +190,13 @@ struct LANMessage
 		// GameJoined is sent with REQUEST_GAME_LEAVE
 		struct
 		{
-			WideChar gameName[g_lanGameNameLength+1];
+			WireChar gameName[g_lanGameNameLength+1];
 		} GameToLeave;
 
 		// GameInfo if sent with GAME_ANNOUNCE
 		struct
 		{
-			WideChar gameName[g_lanGameNameLength+1];
+			WireChar gameName[g_lanGameNameLength+1];
 			Bool inProgress;
 			char options[m_lanMaxOptionsLength+1];
 			Bool isDirectConnect;
@@ -205,7 +206,7 @@ struct LANMessage
 		struct
 		{
 			UnsignedInt ip;
-			WideChar playerName[g_lanPlayerNameLength+1];
+			WireChar playerName[g_lanPlayerNameLength+1];
 		} PlayerInfo;
 
 		// GameToJoin is sent with REQUEST_JOIN
@@ -220,7 +221,7 @@ struct LANMessage
 		// GameJoined is sent with JOIN_ACCEPT
 		struct
 		{
-			WideChar gameName[g_lanGameNameLength+1];
+			WireChar gameName[g_lanGameNameLength+1];
 			UnsignedInt gameIP;
 			UnsignedInt playerIP;
 			Int slotPosition;
@@ -229,7 +230,7 @@ struct LANMessage
 		// GameNotJoined is sent with JOIN_DENY
 		struct
 		{
-			WideChar gameName[g_lanGameNameLength+1];
+			WireChar gameName[g_lanGameNameLength+1];
 			UnsignedInt gameIP;
 			UnsignedInt playerIP;
 			LANAPIInterface::ReturnType reason;
@@ -238,14 +239,14 @@ struct LANMessage
 		// Accept is sent with SET_ACCEPT
 		struct
 		{
-			WideChar gameName[g_lanGameNameLength+1];
+			WireChar gameName[g_lanGameNameLength+1];
 			Bool isAccepted;
 		} Accept;
 
 		// Accept is sent with MAP_AVAILABILITY
 		struct
 		{
-			WideChar gameName[g_lanGameNameLength+1];
+			WireChar gameName[g_lanGameNameLength+1];
 			UnsignedInt mapCRC;	// to make sure we're talking about the same map
 			Bool hasMap;
 		} MapStatus;
@@ -253,9 +254,9 @@ struct LANMessage
 		// Chat is sent with CHAT
 		struct
 		{
-			WideChar gameName[g_lanGameNameLength+1];
+			WireChar gameName[g_lanGameNameLength+1];
 			LANAPIInterface::ChatType chatType;
-			WideChar message[g_lanMaxChatLength+1];
+			WireChar message[g_lanMaxChatLength+1];
 		} Chat;
 
 		// GameOptions is sent with GAME_OPTIONS
@@ -270,6 +271,8 @@ struct LANMessage
 #pragma pack(pop)
 
 static_assert(sizeof(LANMessage) <= MAX_LANAPI_PACKET_SIZE, "LANMessage struct cannot be larger than the max packet size");
+// The same layout on every platform, for crossplay and with retail Windows.
+static_assert(sizeof(LANMessage) == 471, "LANMessage must have the same layout on every platform");
 
 
 /**

@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "Common/WireChar.h"
 #include "GameNetwork/NetworkDefs.h"
 #include "Utility/stringex.h"
 
@@ -117,15 +118,21 @@ inline size_t readBytes(UnsignedByte *dest, size_t destLen, NetPacketBuf src)
 	return readLen;
 }
 
+// Text is sent as UTF-16 code units on every platform (see Common/WireChar.h).
 inline size_t readStringWithoutNull(UnicodeString &str, size_t maxStrLen, NetPacketBuf src)
 {
-	const size_t strLen = min(maxStrLen, src.size() / sizeof(WideChar));
-	const size_t cpyLen = strLen * sizeof(WideChar);
+	const size_t strLen = min(maxStrLen, src.size() / sizeof(WireChar));
+	const size_t cpyLen = strLen * sizeof(WireChar);
 
 	if (strLen > 0)
 	{
 		WideChar *strBuf = str.getBufferForRead(strLen);
-		memcpy(strBuf, src.data(), cpyLen);
+		for (size_t i = 0; i < strLen; ++i)
+		{
+			WireChar c;
+			memcpy(&c, src.data() + i * sizeof(WireChar), sizeof(c));
+			strBuf[i] = fromWireChar(c);
+		}
 		strBuf[strLen] = 0;
 	}
 	return cpyLen;
@@ -170,9 +177,13 @@ inline size_t writeBytes(UnsignedByte *dest, const UnsignedByte *src, size_t len
 inline size_t writeStringWithoutNull(UnsignedByte *dest, const UnicodeString &value, size_t maxLen)
 {
 	const size_t copyLen = std::min<size_t>(value.getLength(), maxLen);
-	const size_t copyBytes = copyLen * sizeof(WideChar);
-	memcpy(dest, value.str(), copyBytes);
-	return copyBytes;
+	const WideChar *str = value.str();
+	for (size_t i = 0; i < copyLen; ++i)
+	{
+		const WireChar c = toWireChar(str[i]);
+		memcpy(dest + i * sizeof(WireChar), &c, sizeof(c));
+	}
+	return copyLen * sizeof(WireChar);
 }
 
 inline size_t writeStringWithNull(UnsignedByte *dest, const AsciiString &value)
