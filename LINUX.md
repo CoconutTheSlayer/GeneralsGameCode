@@ -10,8 +10,11 @@ deterministic math in `Dependencies/DetMath`. Code shared by both ports is under
 - Headless runs work, for example replays: `generalszh -headless -replay <name>.rep`.
 - The simulation matches the other platforms bit for bit: a 12 minute four AI replay gives the same
   CRCs on macOS arm64, macOS x86-64, Linux arm64 and Linux x86-64.
-- No graphics yet: `Dependencies/D3D8Null` provides Direct3D 8 without a device. The graphical build
-  will use DXVK (Direct3D 8 on Vulkan), which also runs natively on Windows.
+- Graphics run on Vulkan through DXVK native (Direct3D 8 on Vulkan). `Dependencies/D3D8Dxvk` loads
+  `libdxvk_d3d8.so` at run time (from `$DXVK_DIR/lib`, next to the executable, or the library path)
+  and hands DXVK the SDL windows behind the Win32 shim's window handles. The Docker image builds
+  DXVK into `/opt/dxvk`.
+- Soft particles are not implemented on DXVK yet; particles are drawn as in the original game.
 - Fonts have approximate metrics and draw nothing until the GDI layer renders with FreeType.
 
 ## Building with Docker
@@ -34,3 +37,16 @@ Mount the game folders and point the game at them:
         -w /game generals-linux /src/build/linux/GeneralsMD/generalszh -useCwd -headless -replay <name>.rep
 
 `GENERALS_CRC_LOG=1` prints the game state CRCs; compare them with another platform's output.
+
+## Running with graphics
+
+Without a display, Xvfb and Mesa's software Vulkan driver (lavapipe) are enough to test:
+
+    docker run --rm -v "$PWD":/src -v <Zero Hour folder>:/game \
+        -v "<user data folder>":"/root/Documents/Command and Conquer Generals Zero Hour Data" \
+        -e SDL_VIDEODRIVER=x11 -e SDL_AUDIODRIVER=dummy -e DISPLAY=:99 \
+        -e GENERALS_ZH_PATH=/game -e GENERALS_PATH=/game/ZH_Generals -w /game generals-linux \
+        sh -c "Xvfb :99 -screen 0 1280x800x24 & sleep 2; /src/build/linux/GeneralsMD/generalszh \
+            -noaudio -win -xres 1280 -yres 800 -skirmish 'Tournament Desert' -observe -opponents 2"
+
+On a desktop, run the executable directly with a Vulkan driver installed and DXVK on the library path.

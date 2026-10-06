@@ -1011,7 +1011,11 @@ HWND CreateWindowEx(DWORD exStyle, LPCSTR className, LPCSTR windowName, DWORD st
 	if (h <= 0 || h == CW_USEDEFAULT)
 		h = 600;
 
+#if defined(__APPLE__)
 	SDL_WindowFlags flags = SDL_WINDOW_METAL | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
+#else
+	SDL_WindowFlags flags = SDL_WINDOW_VULKAN | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE; // DXVK
+#endif
 	if (!(style & WS_CAPTION))
 		flags |= SDL_WINDOW_BORDERLESS;
 

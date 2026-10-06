@@ -39,7 +39,6 @@ DEFINE_GUID(IID_IUnknown, 0x00000000, 0x0000, 0x0000, 0xC0, 0x00, 0x00, 0x00, 0x
 
 interface IUnknown
 {
-	virtual ~IUnknown() {}
 	STDMETHOD(QueryInterface)(REFIID riid, void** ppvObj) PURE;
 	STDMETHOD_(ULONG, AddRef)() PURE;
 	STDMETHOD_(ULONG, Release)() PURE;
