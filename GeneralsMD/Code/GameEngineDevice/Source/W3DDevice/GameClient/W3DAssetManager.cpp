@@ -323,6 +323,19 @@ Int W3DAssetManager::replaceMeshTexture(RenderObjClass *robj, TextureClass *oldT
 	int didReplace=0;
 
 	MeshClass *mesh=(MeshClass*) robj;
+
+	// TheSuperHackers @bugfix The mesh data is shared by every copy of the model, so give this copy its
+	// own before changing its texture, or every unit with the model would change.
+	{
+		MaterialInfoClass *shared = mesh->Get_Material_Info();
+		Bool uses = false;
+		for (i=0; shared && i<shared->Texture_Count(); i++)
+			uses = uses || shared->Peek_Texture(i) == oldTex;
+		REF_PTR_RELEASE(shared);
+		if (uses)
+			mesh->Make_Unique(true);
+	}
+
 	MeshModelClass * model = mesh->Get_Model();
 	MaterialInfoClass	*material = mesh->Get_Material_Info();
 

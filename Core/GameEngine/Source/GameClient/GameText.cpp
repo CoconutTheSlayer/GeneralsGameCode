@@ -45,6 +45,10 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#if defined(RTS_POSIX_PORT)
+#include <win32shim.h>
+#endif
+
 #include "Common/UTF16.h"
 
 #include "GameClient/GameText.h"
@@ -196,6 +200,8 @@ class GameTextManager : public GameTextInterface
 		Bool						getCSFInfo ( const Char *filename );
 		Bool						parseCSF(  const Char *filename );
 		Bool						parseStringFile( const char *filename );
+		void						appendAddonStrings();
+		Int							m_parseStart;				///< where parseStringFile puts the first string
 		Bool						parseMapStringFile( const char *filename );
 		Bool						readLine( char *buffer, Int max, File *file );
 		Char						readChar( File *file );
@@ -249,6 +255,7 @@ GameTextManager::GameTextManager()
 	m_maxLabelLen(0),
 	m_stringInfo(nullptr),
 	m_stringLUT(nullptr),
+	m_parseStart(0),
 	m_initialized(FALSE),
 	m_noStringList(nullptr),
 #if defined(RTS_DEBUG)
@@ -352,6 +359,10 @@ void GameTextManager::init()
 			return;
 		}
 	}
+
+#if defined(RTS_POSIX_PORT)
+	appendAddonStrings();
+#endif
 
 	m_stringLUT = NEW StringLookUp[m_textCount];
 
@@ -1014,7 +1025,7 @@ quit:
 
 Bool GameTextManager::parseStringFile( const char *filename )
 {
-	Int listCount = 0;
+	Int listCount = m_parseStart;
 	Bool ok = TRUE;
 
 	File *file = TheFileSystem->openFile(filename, File::READ | File::TEXT);
@@ -1108,6 +1119,34 @@ quit:
 
 	return ok;
 }
+
+#if defined(RTS_POSIX_PORT)
+//============================================================================
+// TheSuperHackers @feature Add-on text, a new faction's names for example: the labels of
+// <extra data>/Data/<language>/Addon.str (in the .str format) come after the game's own.
+//============================================================================
+
+void GameTextManager::appendAddonStrings()
+{
+	const char *extraData = Win32Shim_GetExtraDataDirectory();
+	if (extraData == nullptr)
+		return;
+	AsciiString path;
+	path.format("%s/Data/%s/Addon.str", extraData, GetRegistryLanguage().str());
+	Int count = 0;
+	if (!TheFileSystem->doesFileExist(path.str()) || !getStringCount(path.str(), count) || count <= 0)
+		return;
+	StringInfo *grown = NEW StringInfo[m_textCount + count];
+	for (Int i = 0; i < m_textCount; ++i)
+		grown[i] = m_stringInfo[i];
+	delete [] m_stringInfo;
+	m_stringInfo = grown;
+	m_parseStart = m_textCount;
+	parseStringFile(path.str());
+	m_parseStart = 0;
+	m_textCount += count;
+}
+#endif
 
 //============================================================================
 // GameTextManager::initMapStringFile

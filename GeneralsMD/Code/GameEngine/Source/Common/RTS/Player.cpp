@@ -777,6 +777,49 @@ void Player::deletePlayerAI()
 }
 
 //=============================================================================
+// TheSuperHackers @feature A faction that plays with another side's skirmish scripts (SkirmishAISide)
+// has the names of objects, upgrades and powers in them replaced by its own (SkirmishAIReplace).
+typedef std::vector<std::pair<AsciiString, AsciiString> > NameReplacements;
+
+static void replaceName(Parameter *param, const NameReplacements &replacements)
+{
+	if (param == nullptr)
+		return;
+	for (const auto &r : replacements)
+	{
+		if (param->getString() == r.first)
+		{
+			param->friend_setString(r.second);
+			return;
+		}
+	}
+}
+
+static void replaceNamesInScript(Script *script, const NameReplacements &replacements)
+{
+	for (OrCondition *o = script->getOrCondition(); o; o = o->getNextOrCondition())
+		for (Condition *c = o->getFirstAndCondition(); c; c = c->getNext())
+			for (Int i = 0; i < c->getNumParameters(); ++i)
+				replaceName(c->getParameter(i), replacements);
+	ScriptAction *lists[] = { script->getAction(), script->getFalseAction() };
+	for (ScriptAction *a : lists)
+		for (; a; a = a->getNext())
+			for (Int i = 0; i < a->getNumParameters(); ++i)
+				replaceName(a->getParameter(i), replacements);
+}
+
+static void replaceNamesInScripts(ScriptList *list, const NameReplacements &replacements)
+{
+	if (list == nullptr || replacements.empty())
+		return;
+	for (Script *s = list->getScript(); s; s = s->getNext())
+		replaceNamesInScript(s, replacements);
+	for (ScriptGroup *g = list->getScriptGroup(); g; g = g->getNext())
+		for (Script *s = g->getScript(); s; s = s->getNext())
+			replaceNamesInScript(s, replacements);
+}
+
+//=============================================================================
 // This is called from PlayerList->newGame()
 //
 void Player::initFromDict(const Dict* d)
@@ -786,6 +829,11 @@ void Player::initFromDict(const Dict* d)
 	DEBUG_ASSERTCRASH(pt != nullptr, ("PlayerTemplate %s not found -- this is an obsolete map (please open and resave in WB)",tmplname.str()));
 
 	init(pt);
+	const PlayerTemplate *myTemplate = pt;
+	// The side whose skirmish scripts this player uses.
+	const AsciiString aiSide = (myTemplate && myTemplate->getSkirmishAISide().isNotEmpty()) ? myTemplate->getSkirmishAISide() : getSide();
+	static const NameReplacements noReplacements;
+	const NameReplacements &aiReplacements = myTemplate ? myTemplate->getSkirmishAIReplacements() : noReplacements;
 
 	m_playerDisplayName = d->getUnicodeString(TheKey_playerDisplayName);
 	AsciiString pname = d->getAsciiString(TheKey_playerName);
@@ -806,7 +854,7 @@ void Player::initFromDict(const Dict* d)
 		{
 			AsciiString spTemplateName = TheSidesList->getSkirmishSideInfo(spIdx)->getDict()->getAsciiString(TheKey_playerFaction);
 			const PlayerTemplate* spt = ThePlayerTemplateStore->findPlayerTemplate(NAMEKEY(spTemplateName));
-			if (spt && spt->getSide() == getSide())
+			if (spt && spt->getSide() == aiSide)
 			{
 				skirmish = true;
 				break;
@@ -866,7 +914,7 @@ void Player::initFromDict(const Dict* d)
 	if (skirmish) {
 		// Copy and qualify scripts, and teams.
 
-		AsciiString mySide = getSide();
+		AsciiString mySide = aiSide;
 		Int i, skirmishNdx;
 		Bool found = false;
 		AsciiString  qualTemplatePlayerName;
@@ -899,6 +947,7 @@ void Player::initFromDict(const Dict* d)
 			qualifier.format("%d", m_mpStartIndex);
 			ScriptList *scripts = TheSidesList->getSkirmishSideInfo(skirmishNdx)->getScriptList()->duplicateAndQualify(
 						qualifier, qualTemplatePlayerName, pname);
+			replaceNamesInScripts(scripts, aiReplacements);
 
 			deleteInstance(TheSidesList->getSideInfo(getPlayerIndex())->getScriptList());
 			TheSidesList->getSideInfo(getPlayerIndex())->setScriptList(scripts);
@@ -960,6 +1009,25 @@ void Player::initFromDict(const Dict* d)
 						{
 							newName.format("%s%d", tmpStr.str(), m_mpStartIndex);
 							teamDict.setAsciiString(NAMEKEY(keyName), newName);
+						}
+					}
+
+					// The units of the team, for a faction that plays with another side's scripts.
+					if (!aiReplacements.empty())
+					{
+						NameKeyType unitKeys[] = { TheKey_teamUnitType1, TheKey_teamUnitType2, TheKey_teamUnitType3, TheKey_teamUnitType4,
+							TheKey_teamUnitType5, TheKey_teamUnitType6, TheKey_teamUnitType7 };
+						for (NameKeyType key : unitKeys)
+						{
+							tmpStr = teamDict.getAsciiString(key, &exists);
+							for (const auto &r : aiReplacements)
+							{
+								if (exists && tmpStr == r.first)
+								{
+									teamDict.setAsciiString(key, r.second);
+									break;
+								}
+							}
 						}
 					}
 

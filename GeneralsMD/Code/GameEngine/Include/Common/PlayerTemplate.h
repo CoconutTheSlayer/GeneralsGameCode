@@ -84,6 +84,12 @@ public:
 	AsciiString getSide() const { return m_side; }
 	AsciiString getBaseSide() const  { return m_baseSide; }
 
+	// TheSuperHackers @feature A faction without skirmish scripts of its own (an add-on faction) plays with
+	// the scripts of SkirmishAISide, with the names in them replaced by SkirmishAIReplace pairs.
+	const AsciiString &getSkirmishAISide() const { return m_skirmishAISide; }
+	const std::vector<std::pair<AsciiString, AsciiString> > &getSkirmishAIReplacements() const { return m_skirmishAIReplace; }
+	static void parseSkirmishAIReplace(INI *ini, void *instance, void *store, const void *userData);
+
 	/// return the tech tree for the player.
 	const Handicap *getHandicap() const { return &m_handicap; }
 
@@ -151,6 +157,8 @@ private:
 	NameKeyType			m_nameKey;
 	UnicodeString		m_displayName;
 	AsciiString			m_side, m_baseSide;
+	AsciiString			m_skirmishAISide;
+	std::vector<std::pair<AsciiString, AsciiString> > m_skirmishAIReplace;
 	Handicap				m_handicap;						///< initial baseline for Player capabilities
 	Money						m_money;							///< starting credits, if any
 	RGBColor				m_preferredColor;			///< our preferred starting color

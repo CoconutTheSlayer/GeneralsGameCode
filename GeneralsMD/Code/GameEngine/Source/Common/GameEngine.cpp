@@ -156,6 +156,27 @@ GameEngine *TheGameEngine = nullptr;
 //-------------------------------------------------------------------------------------------------
 SubsystemInterfaceList* TheSubsystemList = nullptr;
 
+#if defined(RTS_POSIX_PORT)
+// TheSuperHackers @feature Add-on data, a new faction for example: every .ini in
+// <extra data>/Data/INI/Addon/<stage> loads after the game's own data of that stage (Logic: objects,
+// weapons, upgrades and the like; AI: AIData; Client: command sets, buttons and images). The game
+// data the add-on adds counts in the multiplayer data check like the rest.
+static void loadAddonINI(const char *stage, Xfer *xfer)
+{
+	const char *extraData = Win32Shim_GetExtraDataDirectory();
+	if (extraData == nullptr)
+		return;
+	AsciiString dir;
+	dir.format("%s/Data/INI/Addon/%s", extraData, stage);
+	FilenameList files;
+	TheLocalFileSystem->getFileListInDirectory(dir, "", "*.ini", files, TRUE);
+	if (files.empty())
+		return;
+	INI ini;
+	ini.loadDirectory(dir, INI_LOAD_OVERWRITE, xfer);
+}
+#endif
+
 //-------------------------------------------------------------------------------------------------
 template<class SUBSYSTEM>
 void initSubsystem(
@@ -624,7 +645,13 @@ void GameEngine::init()
 #endif
 
 		initSubsystem(TheUpgradeCenter,"TheUpgradeCenter", MSGNEW("GameEngineSubsystem") UpgradeCenter, &xferCRC, "Data\\INI\\Default\\Upgrade", "Data\\INI\\Upgrade");
+#if defined(RTS_POSIX_PORT)
+		loadAddonINI("Logic", &xferCRC);
+#endif
 		initSubsystem(TheGameClient,"TheGameClient", createGameClient(), nullptr);
+#if defined(RTS_POSIX_PORT)
+		loadAddonINI("Client", nullptr);
+#endif
 
 
 	#ifdef DUMP_PERF_STATS///////////////////////////////////////////////////////////////////////////
@@ -636,6 +663,9 @@ void GameEngine::init()
 
 
 		initSubsystem(TheAI,"TheAI", MSGNEW("GameEngineSubsystem") AI(), &xferCRC,  "Data\\INI\\Default\\AIData", "Data\\INI\\AIData");
+#if defined(RTS_POSIX_PORT)
+		loadAddonINI("AI", &xferCRC);
+#endif
 		initSubsystem(TheGameLogic,"TheGameLogic", createGameLogic(), nullptr);
 		initSubsystem(TheTeamFactory,"TheTeamFactory", MSGNEW("GameEngineSubsystem") TeamFactory(), nullptr);
 		initSubsystem(TheCrateSystem,"TheCrateSystem", MSGNEW("GameEngineSubsystem") CrateSystem(), &xferCRC, "Data\\INI\\Default\\Crate", "Data\\INI\\Crate");

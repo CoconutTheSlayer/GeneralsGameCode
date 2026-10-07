@@ -288,6 +288,8 @@ public:
 	std::vector<AsciiString>					m_extraPublicBones;
 	AsciiString												m_trackFile;						///< if present, leaves tracks using this texture
 	AsciiString												m_attachToDrawableBone;
+	AsciiString												m_textureReplaceOld;	///< TextureReplace: a texture of the models...
+	AsciiString												m_textureReplaceNew;	///< ...drawn with another one instead
 #ifdef CACHE_ATTACH_BONE
 	mutable Vector3										m_attachToDrawableBoneOffset;
 #endif
