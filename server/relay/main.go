@@ -128,6 +128,15 @@ func (r *relay) handleHello(from netip.AddrPort, body []byte) {
 		r.reply(from, typeWelcome, id[:], s.vip[:])
 		return
 	}
+	// A signed in player has one game online: a new session (the game was restarted, or went to
+	// another room) replaces the old one, which would otherwise linger until it timed out.
+	if len(r.secret) > 0 {
+		for _, old := range r.sessions {
+			if old.player == player {
+				r.remove(old)
+			}
+		}
+	}
 	rm := r.rooms[roomName]
 	if rm == nil {
 		rm = &room{name: roomName, sessions: map[[8]byte]*session{}}
@@ -237,20 +246,24 @@ func (r *relay) expire() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	now := time.Now()
-	for id, s := range r.sessions {
-		if now.Sub(s.lastSeen) < sessionTimeout {
-			continue
+	for _, s := range r.sessions {
+		if now.Sub(s.lastSeen) >= sessionTimeout {
+			r.remove(s)
 		}
-		for _, ep := range s.endpoints {
-			delete(r.bindings, ep.addr)
-		}
-		delete(s.room.sessions, id)
-		if len(s.room.sessions) == 0 {
-			delete(r.rooms, s.room.name)
-		}
-		delete(r.sessions, id)
-		log.Printf("%s left room %q", s.player, s.room.name)
 	}
+}
+
+// remove ends a session. The caller holds r.mu.
+func (r *relay) remove(s *session) {
+	for _, ep := range s.endpoints {
+		delete(r.bindings, ep.addr)
+	}
+	delete(s.room.sessions, s.id)
+	if len(s.room.sessions) == 0 {
+		delete(r.rooms, s.room.name)
+	}
+	delete(r.sessions, s.id)
+	log.Printf("%s left room %q", s.player, s.room.name)
 }
 
 func (r *relay) serve() {

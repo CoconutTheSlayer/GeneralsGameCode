@@ -608,6 +608,7 @@ void LanLobbyMenuShutdown( WindowLayout *layout, void *userData )
 /** Lan Lobby menu update method */
 //-------------------------------------------------------------------------------------------------
 static void LanLobbyTestUpdate();
+static void LanLobbyOnlineUpdate();
 
 void LanLobbyMenuUpdate( WindowLayout * layout, void *userData)
 {
@@ -635,6 +636,7 @@ void LanLobbyMenuUpdate( WindowLayout * layout, void *userData)
 	{
 		TheLAN->update();
 		LanLobbyTestUpdate();
+		LanLobbyOnlineUpdate();
 	}
 
 	if (LANSocketErrorDetected == TRUE) {
@@ -671,6 +673,28 @@ static void LanLobbyTestUpdate()
 	{
 		TheLAN->RequestGameJoin(game);
 		delay = 300;
+	}
+}
+
+// -online (the launcher): a room is a shared LAN, so instead of leaving the player in an empty
+// lobby, join the first game of the room, or host one when nobody has after a few seconds of
+// listening. Only once, so a player who leaves a game stays in the lobby.
+static void LanLobbyOnlineUpdate()
+{
+	static Int wait = 150;
+	static Bool done = FALSE;
+	if (!OpenLANLobbyOnStart() || done || GetLANTestRole() != LAN_TEST_NONE || TheLAN == nullptr
+		|| TheLAN->GetMyGame() != nullptr || LANbuttonPushed)
+		return;
+	if (LANGameInfo *game = TheLAN->LookupGameByListOffset(0))
+	{
+		done = TRUE;
+		TheLAN->RequestGameJoin(game);
+	}
+	else if (--wait <= 0)
+	{
+		done = TRUE;
+		TheLAN->RequestGameCreate(L"", FALSE);
 	}
 }
 

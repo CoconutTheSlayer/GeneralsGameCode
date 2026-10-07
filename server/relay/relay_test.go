@@ -175,3 +175,22 @@ func TestRelayListsRooms(t *testing.T) {
 		t.Fatalf("rooms: %s", w.Body.String())
 	}
 }
+
+func TestRelayReplacesOldSessionOfPlayer(t *testing.T) {
+	secret := "secret"
+	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { conn.Close() })
+	r := &relay{conn: conn, secret: []byte(secret), rooms: map[string]*room{}, sessions: map[[8]byte]*session{}, bindings: map[netip.AddrPort]binding{}}
+	go r.serve()
+	relay := conn.LocalAddr().(*net.UDPAddr).AddrPort()
+	alice := token.Make([]byte(secret), "76561197960287930", time.Now().Add(time.Hour))
+	newClient(t, relay).join("first", "room1", alice, 8086)
+	newClient(t, relay).join("second", "room2", alice, 8086)
+	rooms := r.roomList()
+	if len(rooms) != 1 || rooms[0].Name != "room2" || len(rooms[0].Players) != 1 {
+		t.Fatalf("rooms after rejoining elsewhere: %+v", rooms)
+	}
+}
