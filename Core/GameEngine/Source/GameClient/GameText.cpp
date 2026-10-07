@@ -1147,8 +1147,12 @@ void GameTextManager::appendAddonStrings()
 	m_parseStart = m_textCount;
 	parseStringFile(path.str());
 	m_parseStart = 0;
-	m_textCount += count;
-	fprintf(stderr, "Add-on data: loaded %d texts from %s\n", (int)count, path.str());
+	// getStringCount leaves room for 500 more than the file has; count only the parsed ones.
+	Int parsed = 0;
+	while (parsed < count && m_stringInfo[m_textCount + parsed].label.isNotEmpty())
+		++parsed;
+	m_textCount += parsed;
+	fprintf(stderr, "Add-on data: loaded %d texts from %s\n", (int)parsed, path.str());
 	fflush(stderr);
 }
 #endif
