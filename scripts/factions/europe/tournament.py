@@ -14,6 +14,7 @@ import re
 import subprocess
 import tempfile
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
@@ -39,15 +40,23 @@ def play(side, opponent, game_map, seed, minutes, work):
     game = subprocess.Popen(["nice", "-n", "10", GAME, "-headless", "-noaudio", "-noFPSLimit", "-gamespeed", "3000",
                              "-battle", battle], cwd=GAME_DIR, env=env, stdout=subprocess.DEVNULL,
                             stderr=subprocess.PIPE, text=True)
-    timer = threading.Timer(1800, game.kill)
-    timer.start()
-    try:
+    # The log tells the game time; the result file appears without a log line, so look for it as well.
+    seconds = [0]
+
+    def read_log():
         for line in game.stderr:
             m = re.match(r"PLAYER_LOG (\d+)s", line)
-            if os.path.exists(result) or (m and int(m.group(1)) >= minutes * 60):
-                break
+            if m:
+                seconds[0] = int(m.group(1))
+
+    reader = threading.Thread(target=read_log, daemon=True)
+    reader.start()
+    started = time.time()
+    try:
+        while game.poll() is None and not os.path.exists(result) and seconds[0] < minutes * 60 \
+                and time.time() - started < 1800:
+            time.sleep(2)
     finally:
-        timer.cancel()
         game.kill()
         game.wait()
     if not os.path.exists(result):
