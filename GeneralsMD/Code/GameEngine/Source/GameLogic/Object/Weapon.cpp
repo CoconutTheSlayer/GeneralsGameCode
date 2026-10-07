@@ -1790,6 +1790,34 @@ void WeaponStore::postProcessLoad()
 }
 
 //-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature ChildWeapon NAME PARENT: a copy of weapon PARENT in which any field can change.
+/*static*/ void WeaponStore::parseChildWeaponDefinition(INI* ini)
+{
+	AsciiString name = ini->getNextToken();
+	AsciiString parentName = ini->getNextToken();
+	const WeaponTemplate *parent = TheWeaponStore->findWeaponTemplatePrivate( TheNameKeyGenerator->nameToKey( parentName ) );
+	if (parent == nullptr)
+	{
+		DEBUG_CRASH(("ChildWeapon '%s' must come after its parent '%s'", name.str(), parentName.str()));
+		throw INI_INVALID_DATA;
+	}
+	if (TheWeaponStore->findWeaponTemplatePrivate( TheNameKeyGenerator->nameToKey( name ) ))
+	{
+		DEBUG_CRASH(("Weapon '%s' already exists", name.str()));
+		return;
+	}
+	WeaponTemplate *weapon = TheWeaponStore->newWeaponTemplate(name);
+	const NameKeyType key = weapon->m_nameKey;
+	(*weapon) = (*parent);
+	weapon->m_name = name;
+	weapon->m_nameKey = key;
+	weapon->m_nextTemplate = nullptr;
+	ini->initFromINI(weapon, weapon->getFieldParse());
+	if (weapon->m_projectileName.isNone())
+		weapon->m_projectileName.clear();
+}
+
 /*static*/ void WeaponStore::parseWeaponTemplateDefinition(INI* ini)
 {
 	AsciiString name;

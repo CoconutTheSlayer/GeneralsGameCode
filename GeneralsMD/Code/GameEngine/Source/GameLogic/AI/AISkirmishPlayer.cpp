@@ -560,17 +560,9 @@ Player *AISkirmishPlayer::getAiEnemy()
 */
 void AISkirmishPlayer::buildAIBaseDefense(Bool flank)
 {
-	const AISideInfo *resInfo = TheAI->getAiData()->m_sideInfo;
-	AsciiString defenseTemplateName;
-	while (resInfo) {
-		if (resInfo->m_side == m_player->getSide()) {
-			defenseTemplateName = resInfo->m_baseDefenseStructure1;
-			break;
-		}
-		resInfo = resInfo->m_next;
-	}
+	const AISideInfo *resInfo = TheAI->getAiData()->findSideInfo(m_player);
 	if (resInfo) {
-		buildAIBaseDefenseStructure(resInfo->m_baseDefenseStructure1, flank);
+		buildAIBaseDefenseStructure(m_player->getAIReplacement(resInfo->m_baseDefenseStructure1), flank);
 	}
 }
 
@@ -1101,16 +1093,17 @@ void AISkirmishPlayer::newMap()
 	/* Get our proper build list. */
 	AsciiString mySide = m_player->getSide();
 	DEBUG_LOG(("AI Player side is %s", mySide.str()));
-	const AISideBuildList *build = TheAI->getAiData()->m_sideBuildLists;
-	while (build) {
-		if (build->m_side == mySide) {
+	const AISideBuildList *build = TheAI->getAiData()->findBuildList(m_player);
+	if (build) {
+		{
 			BuildListInfo *buildList = build->m_buildList->duplicate();
+			// A faction using another side's build list builds its own structures.
+			for (BuildListInfo *info = buildList; info; info = info->getNext())
+				info->setTemplateName(m_player->getAIReplacement(info->getTemplateName()));
 			adjustBuildList(buildList); // adjust to  our start position.
 			m_player->setBuildList(buildList);
 			computeCenterAndRadiusOfBase(&m_baseCenter, &m_baseRadius);
-			break;
 		}
-		build = build->m_next;
 	}
 	DEBUG_ASSERTLOG(build!=nullptr, ("Couldn't find build list for skirmish player."));
 

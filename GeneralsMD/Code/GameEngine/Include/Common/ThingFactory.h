@@ -90,7 +90,7 @@ public:
 	*/
 	Drawable *newDrawable(const ThingTemplate *tmplate, DrawableStatusBits statusBits = DRAWABLE_STATUS_DEFAULT );
 
-	static void parseObjectDefinition( INI* ini, const AsciiString& name, const AsciiString& reskinFrom );
+	static void parseObjectDefinition( INI* ini, const AsciiString& name, const AsciiString& reskinFrom, Bool child = FALSE );
 
 private:
 

@@ -606,6 +606,10 @@ public:
 	Real getFactoryExtraBibWidth() const { return m_factoryExtraBibWidth; }
 
 	void setCopiedFromDefault();
+	void setCopiedFromParent();	///< ChildObject: its own weapon, armor sets and prerequisites replace the parent's
+	const AsciiString &getTextureReplaceOld() const { return m_textureReplaceOld; }
+	const AsciiString &getTextureReplaceNew() const { return m_textureReplaceNew; }
+	static void parseTextureReplace( INI* ini, void *instance, void * /*store*/, const void* /*userData*/ );
 
 	void setReskinnedFrom(const ThingTemplate* tt) { DEBUG_ASSERTCRASH(m_reskinnedFrom == nullptr, ("should be null")); m_reskinnedFrom = tt; }
 
@@ -765,6 +769,9 @@ private:
 	Bool					m_isForbidden;								///< useful when overriding in <mapfile>.ini
 	Bool					m_armorCopiedFromDefault;
 	Bool					m_weaponsCopiedFromDefault;
+	Bool					m_prereqsCopiedFromParent;
+	AsciiString				m_textureReplaceOld;		///< TextureReplace: draw the models with m_textureReplaceNew instead
+	AsciiString				m_textureReplaceNew;
 
 	// ---- Byte-sized things
 	Byte					m_radarPriority;						///< does object appear on radar, and if so at what priority

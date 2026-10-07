@@ -781,6 +781,15 @@ void Player::deletePlayerAI()
 // has the names of objects, upgrades and powers in them replaced by its own (SkirmishAIReplace).
 typedef std::vector<std::pair<AsciiString, AsciiString> > NameReplacements;
 
+AsciiString Player::getAIReplacement(const AsciiString &name) const
+{
+	if (m_playerTemplate)
+		for (const auto &r : m_playerTemplate->getSkirmishAIReplacements())
+			if (r.first == name)
+				return r.second;
+	return name;
+}
+
 static void replaceName(Parameter *param, const NameReplacements &replacements)
 {
 	if (param == nullptr)

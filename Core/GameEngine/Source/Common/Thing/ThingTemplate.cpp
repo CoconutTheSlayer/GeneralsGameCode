@@ -256,6 +256,7 @@ const FieldParse ThingTemplate::s_objectFieldParseTable[] =
 	{ "ShadowOffsetY",				INI::parseReal,						nullptr,	offsetof( ThingTemplate, m_shadowOffsetY ) },
 	{ "ShadowTexture",				INI::parseAsciiString,		nullptr,	offsetof( ThingTemplate, m_shadowTextureName ) },
 	{ "OcclusionDelay",					INI::parseDurationUnsignedInt,		nullptr, offsetof( ThingTemplate, m_occlusionDelay ) },
+	{ "TextureReplace",				ThingTemplate::parseTextureReplace,	nullptr, 0 },
 	{ "AddModule",						ThingTemplate::parseAddModule,			nullptr, 0 },
 	{ "RemoveModule",					ThingTemplate::parseRemoveModule,		nullptr, 0 },
 	{ "ReplaceModule",				ThingTemplate::parseReplaceModule,	nullptr, 0 },
@@ -281,6 +282,7 @@ const FieldParse ThingTemplate::s_objectFieldParseTable[] =
 const FieldParse ThingTemplate::s_objectReskinFieldParseTable[] =
 {
 	{ "Draw",									ThingTemplate::parseModuleName,		(const void*)MODULETYPE_DRAW, offsetof(ThingTemplate, m_drawModuleInfo) },
+	{ "TextureReplace",				ThingTemplate::parseTextureReplace,	nullptr, 0 },
 
 	{ "Geometry",							GeometryInfo::parseGeometryType,				nullptr,  offsetof( ThingTemplate, m_geometryInfo ) },
 	{ "GeometryMajorRadius",	GeometryInfo::parseGeometryMajorRadius,	nullptr,		offsetof( ThingTemplate, m_geometryInfo ) },
@@ -691,9 +693,10 @@ void ThingTemplate::parsePrerequisites( INI* ini, void *instance, void *store, c
 		{ nullptr, nullptr, nullptr, 0 }
 	};
 
-	if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)
+	if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES || self->m_prereqsCopiedFromParent)
 	{
 		self->m_prereqInfo.clear();
+		self->m_prereqsCopiedFromParent = false;
 	}
 
 	ini->initFromINI(&self->m_prereqInfo, myFieldParse);
@@ -1015,6 +1018,7 @@ ThingTemplate::ThingTemplate() :
 {
 	m_moduleParsingMode = MODULEPARSE_NORMAL;
 	m_reskinnedFrom = nullptr;
+	m_prereqsCopiedFromParent = false;
 	m_radarPriority = RADAR_PRIORITY_INVALID;
 
 	m_nextThingTemplate = nullptr;
@@ -1260,6 +1264,27 @@ void ThingTemplate::copyFrom(const ThingTemplate* that)
 	this->m_nextThingTemplate = next;
 	this->m_templateID = id;
 	this->m_nameString = name;
+}
+
+//-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature ChildObject: unlike a copy of the default object, a child keeps all the
+// modules of its parent (ReplaceModule, RemoveModule and AddModule change them), while a weapon set,
+// armor set or prerequisites of its own replace the parent's.
+void ThingTemplate::setCopiedFromParent()
+{
+	m_armorCopiedFromDefault = true;
+	m_weaponsCopiedFromDefault = true;
+	m_prereqsCopiedFromParent = true;
+}
+
+//-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature TextureReplace = OLD NEW draws the object's models with texture NEW instead of
+// OLD, so a faction can reuse models in its own colours.
+void ThingTemplate::parseTextureReplace( INI* ini, void *instance, void * /*store*/, const void* /*userData*/ )
+{
+	ThingTemplate *self = (ThingTemplate *)instance;
+	self->m_textureReplaceOld = ini->getNextAsciiString();
+	self->m_textureReplaceNew = ini->getNextAsciiString();
 }
 
 //-------------------------------------------------------------------------------------------------

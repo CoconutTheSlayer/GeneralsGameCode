@@ -3114,10 +3114,14 @@ void W3DModelDraw::setModelState(const ModelConditionInfo* newState)
 		}
 		else
 		{
+			// TextureReplace of the draw module, or else of the object.
 			const W3DModelDrawModuleData *md = getW3DModelDrawModuleData();
-			const Bool retexture = md->m_textureReplaceOld.isNotEmpty() && md->m_textureReplaceNew.isNotEmpty();
+			const ThingTemplate *tt = draw->getTemplate();
+			const AsciiString &oldTexture = md->m_textureReplaceOld.isNotEmpty() ? md->m_textureReplaceOld : tt->getTextureReplaceOld();
+			const AsciiString &newTexture = md->m_textureReplaceOld.isNotEmpty() ? md->m_textureReplaceNew : tt->getTextureReplaceNew();
+			const Bool retexture = oldTexture.isNotEmpty() && newTexture.isNotEmpty();
 			m_renderObject = W3DDisplay::m_assetManager->Create_Render_Obj(newState->m_modelName.str(), draw->getScale(), m_hexColor,
-				retexture ? md->m_textureReplaceOld.str() : nullptr, retexture ? md->m_textureReplaceNew.str() : nullptr);
+				retexture ? oldTexture.str() : nullptr, retexture ? newTexture.str() : nullptr);
 			DEBUG_ASSERTCRASH(m_renderObject, ("*** ASSET ERROR: Model %s not found!",newState->m_modelName.str()));
 #if defined(RTS_POSIX_PORT)
 			if (m_renderObject)
