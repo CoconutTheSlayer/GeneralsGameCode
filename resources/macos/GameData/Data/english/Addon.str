@@ -204,10 +204,6 @@ CONTROLBAR:ToolTipEuro_Command_ConstructCommando
 "An elite commando who plants charges and strikes unseen."
 END
 
-OBJECT:Euro_Hazmat
-"CBRN Specialist"
-END
-
 OBJECT:Euro_Boxer
 "Boxer"
 END
