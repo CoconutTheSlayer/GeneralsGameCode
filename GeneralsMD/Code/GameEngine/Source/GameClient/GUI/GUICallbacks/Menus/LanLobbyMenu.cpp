@@ -61,6 +61,7 @@
 #include "GameNetwork/LANAPICallbacks.h"
 #include "GameNetwork/LANGameInfo.h"
 #include "GameNetwork/LANAutoTest.h"
+#include "GameNetwork/GameSpy/ThreadUtils.h"
 
 Bool LANisShuttingDown = false;
 Bool LANbuttonPushed = false;
@@ -474,8 +475,13 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	GadgetListBoxReset(listboxGames);
 
 	defaultName.truncateTo(g_lanPlayerNameLength);
+	// The launcher passes the player's name (UTF-8) in GENERALS_PLAYER_NAME.
 	UnicodeString testName;
-	if (GetLANTestRole(&testName) != LAN_TEST_NONE && !testName.isEmpty())
+	GetLANTestRole(&testName);
+	const char *launcherName = getenv("GENERALS_PLAYER_NAME");
+	if (testName.isEmpty() && launcherName && *launcherName)
+		testName = UnicodeString(MultiByteToWideCharSingleLine(launcherName).c_str());
+	if (!testName.isEmpty())
 	{
 		defaultName = testName;
 		defaultName.truncateTo(g_lanPlayerNameLength);

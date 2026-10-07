@@ -28,6 +28,7 @@
 #include "Common/ArchiveFileSystem.h"
 #include "Common/CommandLine.h"
 #include "GameNetwork/GameInfo.h"
+#include "GameNetwork/LANAutoTest.h"
 #include "Common/CRCDebug.h"
 #include "Common/LocalFileSystem.h"
 #include "Common/version.h"
@@ -912,6 +913,13 @@ Int parseNoShellMap(char *args[], int)
 	return 1;
 }
 
+Int parseOnline(char *args[], int)
+{
+	OpenLANLobbyOnStart() = true;
+
+	return 1;
+}
+
 Int parseNoShaders(char *args[], int)
 {
 	TheWritableGlobalData->m_chipSetType = 1;	//force to a voodoo card which uses least amount of features.
@@ -1296,6 +1304,7 @@ static CommandLineParam paramsForEngineInit[] =
 	{ "-seed", parseSkirmishSeed },
 	{ "-nologo", parseNoLogo }, // TheSuperHackers @tweak Is now available in Release builds.
 	{ "-noshellmap", parseNoShellMap },
+	{ "-online", parseOnline },
 	{ "-noShellAnim", parseNoWindowAnimation }, // TheSuperHackers @tweak Is now available in Release builds.
 	{ "-xres", parseXRes },
 	{ "-yres", parseYRes },

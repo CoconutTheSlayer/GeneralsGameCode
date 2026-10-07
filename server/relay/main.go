@@ -24,6 +24,7 @@ import (
 	"flag"
 	"log"
 	"net"
+	"net/http"
 	"net/netip"
 	"os"
 	"sync"
@@ -283,6 +284,7 @@ func (r *relay) serve() {
 func main() {
 	listen := flag.String("listen", ":7900", "UDP address to listen on")
 	verbose := flag.Bool("v", false, "log binds and dropped datagrams")
+	httpListen := flag.String("http", ":7901", "HTTP address for the room list (GET /rooms), empty for none")
 	flag.Parse()
 	addr, err := net.ResolveUDPAddr("udp", *listen)
 	if err != nil {
@@ -308,6 +310,9 @@ func main() {
 			r.expire()
 		}
 	}()
+	if *httpListen != "" {
+		go func() { log.Fatal(http.ListenAndServe(*httpListen, r.httpHandler())) }()
+	}
 	log.Printf("relay listening on %s", conn.LocalAddr())
 	r.serve()
 }

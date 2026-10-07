@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,6 +26,8 @@ func fakeSteam(t *testing.T, valid bool, owned int) *httptest.Server {
 				t.Errorf("mode %q", r.Form.Get("openid.mode"))
 			}
 			fmt.Fprintf(w, "ns:http://specs.openid.net/auth/2.0\nis_valid:%v\n", valid)
+		case strings.HasPrefix(r.URL.Path, "/ISteamUser/GetPlayerSummaries"):
+			fmt.Fprintf(w, `{"response":{"players":[{"steamid":%q,"personaname":"Alice","avatarfull":"https://a/x.jpg"}]}}`, steamID)
 		case strings.HasPrefix(r.URL.Path, "/IPlayerService/GetOwnedGames"):
 			if r.URL.Query().Get("steamid") != steamID {
 				t.Errorf("steamid %q", r.URL.Query().Get("steamid"))
@@ -40,15 +43,16 @@ func fakeSteam(t *testing.T, valid bool, owned int) *httptest.Server {
 
 func newServer(steam *httptest.Server, apiKey string) *server {
 	return &server{
-		publicURL:   "https://auth.example.org",
-		secret:      []byte("secret"),
-		apiKey:      apiKey,
-		appIDs:      []string{"2732960"},
-		tokenLife:   time.Hour,
-		openIDURL:   steam.URL + "/openid/login",
-		steamAPIURL: steam.URL,
-		client:      steam.Client(),
-		nonces:      map[string]time.Time{},
+		publicURL:    "https://auth.example.org",
+		secret:       []byte("secret"),
+		apiKey:       apiKey,
+		appIDs:       []string{"2732960"},
+		tokenLife:    time.Hour,
+		openIDURL:    steam.URL + "/openid/login",
+		steamAPIURL:  steam.URL,
+		client:       steam.Client(),
+		nonces:       map[string]time.Time{},
+		profileCache: map[string]cachedProfile{},
 	}
 }
 
@@ -123,5 +127,17 @@ func TestCallbackRefusesForgedAndUnowned(t *testing.T) {
 	other := strings.Replace(callbackQuery("n4"), "auth.example.org", "evil.example.org", 1)
 	if w := get(newServer(fakeSteam(t, true, 1), ""), other); w.Code != http.StatusForbidden {
 		t.Fatalf("other site: %d", w.Code)
+	}
+}
+
+func TestProfilesNamesPlayers(t *testing.T) {
+	s := newServer(fakeSteam(t, true, 1), "key")
+	w := get(s, "/profiles?ids="+steamID+",76561197960287931,notanid")
+	var got []profile
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || got[0].Name != "Alice" || got[1].Name != "76561197960287931" {
+		t.Fatalf("profiles: %s", w.Body.String())
 	}
 }

@@ -48,8 +48,9 @@ type server struct {
 	steamAPIURL string // Steam's, replaced in tests
 	client      *http.Client
 
-	mu     sync.Mutex
-	nonces map[string]time.Time // assertions already used, so a captured one cannot be replayed
+	mu           sync.Mutex
+	nonces       map[string]time.Time // assertions already used, so a captured one cannot be replayed
+	profileCache map[string]cachedProfile
 }
 
 func (s *server) login(w http.ResponseWriter, r *http.Request) {
@@ -193,6 +194,7 @@ func (s *server) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /login", s.login)
 	mux.HandleFunc("GET /callback", s.callback)
+	mux.HandleFunc("GET /profiles", s.profiles)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "ok") })
 	return mux
 }
@@ -201,15 +203,16 @@ func main() {
 	listen := flag.String("listen", ":8080", "HTTP address to listen on")
 	flag.Parse()
 	s := &server{
-		publicURL:   strings.TrimRight(os.Getenv("PUBLIC_URL"), "/"),
-		secret:      []byte(os.Getenv("TOKEN_SECRET")),
-		apiKey:      os.Getenv("STEAM_API_KEY"),
-		appIDs:      []string{"2732960"},
-		tokenLife:   7 * 24 * time.Hour,
-		openIDURL:   steamOpenID,
-		steamAPIURL: "https://api.steampowered.com",
-		client:      &http.Client{Timeout: 10 * time.Second},
-		nonces:      map[string]time.Time{},
+		publicURL:    strings.TrimRight(os.Getenv("PUBLIC_URL"), "/"),
+		secret:       []byte(os.Getenv("TOKEN_SECRET")),
+		apiKey:       os.Getenv("STEAM_API_KEY"),
+		appIDs:       []string{"2732960"},
+		tokenLife:    7 * 24 * time.Hour,
+		openIDURL:    steamOpenID,
+		steamAPIURL:  "https://api.steampowered.com",
+		client:       &http.Client{Timeout: 10 * time.Second},
+		nonces:       map[string]time.Time{},
+		profileCache: map[string]cachedProfile{},
 	}
 	if s.publicURL == "" || len(s.secret) == 0 {
 		log.Fatal("PUBLIC_URL and TOKEN_SECRET must be set")

@@ -1,0 +1,26 @@
+# The online services. Locally:
+#   TOKEN_SECRET=$(openssl rand -hex 32) docker compose -f server/compose.yaml up -d --build
+# The launcher then uses relay 127.0.0.1:7900, room list http://127.0.0.1:7901 and login
+# http://localhost:8080 (Steam's sign in accepts localhost). For a server, set PUBLIC_URL to its
+# HTTPS address and put a reverse proxy (Caddy) in front of ports 7901 and 8080.
+services:
+  relay:
+    build: { context: ., target: relay }
+    image: generals-relay
+    command: ["-http", ":7901"]
+    environment:
+      RELAY_SECRET: ${TOKEN_SECRET:?set TOKEN_SECRET}
+    ports:
+      - "7900:7900/udp"
+      - "7901:7901"
+    restart: unless-stopped
+  auth:
+    build: { context: ., target: auth }
+    image: generals-auth
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      TOKEN_SECRET: ${TOKEN_SECRET:?set TOKEN_SECRET}
+      STEAM_API_KEY: ${STEAM_API_KEY:-}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

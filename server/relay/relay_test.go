@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"net"
+	"net/http/httptest"
 	"net/netip"
 	"testing"
 	"time"
@@ -147,5 +149,29 @@ func TestRelayRejoinKeepsAddress(t *testing.T) {
 	d.send(typeHello, field("sessionD", 8), field("room", 32), field("dave", 128), want[:])
 	if w := d.recv(); w == nil || [4]byte(w[headerLen+8:headerLen+12]) != want {
 		t.Fatalf("rejoin address: %v", w)
+	}
+}
+
+func TestRelayListsRooms(t *testing.T) {
+	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { conn.Close() })
+	r := &relay{conn: conn, rooms: map[string]*room{}, sessions: map[[8]byte]*session{}, bindings: map[netip.AddrPort]binding{}}
+	go r.serve()
+	relay := conn.LocalAddr().(*net.UDPAddr).AddrPort()
+	newClient(t, relay).join("s1", "small", "carol", 8086)
+	newClient(t, relay).join("s2", "big", "alice", 8086)
+	newClient(t, relay).join("s3", "big", "bob", 8086)
+
+	w := httptest.NewRecorder()
+	r.httpHandler().ServeHTTP(w, httptest.NewRequest("GET", "/rooms", nil))
+	var rooms []roomInfo
+	if err := json.Unmarshal(w.Body.Bytes(), &rooms); err != nil {
+		t.Fatal(err)
+	}
+	if len(rooms) != 2 || rooms[0].Name != "big" || len(rooms[0].Players) != 2 || rooms[0].Players[0] != "alice" || rooms[1].Name != "small" {
+		t.Fatalf("rooms: %s", w.Body.String())
 	}
 }

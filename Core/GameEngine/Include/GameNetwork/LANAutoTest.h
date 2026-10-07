@@ -29,6 +29,14 @@
 #include <cstdlib>
 #include <cstring>
 
+// -online opens the LAN lobby as soon as the main menu is up, for the launcher, which has already
+// picked the relay room (GENERALS_RELAY_ROOM).
+inline bool &OpenLANLobbyOnStart()
+{
+	static bool open = false;
+	return open;
+}
+
 enum LANTestRole
 {
 	LAN_TEST_NONE,

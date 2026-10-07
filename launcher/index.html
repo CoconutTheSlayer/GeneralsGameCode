@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Warroom</title>
+    <link rel="stylesheet" href="/src/style.css" />
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">WARROOM</span>
+        <span class="brand-tag">Zero Hour community online</span>
+      </div>
+      <div class="account" id="account"></div>
+    </header>
+
+    <main class="layout">
+      <section class="panel browser" aria-labelledby="browser-title">
+        <div class="panel-head">
+          <h1 id="browser-title">Rooms</h1>
+          <span class="live" id="live">connecting…</span>
+        </div>
+        <form class="create" id="create-form">
+          <input id="room-name" maxlength="31" placeholder="New room name" autocomplete="off" />
+          <button type="submit" class="primary">Create &amp; join</button>
+        </form>
+        <ul class="rooms" id="rooms"></ul>
+      </section>
+
+      <aside class="side">
+        <section class="panel" aria-labelledby="game-title">
+          <h2 id="game-title">Game</h2>
+          <dl class="checks" id="checks"></dl>
+          <button id="open-settings" class="secondary wide">Settings</button>
+        </section>
+        <section class="panel tips">
+          <h2>How it works</h2>
+          <p>Pick a room. The game opens straight in that room's lobby, where you set up the match like a LAN game. Everyone in the room plays through the relay, whatever their platform.</p>
+        </section>
+      </aside>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <dialog id="settings">
+      <form method="dialog" id="settings-form">
+        <h2>Settings</h2>
+        <label>Game client<span class="hint">generalszh, or the macOS app</span>
+          <span class="pick"><input name="game_executable" /><button type="button" data-pick="game_executable" data-directory="false">Browse</button></span>
+        </label>
+        <label>Zero Hour data folder<span class="hint">the folder with INIZH.big; found automatically from Steam</span>
+          <span class="pick"><input name="game_dir" /><button type="button" data-pick="game_dir" data-directory="true">Browse</button></span>
+        </label>
+        <label>Relay<input name="relay" /></label>
+        <label>Room list<input name="relay_http" /></label>
+        <label>Login service<input name="auth_url" /></label>
+        <div class="dialog-actions">
+          <button value="cancel" class="secondary">Cancel</button>
+          <button value="save" class="primary">Save</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>
