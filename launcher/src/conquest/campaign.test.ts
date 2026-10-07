@@ -6,14 +6,14 @@ import { applyBattle, battleFile, endTurn, income, newCampaign, planBattle, targ
 // Starting positions.
 const c = newCampaign("usa", "medium", 42);
 assert.equal(Object.keys(c.owners).length, TERRITORIES.length);
-assert.deepEqual(territoriesOf(c, "usa").sort(), ["cascadia", "mexico", "plains"]);
+assert.deepEqual(territoriesOf(c, "usa").sort(), ["california", "centralam", "mexico", "plains", "rockies", "texas"]);
 assert.ok(income(c, "usa") > 0);
 
 // A battle: USA attacks the Gulf Coast (Superweapon General) from the Great Plains. The Superweapon
-// General's East Coast borders the Gulf and reinforces; USA's Mexico borders it too and sends allies.
+// General's other territories on the Gulf reinforce; USA's Texas borders it too and sends allies.
 const b = planBattle(c, "usa", "plains", "gulf");
 assert.equal(b.slots[0].controller, "human");
-assert.equal(b.slots.filter((s) => s.team === 0).length, 2, "Mexico sends allies");
+assert.equal(b.slots.filter((s) => s.team === 0).length, 2, "Texas sends allies");
 assert.equal(b.slots.filter((s) => s.team === 1).length, 2, "the East Coast reinforces");
 assert.ok(b.slots.length <= 4);
 const file = battleFile(b, 7, "/tmp/result.json");
@@ -28,8 +28,12 @@ const b2 = planBattle(c, "usa", "gulf", "eastcoast");
 applyBattle(c, b2, false);
 assert.equal(c.owners.eastcoast, "superweapon");
 
-// Map player limits: a two player map has no room for reinforcements (every territory map has 4+).
-for (const t of TERRITORIES) assert.ok(t.mapPlayers >= 4, `${t.id} needs a map for 2v2`);
+// Map player limits: a two player map has no room for reinforcements. Central America (seaside
+// mutiny, 2 players) borders USA's Mexico, but the battle stays one against one.
+const small = newCampaign("stealth", "medium", 3);
+const duel = planBattle(small, "stealth", "colombia", "centralam");
+assert.equal(duel.slots.length, 2);
+for (const t of TERRITORIES) assert.ok(t.mapPlayers >= 2);
 
 // AI turns change the world but keep it consistent, and an attack on the player waits for a defense.
 const world = newCampaign("china", "hard", 1);

@@ -6,8 +6,11 @@ import { GENERALS, NEIGHBOURS, TERRITORIES, type General, type Territory } from 
 export type Difficulty = "easy" | "medium" | "hard";
 export type Controller = "human" | Difficulty;
 
+/** Changes when the world changes, so older saved campaigns are not loaded into a different map. */
+export const WORLD_VERSION = 2;
+
 export interface Campaign {
-  version: 1;
+  version: number;
   player: string; // general id
   difficulty: Difficulty;
   turn: number;
@@ -67,7 +70,7 @@ export function newCampaign(player: string, difficulty: Difficulty, seed = Date.
     funds[g.id] = 0;
   }
   return {
-    version: 1,
+    version: WORLD_VERSION,
     player,
     difficulty,
     turn: 1,

@@ -546,6 +546,69 @@ dialog label {
 #world {
   width: 100%;
   height: 100%;
+  cursor: grab;
+  touch-action: none;
+  --zoom: 1;
+}
+
+#world.dragging {
+  cursor: grabbing;
+}
+
+#world .land,
+#world .link,
+#world .dot,
+#world .halo {
+  vector-effect: non-scaling-stroke;
+}
+
+.map-panel {
+  position: relative;
+}
+
+.map-controls {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(14, 17, 16, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px;
+}
+
+.map-controls button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--panel-raised);
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.map-controls button:hover {
+  background: #2a332e;
+}
+
+#zoom-level {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  padding: 2px 0;
+}
+
+.map-hint {
+  position: absolute;
+  left: 18px;
+  bottom: 12px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  pointer-events: none;
 }
 
 #world .land {
@@ -614,17 +677,21 @@ dialog label {
   filter: brightness(1.25);
 }
 
+#world:not(.close) .node:not(.mine):not(.selected):not(.target):not(.aimed):not(.threat) .label.minor {
+  display: none;
+}
+
 #world .label {
   fill: var(--text);
-  font-size: 10px;
+  font-size: calc(10.5px / var(--zoom));
   paint-order: stroke;
   stroke: #0e1110;
-  stroke-width: 3px;
+  stroke-width: calc(3px / var(--zoom));
   pointer-events: none;
 }
 
 #world .site {
-  font-size: 11px;
+  font-size: calc(8px / var(--zoom));
   text-anchor: middle;
   pointer-events: none;
 }
@@ -970,4 +1037,15 @@ select {
   to {
     transform: rotate(360deg);
   }
+}
+
+.general-card {
+  position: relative;
+}
+
+.restart {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  font-size: 12px;
 }

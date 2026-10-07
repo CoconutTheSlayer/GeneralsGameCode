@@ -50,7 +50,16 @@
     <main class="view conquest" id="conquest-view" hidden>
       <div id="conquest-setup" hidden></div>
       <div class="conquest-main" id="conquest-main" hidden>
-        <section class="panel map-panel"><svg id="world" viewBox="190 40 1170 470" role="img" aria-label="World map"></svg></section>
+        <section class="panel map-panel">
+          <svg id="world" viewBox="190 40 1170 470" role="img" aria-label="World map"></svg>
+          <div class="map-controls" aria-label="Zoom">
+            <button id="zoom-in" title="Zoom in">+</button>
+            <span id="zoom-level">100%</span>
+            <button id="zoom-out" title="Zoom out">−</button>
+            <button id="zoom-reset" title="Whole world">⤢</button>
+          </div>
+          <p class="map-hint">Scroll to zoom · drag to move</p>
+        </section>
         <aside class="conquest-side" id="conquest-panel"></aside>
       </div>
     </main>
