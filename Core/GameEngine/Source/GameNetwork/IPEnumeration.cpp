@@ -25,6 +25,7 @@
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
 #include "GameNetwork/IPEnumeration.h"
+#include "GameNetwork/Relay.h"
 
 #ifdef RTS_POSIX_PORT
 #include <ifaddrs.h>
@@ -77,6 +78,16 @@ EnumeratedIP * IPEnumeration::getAddresses()
 			return nullptr;
 		}
 		m_isWinsockInitialized = true;
+	}
+
+	// Online through the relay, the game has only its virtual address.
+	if (Relay::isEnabled())
+	{
+		const UnsignedInt vip = Relay::virtualIP();
+		if (vip == 0)
+			return nullptr;
+		addNewIP((UnsignedByte)(vip >> 24), (UnsignedByte)(vip >> 16), (UnsignedByte)(vip >> 8), (UnsignedByte)vip);
+		return m_IPlist;
 	}
 
 #ifdef RTS_POSIX_PORT

@@ -33,6 +33,7 @@
 // USER INCLUDES //////////////////////////////////////////////////////////////
 #include "Common/GameEngine.h"
 //#include "GameNetwork/NetworkInterface.h"
+#include "GameNetwork/Relay.h"
 #include "GameNetwork/udp.h"
 
 
@@ -147,6 +148,16 @@ Int UDP::Bind(UnsignedInt IP,UnsignedShort Port)
   int retval;
   int status;
 
+  // Through the relay the socket talks only to the relay server, from any local port, and the
+  // address and port asked for are virtual.
+  const Bool relay = Relay::isEnabled();
+  const UnsignedShort virtualPort = Port;
+  if (relay)
+  {
+    IP = INADDR_ANY;
+    Port = 0;
+  }
+
   IP=htonl(IP);
   Port=htons(Port);
 
@@ -182,6 +193,13 @@ Int UDP::Bind(UnsignedInt IP,UnsignedShort Port)
 
   myIP=ntohl(addr.sin_addr.s_addr);
   myPort=ntohs(addr.sin_port);
+
+  if (relay)
+  {
+    myIP = Relay::virtualIP();
+    myPort = virtualPort;
+    Relay::bind(fd, myPort);
+  }
 
   retval=SetBlocking(FALSE);
   if (retval==-1)
@@ -235,6 +253,9 @@ Int UDP::Write(const unsigned char *msg,UnsignedInt len,UnsignedInt IP,UnsignedS
   // This happens frequently
   if ((IP==0)||(port==0)) return(ADDRNOTAVAIL);
 
+  if (Relay::isEnabled())
+    return Relay::send(fd, myPort, msg, len, IP, port);
+
 #ifdef _UNIX
   errno=0;
 #endif
@@ -263,6 +284,9 @@ Int UDP::Read(unsigned char *msg,UnsignedInt len,sockaddr_in *from)
 {
   Int retval;
   int    alen=sizeof(sockaddr_in);
+
+  if (Relay::isEnabled())
+    return Relay::receive(fd, myPort, msg, len, from);
 
   if (from!=nullptr)
   {
