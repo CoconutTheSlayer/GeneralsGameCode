@@ -74,6 +74,7 @@
 
 #include "GameClient/InGameUI.h"
 #include "GameNetwork/LANAutoTest.h"
+#include "GameLogic/BattleFile.h"
 
 
 // PRIVATE DATA ///////////////////////////////////////////////////////////////////////////////////
@@ -822,6 +823,10 @@ void MainMenuUpdate( WindowLayout *layout, void *userData )
 
 	if(dontAllowTransitions && TheTransitionHandler->isFinished())
 		dontAllowTransitions = FALSE;
+
+	// -battle: back in the menus after the battle (won, lost or left), return to the launcher.
+	if (TheGlobalData->m_battleFile.isNotEmpty() && BattleWasPlayed() && !TheGameLogic->isInGame())
+		TheGameEngine->setQuitting(TRUE);
 
 	// -online and GENERALS_LAN_TEST: open the LAN lobby once the menu is up.
 	static Int lanTestDelay = 60;

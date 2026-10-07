@@ -991,6 +991,7 @@ GlobalData::GlobalData()
 	m_buildMapCache = FALSE;
 	m_initialFile.clear();
 	m_quickSkirmish = FALSE;
+	m_battleFile.clear();
 	m_quickSkirmishMap.clear();
 	m_quickSkirmishAI = -1;
 	m_quickSkirmishOpponents = 0;

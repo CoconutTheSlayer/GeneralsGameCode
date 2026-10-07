@@ -62,6 +62,7 @@
 
 #include "Common/MultiplayerSettings.h"
 #include "GameClient/GameText.h"
+#include "GameLogic/BattleFile.h"
 #include "GameClient/ExtendedMessageBox.h"
 #include "GameClient/MessageBox.h"
 #include "GameNetwork/GameInfo.h"
@@ -481,6 +482,18 @@ Bool startQuickSkirmish()
 	TheSkirmishGameInfo->enterGame();
 
 	SkirmishPreferences prefs;
+
+	// A world conquest battle from the launcher sets the map and every player.
+	BattleSetup battle;
+	const Bool isBattle = TheGlobalData->m_battleFile.isNotEmpty();
+	if (isBattle && !LoadBattleFile(TheGlobalData->m_battleFile.str(), battle))
+	{
+		fprintf(stderr, "-battle: cannot read %s\n", TheGlobalData->m_battleFile.str());
+		return FALSE;
+	}
+	if (isBattle)
+		TheWritableGlobalData->m_quickSkirmishMap = battle.map.c_str();
+
 	GameSlot player;
 	player.setName(prefs.getUserName());
 	player.setState(SLOT_PLAYER, prefs.getUserName());
@@ -525,8 +538,44 @@ Bool startQuickSkirmish()
 	TheSkirmishGameInfo->setMapCRC(md->m_CRC);
 	TheSkirmishGameInfo->setMapSize(md->m_filesize);
 
+	if (isBattle)
+	{
+		// Players in slot order; the human player comes first.
+		for (Int i = 0; i < MAX_SLOTS; ++i)
+		{
+			GameSlot slot;
+			if (i >= (Int)battle.players.size() || i >= md->m_numPlayers)
+			{
+				slot.setState(i == 0 ? SLOT_PLAYER : SLOT_CLOSED);
+				if (i != 0)
+					TheSkirmishGameInfo->setSlot(i, slot);
+				continue;
+			}
+			const BattlePlayer &bp = battle.players[i];
+			Int faction = ThePlayerTemplateStore->getTemplateNumByName(AsciiString(bp.faction.c_str()));
+			if (faction < 0)
+			{
+				fprintf(stderr, "-battle: faction '%s' not found\n", bp.faction.c_str());
+				faction = PLAYERTEMPLATE_RANDOM;
+			}
+			if (bp.controller == "human")
+			{
+				slot = player;
+			}
+			else
+			{
+				const SlotState ai = bp.controller == "hard" ? SLOT_BRUTAL_AI : bp.controller == "medium" ? SLOT_MED_AI : SLOT_EASY_AI;
+				slot.setState(ai);
+			}
+			slot.setPlayerTemplate(faction);
+			slot.setTeamNumber(bp.team);
+			if (bp.color >= 0)
+				slot.setColor(bp.color);
+			TheSkirmishGameInfo->setSlot(i, slot);
+		}
+	}
 	// Opponents: the last skirmish setup, unless -ai or -opponents ask for something else.
-	if (TheGlobalData->m_quickSkirmishAI < 0 && TheGlobalData->m_quickSkirmishOpponents <= 0 && prefs.getSlotList().isNotEmpty() &&
+	else if (TheGlobalData->m_quickSkirmishAI < 0 && TheGlobalData->m_quickSkirmishOpponents <= 0 && prefs.getSlotList().isNotEmpty() &&
 		!TheGlobalData->m_quickSkirmishObserver)
 	{
 		ParseAsciiStringToGameInfo(TheSkirmishGameInfo, prefs.getSlotList());
@@ -573,6 +622,15 @@ Bool startQuickSkirmish()
 	TheSkirmishGameInfo->setSeed(TheGlobalData->m_quickSkirmishSeed != 0 ? TheGlobalData->m_quickSkirmishSeed : GetTickCount());
 	TheSkirmishGameInfo->setStartingCash(prefs.getStartingCash());
 	TheSkirmishGameInfo->setSuperweaponRestriction(prefs.getSuperweaponRestricted() ? 1 : 0);
+	if (isBattle)
+	{
+		Money cash;
+		cash.deposit((UnsignedInt)max(0, battle.cash), FALSE, FALSE);
+		TheSkirmishGameInfo->setStartingCash(cash);
+		TheSkirmishGameInfo->setSuperweaponRestriction(battle.limitSuperweapons ? 1 : 0);
+		if (battle.seed != 0)
+			TheSkirmishGameInfo->setSeed(battle.seed);
+	}
 
 	TheWritableGlobalData->m_mapName = mapPath;
 	TheSkirmishGameInfo->startGame(0);

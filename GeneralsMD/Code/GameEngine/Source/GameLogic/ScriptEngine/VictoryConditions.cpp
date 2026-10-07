@@ -50,6 +50,8 @@
 #include "GameLogic/PartitionManager.h"
 #include "GameLogic/ScriptActions.h"
 #include "GameLogic/VictoryConditions.h"
+#include "GameLogic/BattleFile.h"
+#include "Common/ScoreKeeper.h"
 #include "GameNetwork/GameInfo.h"
 #include "GameNetwork/NetworkDefs.h"
 
@@ -84,6 +86,7 @@ public:
 	virtual Bool hasAchievedVictory(Player *player) override;					///< has a specific player and his allies won?
 	virtual Bool hasBeenDefeated(Player *player) override;							///< has a specific player and his allies lost?
 	virtual Bool hasSinglePlayerBeenDefeated(Player *player) override;	///< has a specific player lost?
+	void writeBattleResult();												///< for -battle, once the battle is decided
 
 	virtual void cachePlayerPtrs() override;											///< players have been created - cache the ones of interest
 
@@ -192,8 +195,11 @@ void VictoryConditions::update()
 
 			if (victoriousPlayer)
 				markAllianceVictorious(victoriousPlayer);
+			writeBattleResult();
 		}
 	}
+	if (TheGlobalData->m_battleFile.isNotEmpty())
+		BattleWasPlayed() = true;
 
 	// check for player eliminations
 	for (Int i=0; i<MAX_PLAYER_COUNT; ++i)
@@ -246,6 +252,43 @@ void VictoryConditions::update()
 			SetInGameChatType( INGAME_CHAT_EVERYONE ); // can't chat to allies after death.  Only to other observers.
 		}
 	}
+}
+
+//-------------------------------------------------------------------------------------------------
+// The launcher's world conquest reads who won a -battle, and how costly it was for each side.
+void VictoryConditions::writeBattleResult()
+{
+	if (TheGlobalData->m_battleFile.isEmpty() || TheGameInfo == nullptr)
+		return;
+	BattleSetup setup;
+	if (!LoadBattleFile(TheGlobalData->m_battleFile.str(), setup))
+		return;
+	std::vector<BattleResultPlayer> players;
+	for (Int i = 0; i < MAX_PLAYER_COUNT; ++i)
+	{
+		Player *p = m_players[i];
+		if (p == nullptr)
+			continue;
+		const Int slotIndex = ThePlayerList->getSlotIndex(p->getPlayerIndex());
+		const GameSlot *slot = slotIndex >= 0 ? TheGameInfo->getSlot(slotIndex) : nullptr;
+		ScoreKeeper *score = p->getScoreKeeper();
+		BattleResultPlayer r;
+		r.slot = slotIndex;
+		r.team = slot ? slot->getTeamNumber() : -1;
+		r.faction = slotIndex >= 0 && slotIndex < (Int)setup.players.size() ? setup.players[slotIndex].faction : "";
+		r.victorious = m_isVictorious[i];
+		r.defeated = m_isDefeated[i] || hasSinglePlayerBeenDefeated(p);
+		r.unitsBuilt = score->getTotalUnitsBuilt();
+		r.unitsLost = score->getTotalUnitsLost();
+		r.unitsDestroyed = score->getTotalUnitsDestroyed();
+		r.buildingsBuilt = score->getTotalBuildingsBuilt();
+		r.buildingsLost = score->getTotalBuildingsLost();
+		r.buildingsDestroyed = score->getTotalBuildingsDestroyed();
+		r.moneyEarned = score->getTotalMoneyEarned();
+		players.push_back(r);
+	}
+	const Bool victory = m_localSlotNum >= 0 && m_isVictorious[m_localSlotNum];
+	WriteBattleResult(setup.resultPath, victory, TheGameLogic->getFrame(), players);
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -417,6 +417,18 @@ Int parseSkirmish(char *args[], int num)
 	return 1;
 }
 
+// -battle FILE starts a world conquest battle from the launcher (GameLogic/BattleFile.h).
+Int parseBattle(char *args[], int num)
+{
+	if (num > 1)
+	{
+		parseSkirmish(args, 1);
+		TheWritableGlobalData->m_battleFile = args[1];
+		return 2;
+	}
+	return 1;
+}
+
 // At startup, -skirmish allows testing while the game is already running.
 Int parseSkirmishInstance(char *args[], int num)
 {
@@ -1305,6 +1317,7 @@ static CommandLineParam paramsForEngineInit[] =
 	{ "-nologo", parseNoLogo }, // TheSuperHackers @tweak Is now available in Release builds.
 	{ "-noshellmap", parseNoShellMap },
 	{ "-online", parseOnline },
+	{ "-battle", parseBattle },
 	{ "-noShellAnim", parseNoWindowAnimation }, // TheSuperHackers @tweak Is now available in Release builds.
 	{ "-xres", parseXRes },
 	{ "-yres", parseYRes },

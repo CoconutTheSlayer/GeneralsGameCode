@@ -357,6 +357,7 @@ public:
 	Bool m_buildMapCache;
 	AsciiString m_initialFile;				///< If this is specified, load a specific map from the command-line
 	Bool m_quickSkirmish;							///< Start a skirmish right away, for testing (-skirmish)
+	AsciiString m_battleFile;					///< A world conquest battle from the launcher (-battle, see GameLogic/BattleFile.h)
 	AsciiString m_quickSkirmishMap;		///< Map name for -skirmish, empty for the last skirmish map
 	Int m_quickSkirmishAI;						///< SlotState of the AI opponents, or -1 for the last skirmish setup
 	Int m_quickSkirmishOpponents;			///< Number of AI opponents, or 0 for the last skirmish setup
