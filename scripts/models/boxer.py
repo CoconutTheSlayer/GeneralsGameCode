@@ -14,35 +14,28 @@ The game's axes: +X forward, +Z up, in world units (a Boxer is about 30 long). B
     MUZZLE01, MUZZLEFX01     where the gun fires, and its flash
     HOUSECOLOR01/02          side stripes in the player's colour
 """
+import json
 import math
 import os
+import shutil
+import subprocess
 import sys
 
 import bmesh
 import bpy
-import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 DATA = os.path.join(ROOT, "resources", "macos", "GameData")
 BUILD = os.path.join(ROOT, "build", "models")
 sys.path.insert(0, HERE)
+import boxer_layout  # noqa: E402
 import w3d  # noqa: E402
 
 NAME = "EUBOXER"
 HULL_TEXTURE, TIRE_TEXTURE = "euboxer.tga", "euboxer_tire.tga"
-TEXTURE_SIZE = 512
 DAMAGED_TEXTURE = "euboxer_d.tga"
 
-
-def linear(r, g, b):
-    """An sRGB colour (0-255) as Blender's linear RGBA."""
-    c = [x / 255.0 for x in (r, g, b)]
-    return tuple(x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c) + (1.0,)
-
-
-CAMO_BASE, CAMO_DARK, CAMO_LIGHT = linear(124, 138, 150), linear(84, 97, 112), linear(164, 174, 182)
-DUST, SOOT = linear(150, 138, 116), linear(22, 20, 18)
 
 # Shapes, in game units.
 WHEEL_X = (11.2, 6.4, -4.4, -9.2)
@@ -187,48 +180,48 @@ def muzzle_flash():
 
 # --- textures --------------------------------------------------------------------------------------
 
-def tire_texture(size):
-    """Upper half the tread, lower half the hub."""
-    img = np.zeros((size, size, 3))
-    v, u = np.mgrid[0:size, 0:size] / size
-    tread = np.where((np.floor(u * 24) % 2 == 0) ^ (v > 0.75), 38, 26)
-    img[v >= 0.5] = np.stack([tread] * 3, -1)[v >= 0.5]
-    dx, dy = u - 0.5, (v - 0.25) * 2
-    r = np.sqrt(dx * dx + dy * dy)
-    hub = np.where(r < 0.32, 96, 30) - np.where((r > 0.12) & (r < 0.16), 30, 0)
-    img[v < 0.5] = np.stack([hub, hub + 8, hub + 14], -1)[v < 0.5]
-    return img
+def panel_unwrap(obj, part):
+    """UVs like the game's vehicles: every face projected straight onto its panel (boxer_layout.py)."""
+    me = obj.data
+    uv = me.uv_layers.new(name="UVMap")
+    for poly in me.polygons:
+        grp = boxer_layout.group(tuple(poly.normal))
+        for li in poly.loop_indices:
+            uv.data[li].uv = boxer_layout.uv(part, grp, tuple(me.vertices[me.loops[li].vertex_index].co))
 
 
-def save_tga(pixels, path):
-    """pixels: rows top to bottom, RGB 0-255."""
-    size = pixels.shape[0]
-    img = bpy.data.images.new(os.path.basename(path), size, size)
-    rgba = np.concatenate([pixels[::-1] / 255.0, np.ones((size, size, 1))], -1)
-    img.pixels.foreach_set(rgba.astype(np.float32).ravel())
-    img.filepath_raw = path
-    img.file_format = "TARGA_RAW"
-    img.save()
-    return img
+def export_layout(parts, path):
+    """The faces as they lie on the texture, and which of their edges are seams, for boxer_paint.py."""
+    faces = []
+    for obj, part in parts:
+        me = obj.data
+        edge_faces = {}
+        for poly in me.polygons:
+            for key in poly.edge_keys:
+                edge_faces.setdefault(key, []).append(poly)
+        for poly in me.polygons:
+            grp = boxer_layout.group(tuple(poly.normal))
+            vs = list(poly.vertices)
+            sharp = []
+            for i in range(len(vs)):
+                key = tuple(sorted((vs[i], vs[(i + 1) % len(vs)])))
+                around = edge_faces.get(key, [])
+                sharp.append(len(around) != 2 or around[0].normal.angle(around[1].normal, 0) > math.radians(25))
+            faces.append(dict(part=part, group=grp, px=[boxer_layout.pixel(part, grp, tuple(me.vertices[v].co)) for v in vs], sharp=sharp))
+    with open(path, "w") as f:
+        json.dump(dict(faces=faces), f)
 
 
-# --- UVs, materials and baking ---------------------------------------------------------------------
+def paint(layout_path, tex_dir):
+    """Paints the textures (boxer_paint.py runs outside Blender: it needs Pillow)."""
+    python = shutil.which("python3") or "/usr/bin/python3"
+    subprocess.run([python, os.path.join(HERE, "boxer_paint.py"), layout_path, tex_dir], check=True)
 
-REGIONS = {"CHASSIS": (0.0, 0.0, 1.0, 0.72), "TURRET": (0.0, 0.72, 0.5, 1.0)}
 
-
-def unwrap_into(obj, region):
-    """Smart-projects the object and fits its islands into a part (u0, v0, u1, v1) of the texture."""
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(angle_limit=math.radians(50), island_margin=0.02)
-    bpy.ops.object.mode_set(mode="OBJECT")
-    u0, v0, u1, v1 = region
-    for loop in obj.data.uv_layers.active.data:
-        loop.uv = (u0 + loop.uv.x * (u1 - u0), v0 + loop.uv.y * (v1 - v0))
+def load_image(path):
+    image = bpy.data.images.load(path, check_existing=True)
+    image.reload()
+    return image
 
 
 def wheel_uvs(obj):
@@ -263,105 +256,6 @@ def smooth_by_angle(obj, degrees=35):
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.shade_auto_smooth(angle=math.radians(degrees))
 
-
-def bake_paint(objects, size, damaged=False):
-    """Paints the hull and turret and bakes the paint into one image, in Cycles: camouflage patches from
-    3D noise (so they run on across UV seams), dust on the lower hull, darker where light hardly
-    reaches, and for the damaged look soot and burns."""
-    image = bpy.data.images.new("paint", size, size)
-    for obj in objects:
-        mat = bpy.data.materials.new(obj.name + "_paint")
-        mat.use_nodes = True
-        nodes, links = mat.node_tree.nodes, mat.node_tree.links
-        nodes.clear()
-        def node(kind, **values):
-            n = nodes.new(kind)
-            for key, value in values.items():
-                setattr(n, key, value)
-            return n
-        coords = node("ShaderNodeTexCoord")
-        geometry = node("ShaderNodeNewGeometry")
-        noise = node("ShaderNodeTexNoise")
-        noise.inputs["Scale"].default_value = 0.07
-        noise.inputs["Detail"].default_value = 3.0
-        noise.inputs["Roughness"].default_value = 0.45
-        links.new(geometry.outputs["Position"], noise.inputs["Vector"])
-        ramp = node("ShaderNodeValToRGB")
-        ramp.color_ramp.interpolation = "CONSTANT"
-        stops = ramp.color_ramp.elements
-        stops[0].position, stops[0].color = 0.0, CAMO_DARK
-        stops[1].position, stops[1].color = 0.44, CAMO_BASE
-        extra = stops.new(0.58)
-        extra.color = CAMO_LIGHT
-        links.new(noise.outputs["Fac"], ramp.inputs["Fac"])
-        # Fine grain over everything.
-        grain = node("ShaderNodeTexNoise")
-        grain.inputs["Scale"].default_value = 1.6
-        grain_mix = node("ShaderNodeMix", data_type="RGBA", blend_type="MULTIPLY")
-        grain_mix.inputs["Factor"].default_value = 0.12
-        links.new(geometry.outputs["Position"], grain.inputs["Vector"])
-        links.new(ramp.outputs["Color"], grain_mix.inputs["A"])
-        links.new(grain.outputs["Color"], grain_mix.inputs["B"])
-        # Dust, thickest near the ground.
-        xyz = node("ShaderNodeSeparateXYZ")
-        links.new(geometry.outputs["Position"], xyz.inputs["Vector"])
-        low = node("ShaderNodeMapRange")
-        low.inputs["From Min"].default_value, low.inputs["From Max"].default_value = 2.0, 7.0
-        low.inputs["To Min"].default_value, low.inputs["To Max"].default_value = 0.65, 0.0
-        links.new(xyz.outputs["Z"], low.inputs["Value"])
-        dust = node("ShaderNodeMix", data_type="RGBA")
-        dust.inputs["B"].default_value = DUST
-        links.new(low.outputs["Result"], dust.inputs["Factor"])
-        links.new(grain_mix.outputs["Result"], dust.inputs["A"])
-        colour = dust.outputs["Result"]
-        if damaged:
-            soot_noise = node("ShaderNodeTexNoise")
-            soot_noise.inputs["Scale"].default_value = 0.2
-            soot_noise.inputs["Detail"].default_value = 6.0
-            links.new(geometry.outputs["Position"], soot_noise.inputs["Vector"])
-            soot = node("ShaderNodeMapRange")
-            soot.inputs["From Min"].default_value, soot.inputs["From Max"].default_value = 0.42, 0.62
-            links.new(soot_noise.outputs["Fac"], soot.inputs["Value"])
-            burnt = node("ShaderNodeMix", data_type="RGBA")
-            burnt.inputs["B"].default_value = SOOT
-            links.new(soot.outputs["Result"], burnt.inputs["Factor"])
-            links.new(colour, burnt.inputs["A"])
-            colour = burnt.outputs["Result"]
-        # Darker where light hardly reaches.
-        ao = node("ShaderNodeAmbientOcclusion", samples=16)
-        ao.inputs["Distance"].default_value = 3.0
-        shade = node("ShaderNodeMapRange")
-        shade.inputs["To Min"].default_value = 0.65
-        links.new(ao.outputs["AO"], shade.inputs["Value"])
-        lit = node("ShaderNodeMix", data_type="RGBA", blend_type="MULTIPLY")
-        lit.inputs["Factor"].default_value = 1.0
-        links.new(colour, lit.inputs["A"])
-        links.new(shade.outputs["Result"], lit.inputs["B"])
-        emit = node("ShaderNodeEmission")
-        links.new(lit.outputs["Result"], emit.inputs["Color"])
-        out = node("ShaderNodeOutputMaterial")
-        links.new(emit.outputs["Emission"], out.inputs["Surface"])
-        target = node("ShaderNodeTexImage")
-        target.image = image
-        nodes.active = target
-        obj.data.materials.clear()
-        obj.data.materials.append(mat)
-    scene = bpy.context.scene
-    scene.render.engine = "CYCLES"
-    scene.cycles.device = "CPU"
-    scene.cycles.samples = 32
-    scene.render.bake.margin = 8
-    bpy.ops.object.select_all(action="DESELECT")
-    for obj in objects:
-        obj.select_set(True)
-    bpy.context.view_layer.objects.active = objects[0]
-    bpy.ops.object.bake(type="EMIT")
-    # The image is sRGB, as the texture is: its pixels need no conversion.
-    pixels = np.array(image.pixels[:]).reshape(size, size, 4)[::-1, :, :3]
-    return pixels * 255.0
-
-
-# --- export ----------------------------------------------------------------------------------------
 
 def mesh_data(obj):
     """Vertices (in the object's space), normals, uvs and triangles, one W3D vertex per distinct corner."""
@@ -426,18 +320,21 @@ def build():
     for i, x in enumerate(WHEEL_X):
         for j, side in enumerate((1, -1)):
             wheels.append(wheel(f"TIRE0{i * 2 + j + 1}", (x, side * WHEEL_Y, WHEEL_Z)))
-    for obj in (chassis, top):
+    for obj, part in ((chassis, "hull"), (top, "turret")):
         smooth_by_angle(obj)
-        unwrap_into(obj, REGIONS[obj.name])
+        panel_unwrap(obj, part)
     for obj in wheels:
         smooth_by_angle(obj, 50)
         wheel_uvs(obj)
     for obj in stripes + [flash]:
         obj.data.uv_layers.new(name="UVMap")
 
-    save_tga(bake_paint([chassis, top], TEXTURE_SIZE, damaged=True), os.path.join(tex_dir, DAMAGED_TEXTURE))
-    hull_image = save_tga(bake_paint([chassis, top], TEXTURE_SIZE), os.path.join(tex_dir, HULL_TEXTURE))
-    tire_image = save_tga(tire_texture(256), os.path.join(tex_dir, TIRE_TEXTURE))
+    layout = os.path.join(BUILD, NAME + "_layout.json")
+    os.makedirs(BUILD, exist_ok=True)
+    export_layout(((chassis, "hull"), (top, "turret")), layout)
+    paint(layout, tex_dir)
+    hull_image = load_image(os.path.join(tex_dir, HULL_TEXTURE))
+    tire_image = load_image(os.path.join(tex_dir, TIRE_TEXTURE))
     for obj in (chassis, top):
         textured(obj, hull_image)
     for obj in wheels:
