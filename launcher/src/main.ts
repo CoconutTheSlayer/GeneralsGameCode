@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { initConquest } from "./conquest/view";
 
 interface Settings {
   relay: string;
@@ -221,6 +222,14 @@ async function main() {
     const name = $<HTMLInputElement>("room-name").value.trim();
     if (name) join(name);
   });
+
+  document.querySelectorAll<HTMLButtonElement>(".tab").forEach((tab) =>
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === tab));
+      document.querySelectorAll<HTMLElement>(".view").forEach((v) => (v.hidden = v.id !== tab.dataset.view));
+    }),
+  );
+  await initConquest(toast);
 
   await refreshRooms();
   setInterval(refreshRooms, 5000);

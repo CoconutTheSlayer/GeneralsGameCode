@@ -14,10 +14,14 @@
         <span class="brand-name">WARROOM</span>
         <span class="brand-tag">Zero Hour community online</span>
       </div>
+      <nav class="tabs" aria-label="Modes">
+        <button class="tab active" data-view="online-view">Online</button>
+        <button class="tab" data-view="conquest-view">World conquest</button>
+      </nav>
       <div class="account" id="account"></div>
     </header>
 
-    <main class="layout">
+    <main class="layout view" id="online-view">
       <section class="panel browser" aria-labelledby="browser-title">
         <div class="panel-head">
           <h1 id="browser-title">Rooms</h1>
@@ -42,6 +46,16 @@
         </section>
       </aside>
     </main>
+
+    <main class="view conquest" id="conquest-view" hidden>
+      <div id="conquest-setup" hidden></div>
+      <div class="conquest-main" id="conquest-main" hidden>
+        <section class="panel map-panel"><svg id="world" viewBox="190 40 1170 470" role="img" aria-label="World map"></svg></section>
+        <aside class="conquest-side" id="conquest-panel"></aside>
+      </div>
+    </main>
+
+    <div class="battle-overlay" id="battle-overlay"><div><span class="spinner"></span><p id="battle-overlay-text">Battle in progress…</p><p class="muted">The launcher waits until you leave the game.</p></div></div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

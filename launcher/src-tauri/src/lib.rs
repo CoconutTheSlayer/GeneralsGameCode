@@ -275,13 +275,7 @@ fn launch_game(app: AppHandle, room: String, player_name: String) -> Result<(), 
     let settings = load_settings(app.clone());
     let session = session(app.clone()).ok_or("Sign in first.")?;
     let folder = find_game(app).ok_or("The Zero Hour game data was not found.")?;
-    let mut executable = PathBuf::from(&settings.game_executable);
-    if executable.extension().is_some_and(|e| e == "app") {
-        executable = executable.join("Contents/MacOS/generalszh");
-    }
-    if !executable.is_file() {
-        return Err("The game client was not found; set it in the settings.".into());
-    }
+    let executable = game_executable(&settings)?;
     let mut command = Command::new(&executable);
     command
         .args(["-online", "-nologo"])
@@ -298,6 +292,65 @@ fn launch_game(app: AppHandle, room: String, player_name: String) -> Result<(), 
     Ok(())
 }
 
+/// The game client's executable, from the settings.
+fn game_executable(settings: &Settings) -> Result<PathBuf, String> {
+    let mut executable = PathBuf::from(&settings.game_executable);
+    if executable.extension().is_some_and(|e| e == "app") {
+        executable = executable.join("Contents/MacOS/generalszh");
+    }
+    if executable.is_file() {
+        Ok(executable)
+    } else {
+        Err("The game client was not found; set it in the settings.".into())
+    }
+}
+
+/// Plays a world conquest battle: writes the battle file (with the result path filled in), starts the
+/// game with -battle, waits until it quits and returns the result, or None when the player left
+/// before the battle was decided.
+#[tauri::command]
+async fn run_battle(app: AppHandle, battle: String) -> Result<Option<String>, String> {
+    let settings = load_settings(app.clone());
+    let folder = find_game(app.clone()).ok_or("The Zero Hour game data was not found.")?;
+    let executable = game_executable(&settings)?;
+    let dir = config_dir(&app)?.join("conquest");
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let result = dir.join("result.json");
+    let _ = fs::remove_file(&result);
+    let battle_file = dir.join("battle.txt");
+    let text = battle.replace("{RESULT}", &result.to_string_lossy());
+    fs::write(&battle_file, text).map_err(|e| e.to_string())?;
+
+    let mut command = Command::new(&executable);
+    command
+        .arg("-battle")
+        .arg(&battle_file)
+        .arg("-nologo")
+        .current_dir(&folder.zero_hour)
+        .env("GENERALS_ZH_PATH", &folder.zero_hour);
+    if let Some(generals) = &folder.generals {
+        command.env("GENERALS_PATH", generals);
+    }
+    let mut child = command.spawn().map_err(|e| format!("Could not start the game: {e}"))?;
+    tauri::async_runtime::spawn_blocking(move || child.wait())
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())?;
+    Ok(fs::read_to_string(&result).ok())
+}
+
+#[tauri::command]
+fn load_campaign(app: AppHandle) -> Option<String> {
+    fs::read_to_string(config_dir(&app).ok()?.join("conquest/campaign.json")).ok()
+}
+
+#[tauri::command]
+fn save_campaign(app: AppHandle, campaign: String) -> Result<(), String> {
+    let dir = config_dir(&app)?.join("conquest");
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    fs::write(dir.join("campaign.json"), campaign).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -311,7 +364,10 @@ pub fn run() {
             sign_out,
             find_game,
             check_game_folder,
-            launch_game
+            launch_game,
+            run_battle,
+            load_campaign,
+            save_campaign
         ])
         .run(tauri::generate_context!())
         .expect("error while running the launcher");
