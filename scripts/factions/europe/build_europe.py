@@ -182,37 +182,38 @@ COMMAND_SETS = {
     "Euro_SupplyCenterCommandSet": {1: "Euro_NH90", 13: "Command_SetRallyPoint", 14: "Command_Sell"},
 }
 
-# The button pictures of the USA objects the European ones are built on (images of the game's own).
-BUTTON_IMAGES = {
-    "AmericaCommandCenter": "SAComCentr",
-    "AmericaPowerPlant": "SAPowerPlant",
-    "AmericaBarracks": "SABarracks",
-    "AmericaSupplyCenter": "SASupplyCntr",
-    "AmericaWarFactory": "SACWeaponsfact",
-    "AmericaPatriotBattery": "SAPatriot",
-    "AmericaFireBase": "SAFirebase",
-    "AmericaAirfield": "SAACommand",
-    "AmericaParticleCannonUplink": "SAUplink",
-    "AmericaStrategyCenter": "SAStrategyCenter",
-    "AmericaSupplyDropZone": "SADropZone",
-    "AmericaInfantryRanger": "SARanger",
-    "AmericaVehicleDozer": "SACDozer",
-    "AmericaVehicleChinook": "SAChinook",
-    "AmericaTankCrusader": "SACLeopard",
-    "AmericaTankPaladin": "SAPaladin",
-    "AmericaTankAvenger": "SAAvnger",
-    "AmericaTankMicrowave": "SAThunderBolt",
-    "AmericaJetRaptor": "SACRaptor",
-    "AmericaJetAurora": "SAAurora",
-    "AmericaJetStealthFighter": "SAStealth",
-    "AmericaVehicleComanche": "SACCommanche",
-    "AmericaInfantryMissileDefender": "SAMissleDefender",
-    "AmericaInfantryPathfinder": "SAPathfinder1",
-    "AmericaInfantryColonelBurton": "SABurton",
-    "AmericaVehicleTomahawk": "SACTomahawk",
-    "AmericaVehicleHumvee": "SAHummer",
-    "AmericaVehicleSentryDrone": "SAsentry",
-    "AmericaVehicleMedic": "SAAmbulance",
+# Where the pictures of the USA objects are (texture, left, top, right, bottom), for the European
+# buttons and portraits until make_icons.py has drawn their own.
+USA_PICTURES = {
+    "Euro_CommandCenter": (("SAUserInterface512_005.tga", 63, 251, 123, 299), ("SAUserInterface512_002.tga", 367, 1, 487, 97)),
+    "Euro_PowerPlant": (("SAUserInterface512_005.tga", 187, 51, 247, 99), ("SAUserInterface512_003.tga", 367, 197, 487, 293)),
+    "Euro_Barracks": (("SAUserInterface512_005.tga", 249, 351, 309, 399), ("SAUserInterface512_001.tga", 367, 99, 487, 195)),
+    "Euro_SupplyCenter": (("SAUserInterface512_004.tga", 311, 438, 371, 486), ("SAUserInterface512_004.tga", 245, 99, 365, 195)),
+    "Euro_WarFactory": (("SAUserInterface512_005.tga", 307, 401, 363, 449), ("SAUserInterface512_004.tga", 355, 197, 463, 286)),
+    "Euro_Airfield": (("SAUserInterface512_005.tga", 187, 401, 247, 449), ("SAUserInterface512_001.tga", 123, 1, 243, 97)),
+    "Euro_StrategyCenter": (("SAUserInterface512_004.tga", 435, 438, 495, 486), ("SAUserInterface512_004.tga", 1, 99, 121, 195)),
+    "Euro_PatriotBattery": (("SAUserInterface512_005.tga", 435, 51, 495, 99), ("SAUserInterface512_003.tga", 367, 99, 487, 195)),
+    "Euro_FireBase": (("SAUserInterface512_005.tga", 249, 51, 309, 99), ("SAUserInterface512_003.tga", 1, 197, 121, 293)),
+    "Euro_ParticleCannonUplink": (("SAUserInterface512_004.tga", 63, 345, 123, 393), ("SAUserInterface512_004.tga", 1, 197, 121, 293)),
+    "Euro_SupplyDropZone": (("SAUserInterface512_005.tga", 187, 151, 247, 199), ("SAUserInterface512_002.tga", 245, 295, 365, 391)),
+    "Euro_Dozer": (("SAUserInterface512_005.tga", 63, 301, 123, 349), ("SAUserInterface512_001.tga", 123, 393, 243, 489)),
+    "Euro_Rifleman": (("SAUserInterface512_003.tga", 123, 393, 243, 489), ("SAUserInterface512_003.tga", 245, 393, 365, 489)),
+    "Euro_Milan": (("SAUserInterface512_005.tga", 311, 101, 371, 149), ("SAUserInterface512_003.tga", 123, 1, 243, 97)),
+    "Euro_Marksman": (("SAUserInterface512_005.tga", 63, 101, 123, 149), ("SAUserInterface512_003.tga", 123, 99, 243, 195)),
+    "Euro_Commando": (("SAUserInterface512_005.tga", 435, 301, 495, 349), ("SAUserInterface512_001.tga", 367, 197, 487, 293)),
+    "Euro_Boxer": (("SAUserInterface512_005.tga", 435, 101, 495, 149), ("SAUserInterface512_002.tga", 367, 393, 487, 489)),
+    "Euro_Leopard": (("SAUserInterface512_005.tga", 373, 251, 433, 299), ("SAUserInterface512_004.tga", 245, 197, 353, 286)),
+    "Euro_Leclerc": (("SAUserInterface512_005.tga", 187, 101, 247, 149), ("SAUserInterface512_003.tga", 367, 1, 487, 97)),
+    "Euro_Puls": (("SAUserInterface512_005.tga", 1, 201, 61, 249), ("SAUserInterface512_002.tga", 245, 197, 365, 293)),
+    "Euro_Skyranger": (("SAUserInterface512_004.tga", 373, 438, 433, 486), ("SAUserInterface512_004.tga", 367, 1, 487, 97)),
+    "Euro_Wiesel": (("SAUserInterface512_005.tga", 311, 351, 371, 399), ("SAUserInterface512_001.tga", 245, 1, 365, 97)),
+    "Euro_Ambulance": (("SAUserInterface512_005.tga", 1, 401, 61, 449), ("SAUserInterface512_001.tga", 367, 1, 487, 97)),
+    "Euro_ReconDrone": (("SAUserInterface512_005.tga", 249, 251, 309, 299), ("SAUserInterface512_001.tga", 245, 393, 365, 489)),
+    "Euro_Typhoon": (("SAUserInterface512_005.tga", 125, 201, 185, 249), ("SAUserInterface512_002.tga", 1, 197, 121, 293)),
+    "Euro_Rafale": (("SAUserInterface512_005.tga", 1, 1, 61, 49), ("SAUserInterface512_004.tga", 245, 1, 365, 97)),
+    "Euro_Tornado": (("SAUserInterface512_005.tga", 435, 351, 495, 399), ("SAUserInterface512_001.tga", 123, 99, 243, 195)),
+    "Euro_Tiger": (("SAUserInterface512_005.tga", 373, 301, 433, 349), ("SAUserInterface512_001.tga", 123, 295, 243, 391)),
+    "Euro_NH90": (("SAUserInterface512_005.tga", 435, 251, 495, 299), ("SAUserInterface512_001.tga", 367, 393, 487, 489)),
 }
 
 # Hot keys, unique within each build menu.
@@ -261,6 +262,8 @@ def main():
         logic.append(f"ChildObject {name} {parent}")
         logic.append(f"  DisplayName = OBJECT:{name}")
         logic.append("  Side = Europe")
+        logic.append(f"  ButtonImage = {name}")
+        logic.append(f"  SelectPortrait = {name}_L")
         if "command" in c:
             logic.append(f"  CommandSet = {c['command']}")
         if "cost" in c:
@@ -332,11 +335,23 @@ def main():
                     f"  Object = {entry}",
                     f"  TextLabel = CONTROLBAR:{button}",
                     f"  DescriptLabel = CONTROLBAR:ToolTip{button}",
-                    f"  ButtonImage = {BUTTON_IMAGES[o[1]]}",
+                    f"  ButtonImage = {entry}",
                     "  ButtonBorderType = BUILD",
                     "End",
                     "",
                 ]
+    for name, pictures in USA_PICTURES.items():
+        for image, (texture, left, top, right, bottom) in ((name, pictures[0]), (f"{name}_L", pictures[1])):
+            client += [
+                f"MappedImage {image}",
+                f"  Texture = {texture}",
+                "  TextureWidth = 512",
+                "  TextureHeight = 512",
+                f"  Coords = Left:{left} Top:{top} Right:{right} Bottom:{bottom}",
+                "  Status = NONE",
+                "End",
+                "",
+            ]
     for set_name, slots in COMMAND_SETS.items():
         client.append(f"CommandSet {set_name}")
         client += [f"  {slot} = {buttons.get(entry, entry)}" for slot, entry in sorted(slots.items())]

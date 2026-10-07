@@ -69,3 +69,5 @@ __pycache__/
 *.pyc
 # Add-on faction textures, made from the player's own game data (scripts/factions/*/install_textures.py)
 resources/macos/GameData/Art/TexturesHD/eu_*.tga
+resources/macos/GameData/Art/TexturesHD/eu_icons.tga
+resources/macos/GameData/Data/INI/Addon/Client/EuropeIcons.ini
