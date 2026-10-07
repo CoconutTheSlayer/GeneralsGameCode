@@ -168,12 +168,29 @@ static void loadAddonINI(const char *stage, Xfer *xfer)
 		return;
 	AsciiString dir;
 	dir.format("%s/Data/INI/Addon/%s", extraData, stage);
+	AsciiString listed = dir;
+	listed.concat('/');
 	FilenameList files;
-	TheLocalFileSystem->getFileListInDirectory(dir, "", "*.ini", files, TRUE);
+	TheLocalFileSystem->getFileListInDirectory(listed, "", "*.ini", files, TRUE);
 	if (files.empty())
+	{
+		fprintf(stderr, "Add-on data: none in %s\n", dir.str());
+		fflush(stderr);
 		return;
+	}
 	INI ini;
-	ini.loadDirectory(dir, INI_LOAD_OVERWRITE, xfer);
+	try
+	{
+		ini.loadDirectory(dir, INI_LOAD_OVERWRITE, xfer);
+	}
+	catch (...)
+	{
+		fprintf(stderr, "Add-on data: error in %s, line %d\n", ini.getFilename().str(), ini.getLineNum());
+		fflush(stderr);
+		throw;
+	}
+	fprintf(stderr, "Add-on data: loaded %d files from %s\n", (int)files.size(), dir.str());
+	fflush(stderr);
 }
 #endif
 

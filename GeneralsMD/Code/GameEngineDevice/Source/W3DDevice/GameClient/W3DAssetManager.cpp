@@ -717,6 +717,23 @@ TextureClass * W3DAssetManager::Recolor_Texture_One_Time(TextureClass *texture, 
 	return newtex;
 }
 
+//---------------------------------------------------------------------
+/** Copies the next name of a list separated by spaces and moves past it; false at the end. */
+static Bool nextTextureName(const char *&list, char *name, size_t nameSize)
+{
+	while (*list == ' ')
+		++list;
+	size_t length = 0;
+	while (list[length] != '\0' && list[length] != ' ')
+		++length;
+	if (length == 0 || length >= nameSize)
+		return false;
+	memcpy(name, list, length);
+	name[length] = '\0';
+	list += length;
+	return true;
+}
+
 #ifdef DUMP_PERF_STATS
 __int64 Total_Create_Render_Obj_Time=0;
 #endif
@@ -839,11 +856,20 @@ RenderObjClass * W3DAssetManager::Create_Render_Obj(
 
 	if (reallytexture)
 	{
-		TextureClass *oldTex = Get_Texture(oldTexture);
-		TextureClass *newTex = Get_Texture(newTexture);
-		replaceAssetTexture(rendobj,oldTex,newTex);
-		REF_PTR_RELEASE(newTex);
-		REF_PTR_RELEASE(oldTex);
+		// TheSuperHackers @feature The texture names may be lists separated by spaces, each old texture
+		// replaced by the new one at the same place in the list.
+		const char *oldNext = oldTexture;
+		const char *newNext = newTexture;
+		char oldName[_MAX_PATH];
+		char newName[_MAX_PATH];
+		while (nextTextureName(oldNext, oldName, ARRAY_SIZE(oldName)) && nextTextureName(newNext, newName, ARRAY_SIZE(newName)))
+		{
+			TextureClass *oldTex = Get_Texture(oldName);
+			TextureClass *newTex = Get_Texture(newName);
+			replaceAssetTexture(rendobj,oldTex,newTex);
+			REF_PTR_RELEASE(newTex);
+			REF_PTR_RELEASE(oldTex);
+		}
 	}
 
 	if (reallycolor)

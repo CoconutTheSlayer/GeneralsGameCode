@@ -1198,8 +1198,7 @@ static void parseAsciiStringLC( INI* ini, void * /*instance*/, void *store, cons
 static void parseTextureReplace(INI *ini, void *instance, void * /*store*/, const void * /*userData*/)
 {
 	W3DModelDrawModuleData *data = (W3DModelDrawModuleData *)instance;
-	data->m_textureReplaceOld = ini->getNextAsciiString();
-	data->m_textureReplaceNew = ini->getNextAsciiString();
+	ThingTemplate::addTextureReplace(ini, data->m_textureReplaceOld, data->m_textureReplaceNew);
 }
 
 void W3DModelDrawModuleData::buildFieldParse(MultiIniFieldParse& p)

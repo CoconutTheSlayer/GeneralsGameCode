@@ -607,9 +607,11 @@ public:
 
 	void setCopiedFromDefault();
 	void setCopiedFromParent();	///< ChildObject: its own weapon, armor sets and prerequisites replace the parent's
+	static void parseWeaponReplace( INI* ini, void *instance, void * /*store*/, const void* /*userData*/ );
 	const AsciiString &getTextureReplaceOld() const { return m_textureReplaceOld; }
 	const AsciiString &getTextureReplaceNew() const { return m_textureReplaceNew; }
 	static void parseTextureReplace( INI* ini, void *instance, void * /*store*/, const void* /*userData*/ );
+	static void addTextureReplace( INI* ini, AsciiString &oldList, AsciiString &newList );
 
 	void setReskinnedFrom(const ThingTemplate* tt) { DEBUG_ASSERTCRASH(m_reskinnedFrom == nullptr, ("should be null")); m_reskinnedFrom = tt; }
 

@@ -67,3 +67,5 @@ build.ninja
 ## Python
 __pycache__/
 *.pyc
+# Add-on faction textures, made from the player's own game data (scripts/factions/*/install_textures.py)
+resources/macos/GameData/Art/TexturesHD/eu_*.tga

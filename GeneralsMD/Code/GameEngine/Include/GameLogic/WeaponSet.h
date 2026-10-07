@@ -142,6 +142,21 @@ public:
 	}
 
 	const ThingTemplate* friend_getThingTemplate() const { return m_thingTemplate; }	// only for WeaponSet::xfer
+	// For ChildObject: the copied set belongs to the child, and can use other weapons.
+	void friend_setThingTemplate(const ThingTemplate *tt) { m_thingTemplate = tt; }
+	Bool friend_replaceWeapon(const WeaponTemplate *from, const WeaponTemplate *to)
+	{
+		Bool replaced = false;
+		for (Int i = 0; i < WEAPONSLOT_COUNT; ++i)
+		{
+			if (m_template[i] == from)
+			{
+				m_template[i] = to;
+				replaced = true;
+			}
+		}
+		return replaced;
+	}
 	const WeaponSetFlags& friend_getWeaponSetFlags() const { return m_types; }	// only for WeaponSet::xfer
 
 	void clear();

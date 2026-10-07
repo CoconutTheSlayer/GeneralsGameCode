@@ -1,0 +1,365 @@
+// The European faction (scripts/factions/europe/build_europe.py). Generated, do not edit.
+
+INI:FactionEurope
+"Europe"
+END
+
+TOOLTIP:BioStrategyLong_Europe
+"High-tech precision: units that see and shoot further and hit harder, at a higher price."
+END
+
+GUI:BioFeatures_Europe
+"Long range tanks and artillery, missile defence, fighter jets"
+END
+
+OBJECT:Euro_CommandCenter
+"Command Centre"
+END
+
+CONTROLBAR:Euro_Command_ConstructCommandCenter
+"&Command Centre"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructCommandCenter
+"The heart of the European base. Builds engineer vehicles and directs the general's powers."
+END
+
+OBJECT:Euro_PowerPlant
+"Fusion Plant"
+END
+
+CONTROLBAR:Euro_Command_ConstructPowerPlant
+"Fusion &Plant"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructPowerPlant
+"Powers the base."
+END
+
+OBJECT:Euro_Barracks
+"Garrison"
+END
+
+CONTROLBAR:Euro_Command_ConstructBarracks
+"&Garrison"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructBarracks
+"Trains infantry."
+END
+
+OBJECT:Euro_SupplyCenter
+"Logistics Centre"
+END
+
+CONTROLBAR:Euro_Command_ConstructSupplyCenter
+"&Logistics Centre"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructSupplyCenter
+"Gathers supplies and builds NH90 helicopters."
+END
+
+OBJECT:Euro_WarFactory
+"Armour Works"
+END
+
+CONTROLBAR:Euro_Command_ConstructWarFactory
+"&Armour Works"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructWarFactory
+"Builds vehicles."
+END
+
+OBJECT:Euro_Airfield
+"Air Base"
+END
+
+CONTROLBAR:Euro_Command_ConstructAirfield
+"Ai&r Base"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructAirfield
+"Builds and rearms aircraft."
+END
+
+OBJECT:Euro_StrategyCenter
+"Joint Command"
+END
+
+CONTROLBAR:Euro_Command_ConstructStrategyCenter
+"&Joint Command"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructStrategyCenter
+"Battle plans and the most advanced research."
+END
+
+OBJECT:Euro_PatriotBattery
+"SAMP/T Battery"
+END
+
+CONTROLBAR:Euro_Command_ConstructPatriotBattery
+"&SAMP/T Battery"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructPatriotBattery
+"Long range missile defence against aircraft and vehicles."
+END
+
+OBJECT:Euro_FireBase
+"Artillery Bastion"
+END
+
+CONTROLBAR:Euro_Command_ConstructFireBase
+"Artillery &Bastion"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructFireBase
+"A fortified howitzer that outranges ground attackers. Infantry can garrison it."
+END
+
+OBJECT:Euro_ParticleCannonUplink
+"Orbital Lance"
+END
+
+CONTROLBAR:Euro_Command_ConstructParticleCannonUplink
+"&Orbital Lance"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructParticleCannonUplink
+"A satellite beam that burns a precise path through the enemy."
+END
+
+OBJECT:Euro_SupplyDropZone
+"Airlift Depot"
+END
+
+CONTROLBAR:Euro_Command_ConstructSupplyDropZone
+"Airlift &Depot"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructSupplyDropZone
+"Supplies arrive by air."
+END
+
+OBJECT:Euro_Dozer
+"Engineer Vehicle"
+END
+
+CONTROLBAR:Euro_Command_ConstructDozer
+"&Engineer Vehicle"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructDozer
+"Builds and repairs the base, and clears mines."
+END
+
+OBJECT:Euro_Rifleman
+"Rifleman"
+END
+
+CONTROLBAR:Euro_Command_ConstructRifleman
+"&Rifleman"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructRifleman
+"Precise infantry. Outranges most other foot soldiers."
+END
+
+OBJECT:Euro_Milan
+"MILAN Team"
+END
+
+CONTROLBAR:Euro_Command_ConstructMilan
+"&MILAN Team"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructMilan
+"Anti-tank missiles, guided much further with their laser designator."
+END
+
+OBJECT:Euro_Marksman
+"Marksman"
+END
+
+CONTROLBAR:Euro_Command_ConstructMarksman
+"Mar&ksman"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructMarksman
+"A long range sniper, unseen while still."
+END
+
+OBJECT:Euro_Commando
+"Special Forces"
+END
+
+CONTROLBAR:Euro_Command_ConstructCommando
+"Special &Forces"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructCommando
+"An elite commando who plants charges and strikes unseen."
+END
+
+OBJECT:Euro_Hazmat
+"CBRN Specialist"
+END
+
+OBJECT:Euro_Boxer
+"Boxer"
+END
+
+CONTROLBAR:Euro_Command_ConstructBoxer
+"&Boxer"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructBoxer
+"A wheeled infantry fighting vehicle that carries five soldiers."
+END
+
+OBJECT:Euro_Leopard
+"Leopard 2"
+END
+
+CONTROLBAR:Euro_Command_ConstructLeopard
+"&Leopard 2"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructLeopard
+"Main battle tank. Its gun outranges every other tank."
+END
+
+OBJECT:Euro_Leclerc
+"Leclerc"
+END
+
+CONTROLBAR:Euro_Command_ConstructLeclerc
+"Le&clerc"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructLeclerc
+"A heavy tank whose laser shoots down incoming missiles and shells."
+END
+
+OBJECT:Euro_Puls
+"PULS Launcher"
+END
+
+CONTROLBAR:Euro_Command_ConstructPuls
+"&PULS Launcher"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructPuls
+"Rocket artillery with the longest reach of any vehicle."
+END
+
+OBJECT:Euro_Skyranger
+"Skyranger"
+END
+
+CONTROLBAR:Euro_Command_ConstructSkyranger
+"&Skyranger"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructSkyranger
+"Air defence that tracks aircraft and marks targets for the army."
+END
+
+OBJECT:Euro_Wiesel
+"Wiesel EW"
+END
+
+CONTROLBAR:Euro_Command_ConstructWiesel
+"&Wiesel EW"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructWiesel
+"Electronic warfare: disables buildings and clears garrisons."
+END
+
+OBJECT:Euro_Ambulance
+"Field Ambulance"
+END
+
+CONTROLBAR:Euro_Command_ConstructAmbulance
+"Field &Ambulance"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructAmbulance
+"Heals infantry and cleans up toxins."
+END
+
+OBJECT:Euro_ReconDrone
+"Recon Drone"
+END
+
+CONTROLBAR:Euro_Command_ConstructReconDrone
+"Recon &Drone"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructReconDrone
+"Spots for the army from afar, and reveals stealthed units."
+END
+
+OBJECT:Euro_Typhoon
+"Typhoon"
+END
+
+CONTROLBAR:Euro_Command_ConstructTyphoon
+"&Typhoon"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructTyphoon
+"An air superiority fighter with long range missiles."
+END
+
+OBJECT:Euro_Rafale
+"Rafale"
+END
+
+CONTROLBAR:Euro_Command_ConstructRafale
+"&Rafale"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructRafale
+"A strike fighter that slips past air defences."
+END
+
+OBJECT:Euro_Tornado
+"Tornado"
+END
+
+CONTROLBAR:Euro_Command_ConstructTornado
+"T&ornado"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructTornado
+"A fast bomber that strikes before the defence can react."
+END
+
+OBJECT:Euro_Tiger
+"Tiger"
+END
+
+CONTROLBAR:Euro_Command_ConstructTiger
+"T&iger"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructTiger
+"An attack helicopter armed with cannon and anti-tank missiles."
+END
+
+OBJECT:Euro_NH90
+"NH90"
+END
+
+CONTROLBAR:Euro_Command_ConstructNH90
+"&NH90"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructNH90
+"A transport helicopter that also carries supplies."
+END

@@ -257,6 +257,7 @@ const FieldParse ThingTemplate::s_objectFieldParseTable[] =
 	{ "ShadowTexture",				INI::parseAsciiString,		nullptr,	offsetof( ThingTemplate, m_shadowTextureName ) },
 	{ "OcclusionDelay",					INI::parseDurationUnsignedInt,		nullptr, offsetof( ThingTemplate, m_occlusionDelay ) },
 	{ "TextureReplace",				ThingTemplate::parseTextureReplace,	nullptr, 0 },
+	{ "WeaponReplace",				ThingTemplate::parseWeaponReplace,	nullptr, 0 },
 	{ "AddModule",						ThingTemplate::parseAddModule,			nullptr, 0 },
 	{ "RemoveModule",					ThingTemplate::parseRemoveModule,		nullptr, 0 },
 	{ "ReplaceModule",				ThingTemplate::parseReplaceModule,	nullptr, 0 },
@@ -1275,16 +1276,53 @@ void ThingTemplate::setCopiedFromParent()
 	m_armorCopiedFromDefault = true;
 	m_weaponsCopiedFromDefault = true;
 	m_prereqsCopiedFromParent = true;
+	for (WeaponTemplateSet &set : m_weaponTemplateSets)
+		set.friend_setThingTemplate(this);
+}
+
+//-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature WeaponReplace = OLD NEW uses weapon NEW instead of OLD in every weapon set,
+// so that a ChildObject can change its weapons without restating its weapon sets.
+void ThingTemplate::parseWeaponReplace( INI* ini, void *instance, void * /*store*/, const void* /*userData*/ )
+{
+	ThingTemplate *self = (ThingTemplate *)instance;
+	AsciiString oldName = ini->getNextAsciiString();
+	AsciiString newName = ini->getNextAsciiString();
+	const WeaponTemplate *oldWeapon = TheWeaponStore->findWeaponTemplate(oldName);
+	const WeaponTemplate *newWeapon = TheWeaponStore->findWeaponTemplate(newName);
+	if (oldWeapon == nullptr || newWeapon == nullptr)
+	{
+		DEBUG_CRASH(("WeaponReplace: unknown weapon %s or %s in %s", oldName.str(), newName.str(), self->getName().str()));
+		throw INI_INVALID_DATA;
+	}
+	Bool replaced = false;
+	for (WeaponTemplateSet &set : self->m_weaponTemplateSets)
+		replaced = set.friend_replaceWeapon(oldWeapon, newWeapon) || replaced;
+	DEBUG_ASSERTCRASH(replaced, ("WeaponReplace: %s has no weapon %s", self->getName().str(), oldName.str()));
 }
 
 //-------------------------------------------------------------------------------------------------
 // TheSuperHackers @feature TextureReplace = OLD NEW draws the object's models with texture NEW instead of
-// OLD, so a faction can reuse models in its own colours.
+// OLD, so a faction can reuse models in its own colours. Each line adds a texture, kept as lists
+// separated by spaces (see W3DAssetManager::Create_Render_Obj).
 void ThingTemplate::parseTextureReplace( INI* ini, void *instance, void * /*store*/, const void* /*userData*/ )
 {
 	ThingTemplate *self = (ThingTemplate *)instance;
-	self->m_textureReplaceOld = ini->getNextAsciiString();
-	self->m_textureReplaceNew = ini->getNextAsciiString();
+	addTextureReplace(ini, self->m_textureReplaceOld, self->m_textureReplaceNew);
+}
+
+//-------------------------------------------------------------------------------------------------
+void ThingTemplate::addTextureReplace( INI* ini, AsciiString &oldList, AsciiString &newList )
+{
+	const AsciiString oldTexture = ini->getNextAsciiString();
+	const AsciiString newTexture = ini->getNextAsciiString();
+	if (oldList.isNotEmpty())
+	{
+		oldList.concat(' ');
+		newList.concat(' ');
+	}
+	oldList.concat(oldTexture);
+	newList.concat(newTexture);
 }
 
 //-------------------------------------------------------------------------------------------------

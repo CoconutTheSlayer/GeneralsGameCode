@@ -378,7 +378,6 @@ void GameTextManager::init()
 	}
 
 	qsort( m_stringLUT, m_textCount, sizeof(StringLookUp), compareLUT  );
-
 }
 
 //============================================================================
@@ -1135,7 +1134,11 @@ void GameTextManager::appendAddonStrings()
 	path.format("%s/Data/%s/Addon.str", extraData, GetRegistryLanguage().str());
 	Int count = 0;
 	if (!TheFileSystem->doesFileExist(path.str()) || !getStringCount(path.str(), count) || count <= 0)
+	{
+		fprintf(stderr, "Add-on data: no text in %s\n", path.str());
+		fflush(stderr);
 		return;
+	}
 	StringInfo *grown = NEW StringInfo[m_textCount + count];
 	for (Int i = 0; i < m_textCount; ++i)
 		grown[i] = m_stringInfo[i];
@@ -1145,6 +1148,8 @@ void GameTextManager::appendAddonStrings()
 	parseStringFile(path.str());
 	m_parseStart = 0;
 	m_textCount += count;
+	fprintf(stderr, "Add-on data: loaded %d texts from %s\n", (int)count, path.str());
+	fflush(stderr);
 }
 #endif
 
