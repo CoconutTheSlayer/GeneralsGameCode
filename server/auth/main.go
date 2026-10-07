@@ -9,8 +9,11 @@
 //
 //	PUBLIC_URL         the address players reach this service at, e.g. https://auth.example.org
 //	TOKEN_SECRET       the secret shared with the relay (RELAY_SECRET there)
-//	STEAM_API_KEY      optional: with it, players must own one of OWNERSHIP_APP_IDS, which needs
-//	                   their Steam profile's game details to be public
+//	STEAM_API_KEY      optional: the players' Steam names and avatars for the launcher
+//	REQUIRE_OWNERSHIP  1 to let only accounts that own one of OWNERSHIP_APP_IDS on Steam sign in
+//	                   (needs STEAM_API_KEY and public game details). Off by default: Zero Hour is
+//	                   also sold outside Steam (EA app, Origin, CDs) and on Steam comes with EA Play
+//	                   or the Ultimate Collection, so Steam is the account, not the proof of purchase.
 //	OWNERSHIP_APP_IDS  comma separated, default 2732960 (Command & Conquer Generals Zero Hour)
 //	TOKEN_HOURS        how long a token lasts, default 168 (a week)
 package main
@@ -39,14 +42,15 @@ const steamOpenID = "https://steamcommunity.com/openid/login"
 var claimedIDPattern = regexp.MustCompile(`^https://steamcommunity\.com/openid/id/(\d{17})$`)
 
 type server struct {
-	publicURL   string
-	secret      []byte
-	apiKey      string
-	appIDs      []string
-	tokenLife   time.Duration
-	openIDURL   string // Steam's, replaced in tests
-	steamAPIURL string // Steam's, replaced in tests
-	client      *http.Client
+	publicURL        string
+	secret           []byte
+	apiKey           string
+	requireOwnership bool
+	appIDs           []string
+	tokenLife        time.Duration
+	openIDURL        string // Steam's, replaced in tests
+	steamAPIURL      string // Steam's, replaced in tests
+	client           *http.Client
 
 	mu           sync.Mutex
 	nonces       map[string]time.Time // assertions already used, so a captured one cannot be replayed
@@ -161,7 +165,7 @@ func (s *server) callback(w http.ResponseWriter, r *http.Request) {
 		page(w, http.StatusForbidden, "Sign in failed", err.Error()+". Start the sign in from the game again.")
 		return
 	}
-	if s.apiKey != "" {
+	if s.requireOwnership {
 		owns, err := s.ownsGame(steamID)
 		if err != nil {
 			page(w, http.StatusBadGateway, "Sign in failed", "Steam could not tell us which games you own. Try again later.")
@@ -223,8 +227,12 @@ func main() {
 	if h, err := strconv.Atoi(os.Getenv("TOKEN_HOURS")); err == nil && h > 0 {
 		s.tokenLife = time.Duration(h) * time.Hour
 	}
+	s.requireOwnership = os.Getenv("REQUIRE_OWNERSHIP") == "1"
+	if s.requireOwnership && s.apiKey == "" {
+		log.Fatal("REQUIRE_OWNERSHIP needs STEAM_API_KEY")
+	}
 	if s.apiKey == "" {
-		log.Printf("STEAM_API_KEY is not set: any Steam account can sign in")
+		log.Printf("STEAM_API_KEY is not set: players are shown by their Steam IDs")
 	}
 	go s.forgetOldNonces()
 	log.Printf("auth listening on %s for %s", *listen, s.publicURL)

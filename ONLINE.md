@@ -25,10 +25,14 @@ gives the game a token for the relay:
 
 - `PUBLIC_URL` must be the HTTPS address players reach the service at (behind a reverse proxy
   such as Caddy).
-- With `STEAM_API_KEY` (from https://steamcommunity.com/dev/apikey) only accounts that own Zero
-  Hour (Steam app 2732960, `OWNERSHIP_APP_IDS` to change) can sign in. Steam shows the games of an
-  account only when its profile's game details are public; the official ownership check is only
-  open to the game's publisher.
+- Steam is the players' account, not proof that they bought the game: Zero Hour is also sold
+  outside Steam (EA app, Origin, CDs), and on Steam it comes with EA Play or the Ultimate
+  Collection. Players need their own copy of the game data to play; nothing of EA's is
+  distributed.
+- With `STEAM_API_KEY` (from https://steamcommunity.com/dev/apikey) the launcher shows Steam names
+  and avatars. `REQUIRE_OWNERSHIP=1` additionally lets only accounts that own Zero Hour on Steam
+  (app 2732960, `OWNERSHIP_APP_IDS` to change) sign in; Steam shows an account's games only when its
+  profile's game details are public.
 - Tokens last a week (`TOKEN_HOURS`).
 
 With `GENERALS_AUTH=https://auth.example.org` the game opens the sign in page in the browser the

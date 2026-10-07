@@ -21,6 +21,7 @@ services:
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
       TOKEN_SECRET: ${TOKEN_SECRET:?set TOKEN_SECRET}
       STEAM_API_KEY: ${STEAM_API_KEY:-}
+      REQUIRE_OWNERSHIP: ${REQUIRE_OWNERSHIP:-0}
     ports:
       - "8080:8080"
     restart: unless-stopped

@@ -221,8 +221,47 @@ fn find_game(app: AppHandle) -> Option<GameFolder> {
             }
         }
     }
-    let home = std::env::var("HOME").unwrap_or_default();
-    check_game_dir(&PathBuf::from(home).join("Games/GeneralsZH"))
+    other_installs().into_iter().find_map(|dir| check_game_dir(&dir))
+}
+
+/// Zero Hour outside Steam: the EA app, Origin, the retail and First Decade installers (which
+/// record their folder in the registry), Wine prefixes, and a folder in the home folder.
+fn other_installs() -> Vec<PathBuf> {
+    let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).unwrap_or_default();
+    let mut dirs: Vec<PathBuf> = Vec::new();
+    #[cfg(windows)]
+    for key in [
+        r"HKLM\SOFTWARE\WOW6432Node\Electronic Arts\EA Games\Command and Conquer Generals Zero Hour",
+        r"HKLM\SOFTWARE\Electronic Arts\EA Games\Command and Conquer Generals Zero Hour",
+    ] {
+        if let Ok(out) = Command::new("reg").args(["query", key, "/v", "InstallPath"]).output() {
+            let text = String::from_utf8_lossy(&out.stdout);
+            if let Some(path) = text.lines().find_map(|l| l.split("REG_SZ").nth(1)) {
+                dirs.push(PathBuf::from(path.trim()));
+            }
+        }
+    }
+    let program_files = [r"C:\Program Files", r"C:\Program Files (x86)"];
+    for base in program_files {
+        for sub in [
+            r"EA Games\Command and Conquer Generals Zero Hour",
+            r"EA Games\Command & Conquer Generals Zero Hour",
+            r"Origin Games\Command and Conquer Generals Zero Hour",
+            r"EA Games\Command & Conquer The First Decade\Command & Conquer(tm) Generals Zero Hour",
+        ] {
+            dirs.push(PathBuf::from(base).join(sub));
+        }
+    }
+    for prefix in [".wine", "Games/ea-app"] {
+        for sub in [
+            "drive_c/Program Files/EA Games/Command and Conquer Generals Zero Hour",
+            "drive_c/Program Files (x86)/Origin Games/Command and Conquer Generals Zero Hour",
+        ] {
+            dirs.push(PathBuf::from(&home).join(prefix).join(sub));
+        }
+    }
+    dirs.push(PathBuf::from(&home).join("Games/GeneralsZH"));
+    dirs
 }
 
 #[tauri::command]

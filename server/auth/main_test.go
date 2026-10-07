@@ -43,16 +43,17 @@ func fakeSteam(t *testing.T, valid bool, owned int) *httptest.Server {
 
 func newServer(steam *httptest.Server, apiKey string) *server {
 	return &server{
-		publicURL:    "https://auth.example.org",
-		secret:       []byte("secret"),
-		apiKey:       apiKey,
-		appIDs:       []string{"2732960"},
-		tokenLife:    time.Hour,
-		openIDURL:    steam.URL + "/openid/login",
-		steamAPIURL:  steam.URL,
-		client:       steam.Client(),
-		nonces:       map[string]time.Time{},
-		profileCache: map[string]cachedProfile{},
+		requireOwnership: apiKey != "",
+		publicURL:        "https://auth.example.org",
+		secret:           []byte("secret"),
+		apiKey:           apiKey,
+		appIDs:           []string{"2732960"},
+		tokenLife:        time.Hour,
+		openIDURL:        steam.URL + "/openid/login",
+		steamAPIURL:      steam.URL,
+		client:           steam.Client(),
+		nonces:           map[string]time.Time{},
+		profileCache:     map[string]cachedProfile{},
 	}
 }
 
