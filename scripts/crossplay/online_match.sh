@@ -3,7 +3,7 @@
 # Docker image generals-linux) and the Windows x64 build (joiner, Wine in Docker image
 # generals-windows-test) with two AI players, then checks that both computed the same game state
 # CRCs. The players are on separate networks that only the relay (Docker image generals-relay,
-# docker build -t generals-relay server/relay) is on, so everything goes through it.
+# docker build --target relay -t generals-relay server) is on, so everything goes through it.
 #
 #   scripts/crossplay/online_match.sh [seconds, default 450]
 #

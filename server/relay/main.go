@@ -13,7 +13,7 @@
 //	RECV    s->c  srcvip[4] srcport[2] payload
 //	ERROR   s->c  code[1]                            1 bad token, 2 room full, 3 unknown session
 //
-// Tokens are checked with RELAY_SECRET (see token.go); without it every token is accepted, for
+// Tokens are checked with RELAY_SECRET (see internal/token); without it every token is accepted, for
 // local tests.
 package main
 
@@ -28,6 +28,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"generalsgamecode/server/internal/token"
 )
 
 const (
@@ -110,7 +112,7 @@ func (r *relay) handleHello(from netip.AddrPort, body []byte) {
 	var id [8]byte
 	copy(id[:], body[:8])
 	roomName := cString(body[8:40])
-	player, ok := checkToken(r.secret, cString(body[40:168]), time.Now())
+	player, ok := token.Check(r.secret, cString(body[40:168]), time.Now())
 	if !ok || roomName == "" {
 		r.reply(from, typeError, []byte{errBadToken})
 		return

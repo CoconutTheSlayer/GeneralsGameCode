@@ -20,6 +20,7 @@
 
 #include "GameNetwork/Relay.h"
 #include "GameNetwork/udp.h"
+#include "Common/GlobalData.h"
 
 #include <chrono>
 #include <cstdio>
@@ -27,12 +28,17 @@
 #include <cstring>
 #include <map>
 #include <string>
+#include <ctime>
 #if defined(_WIN32)
+#include <shellapi.h>
 extern "C" BOOLEAN NTAPI SystemFunction036(PVOID buffer, ULONG length); // RtlGenRandom, in advapi32
-#elif defined(__APPLE__)
-#include <sys/random.h>
 #else
+#include <spawn.h>
 #include <unistd.h>
+#if defined(__APPLE__)
+#include <sys/random.h>
+#endif
+extern char **environ;
 #endif
 
 // The protocol is described in server/relay/main.go.
@@ -126,6 +132,154 @@ UnsignedInt getU32(const unsigned char *p)
 	return ((UnsignedInt)p[0] << 24) | ((UnsignedInt)p[1] << 16) | ((UnsignedInt)p[2] << 8) | p[3];
 }
 
+//-------------------------------------------------------------------------------------------------
+// Signing in (server/auth): the browser signs in with Steam and is sent back to a port of this
+// game with a token, which is kept in the user data folder until it expires.
+//-------------------------------------------------------------------------------------------------
+std::string tokenFile()
+{
+	return std::string(TheGlobalData ? TheGlobalData->getPath_UserData().str() : "") + "OnlineToken.txt";
+}
+
+// Tokens are player.expiry.signature; one that expires within the hour is not worth using.
+bool tokenFresh(const std::string &token)
+{
+	const size_t a = token.find('.');
+	const size_t b = a == std::string::npos ? a : token.find('.', a + 1);
+	if (b == std::string::npos)
+		return false;
+	const long long expiry = atoll(token.substr(a + 1, b - a - 1).c_str());
+	return expiry > (long long)time(nullptr) + 3600;
+}
+
+std::string loadToken()
+{
+	std::string token;
+	if (FILE *f = fopen(tokenFile().c_str(), "r"))
+	{
+		char line[512] = {};
+		if (fgets(line, sizeof(line), f))
+			token = line;
+		fclose(f);
+	}
+	while (!token.empty() && (token.back() == '\n' || token.back() == '\r'))
+		token.pop_back();
+	return tokenFresh(token) ? token : std::string();
+}
+
+void saveToken(const std::string &token)
+{
+	if (FILE *f = fopen(tokenFile().c_str(), "w"))
+	{
+		fputs(token.c_str(), f);
+		fclose(f);
+	}
+}
+
+void openBrowser(const std::string &url)
+{
+#if defined(_WIN32)
+	ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+#else
+#if defined(__APPLE__)
+	const char *opener = "open";
+#else
+	const char *opener = "xdg-open";
+#endif
+	// GENERALS_BROWSER replaces the browser, for tests (for example "curl -sL").
+	if (const char *browser = getenv("GENERALS_BROWSER"))
+	{
+		const std::string command = std::string(browser) + " '" + url + "' >/dev/null 2>&1 &";
+		char *argv[] = { (char *)"sh", (char *)"-c", (char *)command.c_str(), nullptr };
+		pid_t pid;
+		posix_spawnp(&pid, "sh", nullptr, nullptr, argv, environ);
+		return;
+	}
+	char *argv[] = { (char *)opener, (char *)url.c_str(), nullptr };
+	pid_t pid;
+	posix_spawnp(&pid, opener, nullptr, nullptr, argv, environ);
+#endif
+}
+
+std::string urlDecode(const std::string &in)
+{
+	std::string out;
+	for (size_t i = 0; i < in.size(); ++i)
+	{
+		if (in[i] == '%' && i + 2 < in.size())
+		{
+			out += (char)strtol(in.substr(i + 1, 2).c_str(), nullptr, 16);
+			i += 2;
+		}
+		else
+			out += in[i] == '+' ? ' ' : in[i];
+	}
+	return out;
+}
+
+// Opens the sign in page and waits up to three minutes for the browser to bring the token back.
+std::string signIn(const std::string &authURL)
+{
+	int listener = (int)socket(AF_INET, SOCK_STREAM, 0);
+	if (listener < 0)
+		return std::string();
+	sockaddr_in local {};
+	local.sin_family = AF_INET;
+	local.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	int localLen = sizeof(local);
+	if (::bind(listener, (sockaddr *)&local, sizeof(local)) != 0 || listen(listener, 4) != 0
+		|| getsockname(listener, (sockaddr *)&local, &localLen) != 0)
+	{
+		closesocket(listener);
+		return std::string();
+	}
+	char port[16];
+	snprintf(port, sizeof(port), "%u", (unsigned)ntohs(local.sin_port));
+	fprintf(stderr, "Relay: signing in with Steam in the browser\n");
+	openBrowser(authURL + "/login?port=" + port);
+
+	std::string token;
+	const unsigned deadline = nowMs() + 180000;
+	while (token.empty() && (int)(deadline - nowMs()) > 0)
+	{
+		fd_set read;
+		FD_ZERO(&read);
+		FD_SET(listener, &read);
+		timeval timeout { 1, 0 };
+		if (select(listener + 1, &read, nullptr, nullptr, &timeout) <= 0)
+			continue;
+		int client = (int)accept(listener, nullptr, nullptr);
+		if (client < 0)
+			continue;
+		char request[2048] = {};
+		const int n = recv(client, request, sizeof(request) - 1, 0);
+		// GET /token?t=<token> HTTP/1.1
+		std::string line(request, n > 0 ? n : 0);
+		const size_t start = line.find("GET /token?t=");
+		const size_t end = start == std::string::npos ? start : line.find_first_of(" &", start + 13);
+		const char *answer;
+		if (end != std::string::npos)
+		{
+			token = urlDecode(line.substr(start + 13, end - start - 13));
+			answer = "Signed in. You can go back to the game.";
+		}
+		else
+			answer = "This page is for the game's sign in.";
+		char response[512];
+		snprintf(response, sizeof(response),
+			"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n"
+			"<!doctype html><title>Zero Hour</title><p style=\"font:18px sans-serif;margin:4em\">%s</p>", answer);
+		send(client, response, (int)strlen(response), 0);
+		closesocket(client);
+	}
+	closesocket(listener);
+	if (token.empty())
+		fprintf(stderr, "Relay: the sign in did not finish\n");
+	else
+		saveToken(token);
+	return token;
+}
+
 void configure()
 {
 	State &s = state();
@@ -156,8 +310,18 @@ void configure()
 
 	const char *room = getenv("GENERALS_RELAY_ROOM");
 	s.room = room && *room ? room : "lobby";
+	// A token given directly, else the one kept from the last sign in, else sign in when there is
+	// a login service (GENERALS_AUTH); without one the relay must be running in test mode.
 	const char *token = getenv("GENERALS_RELAY_TOKEN");
-	s.token = token ? token : "";
+	const char *auth = getenv("GENERALS_AUTH");
+	if (token && *token)
+		s.token = token;
+	else if (auth && *auth)
+	{
+		s.token = loadToken();
+		if (s.token.empty())
+			s.token = signIn(auth);
+	}
 	randomBytes(s.session, SESSION_LEN);
 	s.enabled = true;
 }

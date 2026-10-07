@@ -6,6 +6,8 @@ import (
 	"net/netip"
 	"testing"
 	"time"
+
+	"generalsgamecode/server/internal/token"
 )
 
 func startRelay(t *testing.T, secret string) netip.AddrPort {
@@ -117,12 +119,12 @@ func TestRelayChecksTokens(t *testing.T) {
 	if got := c.recv(); len(got) != headerLen+1 || got[3] != typeError || got[4] != errBadToken {
 		t.Fatalf("forged token: %v", got)
 	}
-	expired := makeToken([]byte(secret), "765611980", time.Now().Add(-time.Minute))
+	expired := token.Make([]byte(secret), "765611980", time.Now().Add(-time.Minute))
 	c.send(typeHello, field("s1", 8), field("room", 32), field(expired, 128))
 	if got := c.recv(); len(got) < headerLen || got[3] != typeError {
 		t.Fatalf("expired token: %v", got)
 	}
-	good := makeToken([]byte(secret), "765611980", time.Now().Add(time.Hour))
+	good := token.Make([]byte(secret), "765611980", time.Now().Add(time.Hour))
 	if vip := c.join("s1", "room", good, 8086); vip[0] != 10 {
 		t.Fatalf("vip %v", vip)
 	}

@@ -1,4 +1,5 @@
-package main
+// Package token signs and checks the tokens the login service gives players for the relay.
+package token
 
 import (
 	"crypto/hmac"
@@ -11,16 +12,16 @@ import (
 
 // Tokens are "<player>.<expiry unix seconds>.<hex HMAC-SHA256 of player.expiry>", issued by the login
 // service with the same secret. The player is the Steam ID once login exists.
-func makeToken(secret []byte, player string, expiry time.Time) string {
+func Make(secret []byte, player string, expiry time.Time) string {
 	payload := player + "." + strconv.FormatInt(expiry.Unix(), 10)
 	mac := hmac.New(sha256.New, secret)
 	mac.Write([]byte(payload))
 	return payload + "." + hex.EncodeToString(mac.Sum(nil))
 }
 
-// checkToken returns the player of a valid token. Without a secret (local tests) any token is
+// Check returns the player of a valid token. Without a secret (local tests) any token is
 // accepted and names the player.
-func checkToken(secret []byte, token string, now time.Time) (string, bool) {
+func Check(secret []byte, token string, now time.Time) (string, bool) {
 	if len(secret) == 0 {
 		if token == "" {
 			token = "anonymous"

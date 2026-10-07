@@ -7,16 +7,40 @@ on every platform, and nobody has to open ports.
 
 ## Running the relay
 
-    docker build -t generals-relay server/relay
+    docker build --target relay -t generals-relay server
     docker run -d -p 7900:7900/udp -e RELAY_SECRET=<secret> generals-relay [-v]
 
 `RELAY_SECRET` checks the players' tokens (`<player>.<expiry>.<HMAC-SHA256>`, see
-`server/relay/token.go`), which the login service will hand out. Without it every token is
-accepted, for tests. `-v` logs binds and refused or dropped datagrams.
+`server/internal/token`), which the login service hands out. Without it every token is accepted,
+for tests. `-v` logs binds and refused or dropped datagrams.
+
+## Signing in with Steam
+
+`server/auth` signs players in with their Steam account ("Sign in through Steam", OpenID) and
+gives the game a token for the relay:
+
+    docker build --target auth -t generals-auth server
+    docker run -d -p 8080:8080 -e PUBLIC_URL=https://auth.example.org -e TOKEN_SECRET=<RELAY_SECRET> \
+        [-e STEAM_API_KEY=<key>] generals-auth
+
+- `PUBLIC_URL` must be the HTTPS address players reach the service at (behind a reverse proxy
+  such as Caddy).
+- With `STEAM_API_KEY` (from https://steamcommunity.com/dev/apikey) only accounts that own Zero
+  Hour (Steam app 2732960, `OWNERSHIP_APP_IDS` to change) can sign in. Steam shows the games of an
+  account only when its profile's game details are public; the official ownership check is only
+  open to the game's publisher.
+- Tokens last a week (`TOKEN_HOURS`).
+
+With `GENERALS_AUTH=https://auth.example.org` the game opens the sign in page in the browser the
+first time it goes online, waits for the token on a local port, and keeps it in `OnlineToken.txt`
+in the user data folder until it expires. While it waits for the browser the game does not
+respond; signing in from the menus comes later.
 
 ## Playing through it
 
-    GENERALS_RELAY=relay.example.org[:7900] GENERALS_RELAY_ROOM=<room> GENERALS_RELAY_TOKEN=<token> generalszh
+    GENERALS_RELAY=relay.example.org[:7900] GENERALS_AUTH=https://auth.example.org GENERALS_RELAY_ROOM=<room> generalszh
+
+(`GENERALS_RELAY_TOKEN=<token>` gives a token directly instead of signing in.)
 
 Then open Multiplayer, Network: everyone in the same room sees each other's games as on a LAN. A room
 holds up to 8 players.
@@ -36,4 +60,4 @@ holds up to 8 players.
 
 `scripts/crossplay/online_match.sh` plays a game between the Linux build and the Windows x64 build
 under Wine, on two networks that only the relay connects, and checks that both compute the same
-CRCs. `go test` in `server/relay` tests the relay itself.
+CRCs. `go test ./...` in `server` tests the relay and the login service (against a fake Steam).
