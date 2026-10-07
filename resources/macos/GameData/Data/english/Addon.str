@@ -5,11 +5,11 @@ INI:FactionEurope
 END
 
 TOOLTIP:BioStrategyLong_Europe
-"High-tech precision: units that see and shoot further and hit harder, at a higher price."
+"Precision and protection: a small, expensive army that sees first, shoots accurately and shoots down missiles, weak when swarmed early."
 END
 
 GUI:BioFeatures_Europe
-"Long range tanks and artillery, missile defence, fighter jets"
+"Long range artillery, active protection, the best air defence"
 END
 
 OBJECT:Euro_CommandCenter
@@ -165,7 +165,7 @@ CONTROLBAR:Euro_Command_ConstructRifleman
 END
 
 CONTROLBAR:ToolTipEuro_Command_ConstructRifleman
-"Precise infantry. Outranges most other foot soldiers."
+"Line infantry with a longer reach than most foot soldiers."
 END
 
 OBJECT:Euro_Milan
@@ -213,7 +213,7 @@ CONTROLBAR:Euro_Command_ConstructBoxer
 END
 
 CONTROLBAR:ToolTipEuro_Command_ConstructBoxer
-"A wheeled infantry fighting vehicle that carries five soldiers."
+"An armoured infantry fighting vehicle for five soldiers. Its 30 mm cannon hunts vehicles, its machine gun infantry, and its laser shoots down incoming missiles."
 END
 
 OBJECT:Euro_Leopard
@@ -225,7 +225,7 @@ CONTROLBAR:Euro_Command_ConstructLeopard
 END
 
 CONTROLBAR:ToolTipEuro_Command_ConstructLeopard
-"Main battle tank. Its gun outranges every other tank."
+"Main battle tank: hard to kill, accurate, a little longer reach than other tanks."
 END
 
 OBJECT:Euro_Leclerc
@@ -237,7 +237,7 @@ CONTROLBAR:Euro_Command_ConstructLeclerc
 END
 
 CONTROLBAR:ToolTipEuro_Command_ConstructLeclerc
-"A heavy tank whose laser shoots down incoming missiles and shells."
+"A heavy tank whose laser shoots down incoming missiles and shells for the whole group."
 END
 
 OBJECT:Euro_Puls
@@ -249,7 +249,7 @@ CONTROLBAR:Euro_Command_ConstructPuls
 END
 
 CONTROLBAR:ToolTipEuro_Command_ConstructPuls
-"Rocket artillery with the longest reach of any vehicle."
+"Rocket artillery with the longest reach in the war. Needs eyes: a Recon Drone or other spotter."
 END
 
 OBJECT:Euro_Skyranger
@@ -297,7 +297,7 @@ CONTROLBAR:Euro_Command_ConstructReconDrone
 END
 
 CONTROLBAR:ToolTipEuro_Command_ConstructReconDrone
-"Spots for the army from afar, and reveals stealthed units."
+"Sees further than any other vehicle and reveals stealthed units: the eyes of the PULS."
 END
 
 OBJECT:Euro_Typhoon
@@ -309,7 +309,7 @@ CONTROLBAR:Euro_Command_ConstructTyphoon
 END
 
 CONTROLBAR:ToolTipEuro_Command_ConstructTyphoon
-"An air superiority fighter with long range missiles."
+"A multirole fighter: long range missiles against air and ground."
 END
 
 OBJECT:Euro_Rafale
@@ -358,4 +358,276 @@ END
 
 CONTROLBAR:ToolTipEuro_Command_ConstructNH90
 "A transport helicopter that also carries supplies."
+END
+
+CONTROLBAR:Euro_Command_SpectreGunship
+"&A400M Gunship"
+END
+
+CONTROLBAR:ToolTipEuro_Command_SpectreGunship
+"A gunship circles the target and fires on everything below."
+END
+
+CONTROLBAR:Euro_Command_LeafletDrop
+"&Information Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_LeafletDrop
+"Leaflets and broadcasts: enemy units in the area stop fighting for a while."
+END
+
+CONTROLBAR:Euro_Command_A10ThunderboltMissileStrike
+"&Typhoon Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_A10ThunderboltMissileStrike
+"Strike jets fire missiles at the target area."
+END
+
+CONTROLBAR:Euro_Command_Paradrop
+"&Airborne Drop"
+END
+
+CONTROLBAR:ToolTipEuro_Command_Paradrop
+"Paratroopers land at the target."
+END
+
+CONTROLBAR:Euro_Command_SpyDrone
+"&Recon UAV"
+END
+
+CONTROLBAR:ToolTipEuro_Command_SpyDrone
+"A drone that watches an area and reveals stealthed units."
+END
+
+CONTROLBAR:Euro_Command_EmergencyRepair
+"&Field Repair"
+END
+
+CONTROLBAR:ToolTipEuro_Command_EmergencyRepair
+"Repairs vehicles in the area."
+END
+
+CONTROLBAR:Euro_Command_DaisyCutter
+"&Thermobaric Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_DaisyCutter
+"A heavy bomb that flattens everything in a wide area."
+END
+
+CONTROLBAR:Euro_Command_SpySatelliteScan
+"&Galileo Scan"
+END
+
+CONTROLBAR:ToolTipEuro_Command_SpySatelliteScan
+"A satellite reveals any part of the map for a while."
+END
+
+CONTROLBAR:Euro_Command_SpyDroneFromShortcut
+"&Recon UAV"
+END
+
+CONTROLBAR:ToolTipEuro_Command_SpyDroneFromShortcut
+"A drone that watches an area and reveals stealthed units."
+END
+
+CONTROLBAR:Euro_Command_ParadropFromShortcut
+"&Airborne Drop"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ParadropFromShortcut
+"Paratroopers land at the target."
+END
+
+CONTROLBAR:Euro_Command_A10ThunderboltMissileStrikeFromShortcut
+"&Typhoon Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_A10ThunderboltMissileStrikeFromShortcut
+"Strike jets fire missiles at the target area."
+END
+
+CONTROLBAR:Euro_Command_EmergencyRepairFromShortcut
+"&Field Repair"
+END
+
+CONTROLBAR:ToolTipEuro_Command_EmergencyRepairFromShortcut
+"Repairs vehicles in the area."
+END
+
+CONTROLBAR:Euro_Command_DaisyCutterFromShortcut
+"&Thermobaric Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_DaisyCutterFromShortcut
+"A heavy bomb that flattens everything in a wide area."
+END
+
+CONTROLBAR:Euro_Command_FireParticleUplinkCannonFromShortcut
+"&Orbital Lance"
+END
+
+CONTROLBAR:ToolTipEuro_Command_FireParticleUplinkCannonFromShortcut
+"Fires the satellite beam."
+END
+
+CONTROLBAR:Euro_Command_SpySatelliteScanFromShortcut
+"&Galileo Scan"
+END
+
+CONTROLBAR:ToolTipEuro_Command_SpySatelliteScanFromShortcut
+"A satellite reveals any part of the map for a while."
+END
+
+CONTROLBAR:Euro_Command_CIAIntelligenceFromShortcut
+"&Intelligence Report"
+END
+
+CONTROLBAR:ToolTipEuro_Command_CIAIntelligenceFromShortcut
+"Reveals what the enemy is building."
+END
+
+CONTROLBAR:Euro_Command_SpectreGunshipFromShortcut
+"&A400M Gunship"
+END
+
+CONTROLBAR:ToolTipEuro_Command_SpectreGunshipFromShortcut
+"A gunship circles the target and fires on everything below."
+END
+
+CONTROLBAR:Euro_Command_LeafletDropFromShortcut
+"&Information Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_LeafletDropFromShortcut
+"Leaflets and broadcasts: enemy units in the area stop fighting for a while."
+END
+
+CONTROLBAR:Euro_Command_PurchaseSciencePaladinTank
+"&Leclerc Tank"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseSciencePaladinTank
+"Lets the Armour Works build the Leclerc heavy tank."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceStealthFighter
+"&Rafale"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceStealthFighter
+"Lets the Air Base build the Rafale strike fighter."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceSpyDrone
+"&Recon UAV"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceSpyDrone
+"A drone that watches an area and reveals stealthed units."
+END
+
+CONTROLBAR:Euro_Command_PurchaseSciencePathfinder
+"&Marksman"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseSciencePathfinder
+"Lets the Garrison train Marksmen."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceParadrop1
+"&Airborne Drop"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceParadrop1
+"Paratroopers land at the target."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceParadrop2
+"&Airborne Drop 2"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceParadrop2
+"Paratroopers land at the target. More of them."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceParadrop3
+"&Airborne Drop 3"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceParadrop3
+"Paratroopers land at the target. A whole company."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceA10ThunderboltMissileStrike1
+"&Typhoon Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceA10ThunderboltMissileStrike1
+"Strike jets fire missiles at the target area."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceA10ThunderboltMissileStrike2
+"&Typhoon Strike 2"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceA10ThunderboltMissileStrike2
+"Strike jets fire missiles at the target area. More jets."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceA10ThunderboltMissileStrike3
+"&Typhoon Strike 3"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceA10ThunderboltMissileStrike3
+"Strike jets fire missiles at the target area. A full squadron."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceEmergencyRepair1
+"&Field Repair"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEmergencyRepair1
+"Repairs vehicles in the area."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceEmergencyRepair2
+"&Field Repair 2"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEmergencyRepair2
+"Repairs vehicles in the area. Faster."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceEmergencyRepair3
+"&Field Repair 3"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEmergencyRepair3
+"Repairs vehicles in the area. Faster still."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceDaisyCutter
+"&Thermobaric Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceDaisyCutter
+"A heavy bomb that flattens everything in a wide area."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceLeafletDrop
+"&Information Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceLeafletDrop
+"Leaflets and broadcasts: enemy units in the area stop fighting for a while."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceSpectreGunship
+"&A400M Gunship"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceSpectreGunship
+"A gunship circles the target and fires on everything below."
 END

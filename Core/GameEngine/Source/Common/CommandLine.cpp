@@ -1278,6 +1278,7 @@ Int parseClearDebugLevel(char *args[], int num)
 static CommandLineParam paramsForStartup[] =
 {
 	{ "-skirmish", parseSkirmishInstance },
+	{ "-battle", parseSkirmishInstance }, // a battle may run beside the game too (balance tests run several)
 	{ "-win", parseWin },
 	{ "-fullscreen", parseNoWin },
 

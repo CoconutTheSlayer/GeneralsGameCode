@@ -378,6 +378,7 @@ public:
 	// only for ControlBar!
 	void friend_addToList(CommandButton** list) {	m_next = *list;	*list = this; }
 	CommandButton* friend_getNext() { return m_next; }
+	void friend_setNext(CommandButton* next) { m_next = next; }
 
 private:
 	AsciiString										m_name;												///< template name
@@ -787,6 +788,7 @@ public:
 
 	static void parseCommandSetDefinition( INI *ini );
 	static void parseCommandButtonDefinition( INI *ini );
+	static void parseChildCommandButtonDefinition( INI *ini );
 
 	void drawTransitionHandler();
 	const Image *getArrowImage(){ return m_genArrow;	}

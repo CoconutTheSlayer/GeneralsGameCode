@@ -134,6 +134,7 @@ static const BlockParse theTypeTable[] =
 #if RTS_ZEROHOUR
 	{ "ChildObject",                    INI::parseChildObjectDefinition },
 	{ "ChildWeapon",                    INI::parseChildWeaponDefinition },
+	{ "ChildCommandButton",             INI::parseChildCommandButtonDefinition },
 #endif
 	{ "OnlineChatColors",               INI::parseOnlineChatColorDefinition },
 	{ "ParticleSystem",                 INI::parseParticleSystemDefinition },

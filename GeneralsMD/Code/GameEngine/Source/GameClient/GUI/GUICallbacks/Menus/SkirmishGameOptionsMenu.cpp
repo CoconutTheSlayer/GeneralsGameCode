@@ -540,11 +540,14 @@ Bool startQuickSkirmish()
 
 	if (isBattle)
 	{
-		// Players in slot order; the human player comes first.
+		// Players in slot order; the human player comes first. Observers take no start position.
+		Int observers = 0;
 		for (Int i = 0; i < MAX_SLOTS; ++i)
 		{
 			GameSlot slot;
-			if (i >= (Int)battle.players.size() || i >= md->m_numPlayers)
+			if (i < (Int)battle.players.size() && battle.players[i].controller == "observer")
+				++observers;
+			if (i >= (Int)battle.players.size() || i - observers >= md->m_numPlayers)
 			{
 				slot.setState(i == 0 ? SLOT_PLAYER : SLOT_CLOSED);
 				if (i != 0)
@@ -553,7 +556,7 @@ Bool startQuickSkirmish()
 			}
 			const BattlePlayer &bp = battle.players[i];
 			Int faction = ThePlayerTemplateStore->getTemplateNumByName(AsciiString(bp.faction.c_str()));
-			if (faction < 0)
+			if (faction < 0 && bp.controller != "observer")
 			{
 				fprintf(stderr, "-battle: faction '%s' not found\n", bp.faction.c_str());
 				faction = PLAYERTEMPLATE_RANDOM;
@@ -561,6 +564,12 @@ Bool startQuickSkirmish()
 			if (bp.controller == "human")
 			{
 				slot = player;
+			}
+			else if (bp.controller == "observer")
+			{
+				// Watches the others play (AI tournaments).
+				slot = player;
+				faction = PLAYERTEMPLATE_OBSERVER;
 			}
 			else
 			{

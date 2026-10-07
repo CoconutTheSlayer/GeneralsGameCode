@@ -200,6 +200,7 @@ public:
 	static void parseObjectReskinDefinition( INI *ini );
 	static void parseChildObjectDefinition( INI *ini );
 	static void parseChildWeaponDefinition( INI *ini );
+	static void parseChildCommandButtonDefinition( INI *ini );
 	static void parseWeaponTemplateDefinition( INI *ini );
 	static void parseScienceDefinition( INI *ini );
 	static void parseRankDefinition( INI *ini );

@@ -19,32 +19,37 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."
 DATA = os.path.join(ROOT, "resources", "macos", "GameData")
 
 # ---------------------------------------------------------------------------------------------------
-# Weapons: (new name, parent, changes). Range up about a fifth, damage up about a seventh.
+# Weapons: (new name, parent, changes). The numbers follow the faction plan's balance rules: each unit
+# worth 0.90-1.00 of its counterpart (health x damage per second / cost^2), range at most a tenth more.
 WEAPONS = [
-    ("Euro_RiflemanRifle", "RangerAdvancedCombatRifle", {"AttackRange": 120, "PrimaryDamage": 6}),
-    ("Euro_MilanMissile", "MissileDefenderMissileWeapon", {"AttackRange": 210, "PrimaryDamage": 46}),
-    ("Euro_MilanGuidedMissile", "MissileDefenderLaserGuidedMissileWeapon", {"AttackRange": 340, "PrimaryDamage": 46}),
-    ("Euro_MarksmanRifle", "USAPathfinderSniperRifle", {"AttackRange": 360, "PrimaryDamage": 115}),
-    ("Euro_BoxerGun", "HumveeGun", {"AttackRange": 175, "PrimaryDamage": 11}),
-    ("Euro_BoxerMissile", "HumveeMissileWeapon", {"AttackRange": 180, "PrimaryDamage": 35}),
-    ("Euro_LeopardGun", "CrusaderTankGun", {"AttackRange": 185, "PrimaryDamage": 70, "DelayBetweenShots": 2200}),
-    ("Euro_LeclercGun", "PaladinTankGun", {"AttackRange": 185, "PrimaryDamage": 72, "DelayBetweenShots": 2200}),
-    ("Euro_PulsRocket", "TomahawkMissileWeapon", {"AttackRange": 425, "PrimaryDamage": 170}),
-    ("Euro_DroneGun", "SentryDroneGun", {"AttackRange": 175, "PrimaryDamage": 9}),
-    ("Euro_TyphoonMissile", "RaptorJetMissileWeapon", {"AttackRange": 360, "PrimaryDamage": 112}),
-    ("Euro_RafaleMissile", "StealthJetMissileWeapon", {"AttackRange": 260, "PrimaryDamage": 112}),
-    ("Euro_TornadoBomb", "AuroraBombWeapon", {"PrimaryDamage": 450}),
-    ("Euro_TigerCannon", "Comanche20mmCannonWeapon", {"AttackRange": 225, "PrimaryDamage": 7}),
-    ("Euro_TigerMissile", "ComancheAntiTankMissileWeapon", {"AttackRange": 235, "PrimaryDamage": 57}),
-    ("Euro_SampMissile", "PatriotMissileWeapon", {"AttackRange": 260, "PrimaryDamage": 34}),
-    ("Euro_SampMissileAir", "PatriotMissileWeaponAir", {"AttackRange": 410, "PrimaryDamage": 29}),
-    ("Euro_BastionHowitzer", "FireBaseHowitzerGun", {"AttackRange": 330, "PrimaryDamage": 86}),
+    ("Euro_RiflemanRifle", "RangerAdvancedCombatRifle", {"AttackRange": 110, "PrimaryDamage": 6}),
+    ("Euro_MilanMissile", "MissileDefenderMissileWeapon", {"AttackRange": 190, "PrimaryDamage": 44}),
+    ("Euro_MilanGuidedMissile", "MissileDefenderLaserGuidedMissileWeapon", {"AttackRange": 300, "PrimaryDamage": 44}),
+    ("Euro_MarksmanRifle", "USAPathfinderSniperRifle", {"AttackRange": 330, "PrimaryDamage": 110}),
+    # The Boxer's 30 mm cannon pierces armour (a tenth against infantry); its machine gun takes infantry.
+    ("Euro_BoxerCannon", "Comanche20mmCannonWeapon",
+     {"AttackRange": 165, "PrimaryDamage": 9, "DelayBetweenShots": 400, "DamageType": "ARMOR_PIERCING", "ClipSize": 0}),
+    ("Euro_BoxerGun", "HumveeGun", {"AttackRange": 165, "PrimaryDamage": 8}),
+    ("Euro_BoxerMissile", "HumveeMissileWeapon", {"AttackRange": 165}),
+    ("Euro_LeopardGun", "CrusaderTankGun", {"AttackRange": 165, "PrimaryDamage": 75, "DelayBetweenShots": 2200}),
+    ("Euro_LeclercGun", "PaladinTankGun", {"AttackRange": 165, "PrimaryDamage": 72, "DelayBetweenShots": 2200}),
+    ("Euro_PulsRocket", "TomahawkMissileWeapon", {"AttackRange": 385, "PrimaryDamage": 160}),
+    ("Euro_DroneGun", "SentryDroneGun", {"AttackRange": 165, "PrimaryDamage": 9}),
+    ("Euro_TyphoonMissile", "RaptorJetMissileWeapon", {"AttackRange": 340, "PrimaryDamage": 108}),
+    ("Euro_RafaleMissile", "StealthJetMissileWeapon", {"AttackRange": 240, "PrimaryDamage": 109}),
+    ("Euro_TigerCannon", "Comanche20mmCannonWeapon", {"AttackRange": 215, "PrimaryDamage": 6.2}),
+    ("Euro_TigerMissile", "ComancheAntiTankMissileWeapon", {"AttackRange": 215}),
+    # Defences match the USA's worth; only their reach is a little longer.
+    ("Euro_SampMissile", "PatriotMissileWeapon", {"AttackRange": 240}),
+    ("Euro_SampMissileAir", "PatriotMissileWeaponAir", {"AttackRange": 375}),
+    ("Euro_BastionHowitzer", "FireBaseHowitzerGun", {"AttackRange": 300}),
 ]
 
 # ---------------------------------------------------------------------------------------------------
 # Objects: (new name, parent, display name, description, changes).
 # changes: cost, time (seconds), command set, prerequisites (list of alternatives per line),
-# weapons {old: new}, extra lines.
+# health (body module tag, health, takes subdual damage), fields {name: value}, weapons {old: new},
+# extra lines.
 BUILDINGS = [
     ("Euro_CommandCenter", "AmericaCommandCenter", "Command Centre",
      "The heart of the European base. Builds engineer vehicles and directs the general's powers.",
@@ -85,85 +90,94 @@ UNITS = [
     ("Euro_Dozer", "AmericaVehicleDozer", "Engineer Vehicle", "Builds and repairs the base, and clears mines.",
      dict(command="Euro_DozerCommandSet")),
     ("Euro_Rifleman", "AmericaInfantryRanger", "Rifleman",
-     "Precise infantry. Outranges most other foot soldiers.",
-     dict(cost=275, time=6, pre=[["Euro_Barracks"]], weapons={"RangerAdvancedCombatRifle": "Euro_RiflemanRifle"})),
+     "Line infantry with a longer reach than most foot soldiers.",
+     dict(cost=250, time=5.5, pre=[["Euro_Barracks"]], weapons={"RangerAdvancedCombatRifle": "Euro_RiflemanRifle"})),
     ("Euro_Milan", "AmericaInfantryMissileDefender", "MILAN Team",
      "Anti-tank missiles, guided much further with their laser designator.",
-     dict(cost=350, time=6, pre=[["Euro_Barracks"]],
+     dict(cost=325, time=5.5, pre=[["Euro_Barracks"]],
           weapons={"MissileDefenderMissileWeapon": "Euro_MilanMissile",
                    "MissileDefenderLaserGuidedMissileWeapon": "Euro_MilanGuidedMissile"})),
     ("Euro_Marksman", "AmericaInfantryPathfinder", "Marksman", "A long range sniper, unseen while still.",
-     dict(cost=700, time=12, pre=[["Euro_Barracks"]], science="SCIENCE_Pathfinder",
+     dict(cost=650, time=11, pre=[["Euro_Barracks"]], science="SCIENCE_Pathfinder",
           weapons={"USAPathfinderSniperRifle": "Euro_MarksmanRifle"})),
     ("Euro_Commando", "AmericaInfantryColonelBurton", "Special Forces",
      "An elite commando who plants charges and strikes unseen.",
      dict(pre=[["Euro_Barracks"], ["Euro_StrategyCenter"]])),
-    ("Euro_Boxer", "AmericaVehicleHumvee", "Boxer", "A wheeled infantry fighting vehicle that carries five soldiers.",
-     dict(cost=850, time=12, pre=[["Euro_WarFactory"]],
-          weapons={"HumveeGun": "Euro_BoxerGun", "HumveeMissileWeapon": "Euro_BoxerMissile"},
-          # Its own model (scripts/models/boxer.py).
-          extra=["ReplaceModule ModuleTag_01",
-                 "  Draw = W3DTruckDraw ModuleTag_Euro_01",
-                 "    OkToChangeModelColor = Yes",
-                 "    ConditionState = NONE",
-                 "      Model = EUBOXER",
-                 "      Turret = TURRET",
-                 "      WeaponFireFXBone = PRIMARY Muzzle",
-                 "      WeaponMuzzleFlash = PRIMARY MuzzleFX",
-                 "    End",
-                 "    ConditionState = REALLYDAMAGED",
-                 "      Model = EUBOXER_D",
-                 "      Turret = TURRET",
-                 "      WeaponFireFXBone = PRIMARY Muzzle",
-                 "      WeaponMuzzleFlash = PRIMARY MuzzleFX",
-                 "    End",
-                 "    TrackMarks = EXTireTrack.tga",
-                 "    Dust = RocketBuggyDust",
-                 "    DirtSpray = RocketBuggyDirtSpray",
-                 "    PowerslideSpray = RocketBuggyDirtPowerSlide",
-                 "    LeftFrontTireBone = TIRE01",
-                 "    RightFrontTireBone = TIRE02",
-                 "    MidLeftFrontTireBone = TIRE03",
-                 "    MidRightFrontTireBone = TIRE04",
-                 "    MidLeftRearTireBone = TIRE05",
-                 "    MidRightRearTireBone = TIRE06",
-                 "    LeftRearTireBone = TIRE07",
-                 "    RightRearTireBone = TIRE08",
-                 "    TireRotationMultiplier = 0.2",
-                 "    PowerslideRotationAddition = 1.25",
-                 "  End",
-                 "End"])),
+    ("Euro_Boxer", "AmericaVehicleHumvee", "Boxer",
+     "An armoured infantry fighting vehicle for five soldiers. Its 30 mm cannon hunts vehicles, its machine gun "
+     "infantry, and its laser shoots down incoming missiles.",
+     dict(cost=1000, time=12, pre=[["Euro_WarFactory"]], command="Euro_BoxerCommandSet",
+          health=("ModuleTag_02", 270, True),
+          extra=[
+              # Two guns on the turret: the game picks the better one for each target.
+              "WeaponSet", "  Conditions = None", "  Weapon = PRIMARY Euro_BoxerCannon",
+              "  Weapon = SECONDARY Euro_BoxerGun", "End",
+              "WeaponSet", "  Conditions = PLAYER_UPGRADE", "  Weapon = PRIMARY Euro_BoxerCannon",
+              "  Weapon = SECONDARY Euro_BoxerGun", "  Weapon = TERTIARY Euro_BoxerMissile", "End",
+              # Active protection: the Paladin's point defence laser, scanning more slowly.
+              "Behavior = PointDefenseLaserUpdate ModuleTag_Euro_PointDefense",
+              "  WeaponTemplate = PaladinPointDefenseLaser",
+              "  PrimaryTargetTypes = BALLISTIC_MISSILE SMALL_MISSILE",
+              "  ScanRate = 700", "  ScanRange = 100.0", "  PredictTargetVelocityFactor = 3.0", "End",
+              # Its own model (scripts/models/boxer.py).
+              "ReplaceModule ModuleTag_01",
+              "  Draw = W3DTruckDraw ModuleTag_Euro_01",
+              "    OkToChangeModelColor = Yes",
+          ] + [line for state, model in (("NONE", "EUBOXER"), ("REALLYDAMAGED", "EUBOXER_D")) for line in (
+              f"    ConditionState = {state}", f"      Model = {model}", "      Turret = TURRET",
+              "      WeaponFireFXBone = PRIMARY Muzzle", "      WeaponMuzzleFlash = PRIMARY MuzzleFX",
+              "      WeaponFireFXBone = SECONDARY Muzzle", "      WeaponMuzzleFlash = SECONDARY MuzzleFX",
+              "      WeaponFireFXBone = TERTIARY Muzzle", "      WeaponLaunchBone = TERTIARY Muzzle",
+              "    End")] + [
+              "    TrackMarks = EXTireTrack.tga",
+              "    Dust = RocketBuggyDust",
+              "    DirtSpray = RocketBuggyDirtSpray",
+              "    PowerslideSpray = RocketBuggyDirtPowerSlide",
+              "    LeftFrontTireBone = TIRE01",
+              "    RightFrontTireBone = TIRE02",
+              "    MidLeftFrontTireBone = TIRE03",
+              "    MidRightFrontTireBone = TIRE04",
+              "    MidLeftRearTireBone = TIRE05",
+              "    MidRightRearTireBone = TIRE06",
+              "    LeftRearTireBone = TIRE07",
+              "    RightRearTireBone = TIRE08",
+              "    TireRotationMultiplier = 0.2",
+              "    PowerslideRotationAddition = 1.25",
+              "  End",
+              "End"])),
     ("Euro_Leopard", "AmericaTankCrusader", "Leopard 2",
-     "Main battle tank. Its gun outranges every other tank.",
-     dict(cost=1100, time=13, pre=[["Euro_WarFactory"]], weapons={"CrusaderTankGun": "Euro_LeopardGun"})),
+     "Main battle tank: hard to kill, accurate, a little longer reach than other tanks.",
+     dict(cost=1000, time=11, pre=[["Euro_WarFactory"]], command="Euro_VehicleCommandSet",
+          health=("ModuleTag_02", 500, True), weapons={"CrusaderTankGun": "Euro_LeopardGun"})),
     ("Euro_Leclerc", "AmericaTankPaladin", "Leclerc",
-     "A heavy tank whose laser shoots down incoming missiles and shells.",
-     dict(cost=1300, time=15, pre=[["Euro_WarFactory"]], science="SCIENCE_PaladinTank",
-          weapons={"PaladinTankGun": "Euro_LeclercGun"})),
+     "A heavy tank whose laser shoots down incoming missiles and shells for the whole group.",
+     dict(cost=1200, time=13, pre=[["Euro_WarFactory"]], science="SCIENCE_PaladinTank", command="Euro_VehicleCommandSet",
+          health=("ModuleTag_02", 520, True), weapons={"PaladinTankGun": "Euro_LeclercGun"})),
     ("Euro_Puls", "AmericaVehicleTomahawk", "PULS Launcher",
-     "Rocket artillery with the longest reach of any vehicle.",
-     dict(cost=1450, time=25, pre=[["Euro_WarFactory"], ["Euro_StrategyCenter"]],
-          weapons={"TomahawkMissileWeapon": "Euro_PulsRocket"})),
+     "Rocket artillery with the longest reach in the war. Needs eyes: a Recon Drone or other spotter.",
+     dict(cost=1300, time=22, pre=[["Euro_WarFactory"], ["Euro_StrategyCenter"]], command="Euro_VehicleCommandSet",
+          health=("ModuleTag_02", 200, True), weapons={"TomahawkMissileWeapon": "Euro_PulsRocket"})),
     ("Euro_Skyranger", "AmericaTankAvenger", "Skyranger",
      "Air defence that tracks aircraft and marks targets for the army.",
-     dict(cost=2200, time=13, pre=[["Euro_WarFactory"]])),
+     dict(cost=2000, time=11, pre=[["Euro_WarFactory"]], command="Euro_VehicleCommandSet")),
     ("Euro_Wiesel", "AmericaTankMicrowave", "Wiesel EW", "Electronic warfare: disables buildings and clears garrisons.",
-     dict(cost=900, time=12, pre=[["Euro_WarFactory"], ["Euro_StrategyCenter"]])),
+     dict(cost=850, time=11, pre=[["Euro_WarFactory"], ["Euro_StrategyCenter"]], command="Euro_VehicleCommandSet")),
     ("Euro_Ambulance", "AmericaVehicleMedic", "Field Ambulance", "Heals infantry and cleans up toxins.",
-     dict(cost=650, time=12, pre=[["Euro_WarFactory"]])),
+     dict(cost=650, time=11, pre=[["Euro_WarFactory"]])),
     ("Euro_ReconDrone", "AmericaVehicleSentryDrone", "Recon Drone",
-     "Spots for the army from afar, and reveals stealthed units.",
-     dict(cost=900, time=12, pre=[["Euro_WarFactory"]], weapons={"SentryDroneGun": "Euro_DroneGun"})),
-    ("Euro_Typhoon", "AmericaJetRaptor", "Typhoon", "An air superiority fighter with long range missiles.",
-     dict(cost=1650, time=25, pre=[["Euro_Airfield"]], weapons={"RaptorJetMissileWeapon": "Euro_TyphoonMissile"})),
+     "Sees further than any other vehicle and reveals stealthed units: the eyes of the PULS.",
+     dict(cost=850, time=11, pre=[["Euro_WarFactory"]], weapons={"SentryDroneGun": "Euro_DroneGun"},
+          fields={"VisionRange": 240, "ShroudClearingRange": 420})),
+    ("Euro_Typhoon", "AmericaJetRaptor", "Typhoon", "A multirole fighter: long range missiles against air and ground.",
+     dict(cost=1500, time=22, pre=[["Euro_Airfield"]], health=("ModuleTag_02", 170, False),
+          weapons={"RaptorJetMissileWeapon": "Euro_TyphoonMissile"})),
     ("Euro_Rafale", "AmericaJetStealthFighter", "Rafale", "A strike fighter that slips past air defences.",
-     dict(cost=1900, time=30, pre=[["Euro_Airfield"]], science="SCIENCE_StealthFighter",
-          weapons={"StealthJetMissileWeapon": "Euro_RafaleMissile"})),
+     dict(cost=1700, time=27.5, pre=[["Euro_Airfield"]], science="SCIENCE_StealthFighter",
+          health=("ModuleTag_02", 130, False), weapons={"StealthJetMissileWeapon": "Euro_RafaleMissile"})),
     ("Euro_Tornado", "AmericaJetAurora", "Tornado", "A fast bomber that strikes before the defence can react.",
-     dict(cost=2800, time=38, pre=[["Euro_Airfield"], ["Euro_StrategyCenter"]],
-          weapons={"AuroraBombWeapon": "Euro_TornadoBomb"})),
+     dict(cost=2600, time=33, pre=[["Euro_Airfield"], ["Euro_StrategyCenter"]], health=("ModuleTag_02", 90, False))),
     ("Euro_Tiger", "AmericaVehicleComanche", "Tiger", "An attack helicopter armed with cannon and anti-tank missiles.",
-     dict(cost=1750, time=25, pre=[["Euro_Airfield"]],
+     dict(cost=1600, time=22, pre=[["Euro_Airfield"]], health=("ModuleTag_04", 240, False),
           weapons={"Comanche20mmCannonWeapon": "Euro_TigerCannon", "ComancheAntiTankMissileWeapon": "Euro_TigerMissile"})),
     ("Euro_NH90", "AmericaVehicleChinook", "NH90", "A transport helicopter that also carries supplies.",
      dict(pre=[["Euro_SupplyCenter"]])),
@@ -194,10 +208,10 @@ COMMAND_SETS = {
                              4: "Euro_SupplyDropZone", 5: "Euro_SupplyCenter", 6: "Euro_ParticleCannonUplink",
                              7: "Euro_PatriotBattery", 8: "Euro_CommandCenter", 9: "Euro_FireBase",
                              11: "Euro_WarFactory", 13: "Euro_Airfield", 14: "Command_DisarmMinesAtPosition"},
-    "Euro_CommandCenterCommandSet": {1: "Euro_Dozer", 2: "Command_SpectreGunship", 4: "Command_LeafletDrop",
-                                     5: "Command_A10ThunderboltMissileStrike", 6: "Command_Paradrop",
-                                     7: "Command_SpyDrone", 8: "Command_EmergencyRepair", 9: "Command_DaisyCutter",
-                                     10: "Command_SpySatelliteScan", 13: "Command_SetRallyPoint", 14: "Command_Sell"},
+    "Euro_CommandCenterCommandSet": {1: "Euro_Dozer", 2: "Euro_Command_SpectreGunship", 4: "Euro_Command_LeafletDrop",
+                                     5: "Euro_Command_A10ThunderboltMissileStrike", 6: "Euro_Command_Paradrop",
+                                     7: "Euro_Command_SpyDrone", 8: "Euro_Command_EmergencyRepair", 9: "Euro_Command_DaisyCutter",
+                                     10: "Euro_Command_SpySatelliteScan", 13: "Command_SetRallyPoint", 14: "Command_Sell"},
     "Euro_BarracksCommandSet": {1: "Euro_Rifleman", 2: "Euro_Milan", 3: "Euro_Commando", 4: "Euro_Marksman",
                                 7: "Command_UpgradeAmericaRangerFlashBangGrenade",
                                 8: "Command_UpgradeAmericaRangerCaptureBuilding",
@@ -211,7 +225,60 @@ COMMAND_SETS = {
                                 9: "Command_UpgradeAmericaCountermeasures", 10: "Command_UpgradeAmericaBunkerBusters",
                                 13: "Command_SetRallyPoint", 14: "Command_Sell"},
     "Euro_SupplyCenterCommandSet": {1: "Euro_NH90", 13: "Command_SetRallyPoint", 14: "Command_Sell"},
+    # Vehicles: no drones, the USA's edge.
+    "Euro_VehicleCommandSet": {11: "Command_AttackMove", 13: "Command_Guard", 14: "Command_Stop"},
+    "Euro_BoxerCommandSet": {4: "Command_TransportExit", 5: "Command_TransportExit", 6: "Command_TransportExit",
+                             7: "Command_TransportExit", 8: "Command_TransportExit", 9: "Command_Evacuate",
+                             11: "Command_AttackMove", 13: "Command_Guard", 14: "Command_Stop"},
 }
+
+# ---------------------------------------------------------------------------------------------------
+# General's powers: the USA's, with European names (ChildCommandButton copies a button, new labels).
+# Each power: (European name, description); its buttons in the Command Centre, the promotion menus and
+# the shortcut bar all get them.
+POWERS = {
+    "SpectreGunship": ("A400M Gunship", "A gunship circles the target and fires on everything below."),
+    "LeafletDrop": ("Information Strike", "Leaflets and broadcasts: enemy units in the area stop fighting for a while."),
+    "A10ThunderboltMissileStrike": ("Typhoon Strike", "Strike jets fire missiles at the target area."),
+    "Paradrop": ("Airborne Drop", "Paratroopers land at the target."),
+    "SpyDrone": ("Recon UAV", "A drone that watches an area and reveals stealthed units."),
+    "EmergencyRepair": ("Field Repair", "Repairs vehicles in the area."),
+    "DaisyCutter": ("Thermobaric Strike", "A heavy bomb that flattens everything in a wide area."),
+    "SpySatelliteScan": ("Galileo Scan", "A satellite reveals any part of the map for a while."),
+    "FireParticleUplinkCannon": ("Orbital Lance", "Fires the satellite beam."),
+    "CIAIntelligence": ("Intelligence Report", "Reveals what the enemy is building."),
+}
+# Promotions: the purchase button's science (without Command_PurchaseScience) and its European name.
+PROMOTIONS = {
+    "PaladinTank": ("Leclerc Tank", "Lets the Armour Works build the Leclerc heavy tank."),
+    "StealthFighter": ("Rafale", "Lets the Air Base build the Rafale strike fighter."),
+    "SpyDrone": POWERS["SpyDrone"],
+    "Pathfinder": ("Marksman", "Lets the Garrison train Marksmen."),
+    "Paradrop1": ("Airborne Drop", POWERS["Paradrop"][1]),
+    "Paradrop2": ("Airborne Drop 2", POWERS["Paradrop"][1] + " More of them."),
+    "Paradrop3": ("Airborne Drop 3", POWERS["Paradrop"][1] + " A whole company."),
+    "A10ThunderboltMissileStrike1": ("Typhoon Strike", POWERS["A10ThunderboltMissileStrike"][1]),
+    "A10ThunderboltMissileStrike2": ("Typhoon Strike 2", POWERS["A10ThunderboltMissileStrike"][1] + " More jets."),
+    "A10ThunderboltMissileStrike3": ("Typhoon Strike 3", POWERS["A10ThunderboltMissileStrike"][1] + " A full squadron."),
+    "EmergencyRepair1": ("Field Repair", POWERS["EmergencyRepair"][1]),
+    "EmergencyRepair2": ("Field Repair 2", POWERS["EmergencyRepair"][1] + " Faster."),
+    "EmergencyRepair3": ("Field Repair 3", POWERS["EmergencyRepair"][1] + " Faster still."),
+    "DaisyCutter": POWERS["DaisyCutter"],
+    "LeafletDrop": POWERS["LeafletDrop"],
+    "SpectreGunship": POWERS["SpectreGunship"],
+}
+PROMOTION_MENUS = {
+    "Euro_SCIENCE_CommandSetRank1": {1: "PaladinTank", 2: "StealthFighter", 3: "SpyDrone"},
+    "Euro_SCIENCE_CommandSetRank3": {1: "Pathfinder", 4: "Paradrop1", 5: "Paradrop2", 6: "Paradrop3",
+                                     7: "A10ThunderboltMissileStrike1", 8: "A10ThunderboltMissileStrike2",
+                                     9: "A10ThunderboltMissileStrike3", 10: "EmergencyRepair1",
+                                     11: "EmergencyRepair2", 12: "EmergencyRepair3"},
+    "Euro_SCIENCE_CommandSetRank8": {1: "DaisyCutter", 2: "LeafletDrop", 3: "SpectreGunship",
+                                     4: "Command_FAKECOMMAND_PurchaseScienceMOAB"},
+}
+SHORTCUTS = {1: "SpyDrone", 2: "Paradrop", 3: "A10ThunderboltMissileStrike", 4: "EmergencyRepair", 5: "DaisyCutter",
+             6: "FireParticleUplinkCannon", 7: "SpySatelliteScan", 8: "CIAIntelligence", 9: "SpectreGunship",
+             10: "LeafletDrop"}
 
 # Where the pictures of the USA objects are (texture, left, top, right, bottom), for the European
 # buttons and portraits until make_icons.py has drawn their own.
@@ -260,8 +327,9 @@ HOTKEYS = {
 
 FACTION = {
     "name": "Europe",
-    "strategy": "High-tech precision: units that see and shoot further and hit harder, at a higher price.",
-    "features": "Long range tanks and artillery, missile defence, fighter jets",
+    "strategy": "Precision and protection: a small, expensive army that sees first, shoots accurately and shoots down "
+                "missiles, weak when swarmed early.",
+    "features": "Long range artillery, active protection, the best air defence",
 }
 
 
@@ -307,8 +375,18 @@ def main():
             if "science" in c:
                 logic.append(f"    Science = {c['science']}")
             logic.append("  End")
+        for key, value in c.get("fields", {}).items():
+            logic.append(f"  {key} = {value}")
         for old, new in c.get("weapons", {}).items():
             logic.append(f"  WeaponReplace = {old} {new}")
+        if "health" in c:
+            tag, hp, subdual = c["health"]
+            logic += [f"  ReplaceModule {tag}", f"    Body = ActiveBody ModuleTag_Euro_Body",
+                      f"      MaxHealth = {hp}", f"      InitialHealth = {hp}"]
+            if subdual:
+                logic += [f"      SubdualDamageCap = {hp * 2}", "      SubdualDamageHealRate = 500",
+                          "      SubdualDamageHealAmount = 50"]
+            logic += ["    End", "  End"]
         logic += [f"  {line}" for line in c.get("extra", [])]
         logic += [f"  TextureReplace = {t} {european_texture(t)}" for t in TEXTURES.get(name, [])]
         logic += ["End", ""]
@@ -322,10 +400,10 @@ def main():
         "  StartMoney = 0",
         "  PreferredColor = R:40 G:90 B:200",
         "  IntrinsicSciences = SCIENCE_AMERICA",
-        "  PurchaseScienceCommandSetRank1 = SCIENCE_AMERICA_CommandSetRank1",
-        "  PurchaseScienceCommandSetRank3 = SCIENCE_AMERICA_CommandSetRank3",
-        "  PurchaseScienceCommandSetRank8 = SCIENCE_AMERICA_CommandSetRank8",
-        "  SpecialPowerShortcutCommandSet = SpecialPowerShortcutUSA",
+        "  PurchaseScienceCommandSetRank1 = Euro_SCIENCE_CommandSetRank1",
+        "  PurchaseScienceCommandSetRank3 = Euro_SCIENCE_CommandSetRank3",
+        "  PurchaseScienceCommandSetRank8 = Euro_SCIENCE_CommandSetRank8",
+        "  SpecialPowerShortcutCommandSet = Euro_SpecialPowerShortcut",
         "  SpecialPowerShortcutWinName = GenPowersShortcutBarUS.wnd",
         "  SpecialPowerShortcutButtonCount = 10",
         "  DisplayName = INI:FactionEurope",
@@ -384,6 +462,31 @@ def main():
                     "End",
                     "",
                 ]
+    power_labels = {}
+
+    def child_button(parent, name, text, description):
+        nonlocal client
+        client += [f"ChildCommandButton {name} {parent}", f"  TextLabel = CONTROLBAR:{name}",
+                   f"  DescriptLabel = CONTROLBAR:ToolTip{name}", "End", ""]
+        power_labels[name] = (text, description)
+        return name
+
+    used = {entry for slots in COMMAND_SETS.values() for entry in slots.values()}
+    for power, (text, description) in POWERS.items():
+        if f"Euro_Command_{power}" in used:
+            child_button(f"Command_{power}", f"Euro_Command_{power}", text, description)
+    shortcut = {slot: child_button(f"Command_{p}FromShortcut", f"Euro_Command_{p}FromShortcut", *POWERS[p])
+                for slot, p in SHORTCUTS.items()}
+    menus = {}
+    for menu, slots in PROMOTION_MENUS.items():
+        menus[menu] = {slot: entry if entry.startswith("Command_") else
+                       child_button(f"Command_PurchaseScience{entry}", f"Euro_Command_PurchaseScience{entry}", *PROMOTIONS[entry])
+                       for slot, entry in slots.items()}
+    menus["Euro_SpecialPowerShortcut"] = shortcut
+    for set_name, slots in menus.items():
+        client.append(f"CommandSet {set_name}")
+        client += [f"  {slot} = {entry}" for slot, entry in sorted(slots.items())]
+        client += ["End", ""]
     for set_name, slots in COMMAND_SETS.items():
         client.append(f"CommandSet {set_name}")
         client += [f"  {slot} = {buttons.get(entry, entry)}" for slot, entry in sorted(slots.items())]
@@ -402,6 +505,10 @@ def main():
         if name in buttons:
             string(f"CONTROLBAR:{buttons[name]}", label(display, HOTKEYS.get(name, "")))
             string(f"CONTROLBAR:ToolTip{buttons[name]}", description)
+
+    for name, (text, description) in power_labels.items():
+        string(f"CONTROLBAR:{name}", label(text, text[0]))
+        string(f"CONTROLBAR:ToolTip{name}", description)
 
     write(os.path.join(DATA, "Data", "INI", "Addon", "Logic", "Europe.ini"), "\n".join(logic))
     write(os.path.join(DATA, "Data", "INI", "Addon", "Client", "Europe.ini"), "\n".join(client))

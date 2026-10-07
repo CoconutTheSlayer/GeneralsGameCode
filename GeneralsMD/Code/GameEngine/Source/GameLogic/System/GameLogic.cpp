@@ -3831,6 +3831,140 @@ void GameLogic::update()
 #endif
 
 #if defined(RTS_POSIX_PORT)
+	// GENERALS_DUEL=A:n,B:m fights n of object A against m of object B, each for a player of the object's
+	// own side (Europe, China...), in the middle of the map, GENERALS_DUEL_DISTANCE
+	// (220) apart, attack-moving at each other. When one side is gone, or after GENERALS_DUEL_SECONDS
+	// (180), it prints DUEL_RESULT with what each side has left and quits. For balance tests.
+	{
+		struct DuelSide { const ThingTemplate *tmpl; Int count; Player *owner; std::vector<ObjectID> ids; Real value; };
+		static DuelSide sides[2];
+		static Int duelState = 0; // 0 not started, 1 fighting, 2 done
+		static UnsignedInt duelStart = 0;
+		static const char *duel = getenv("GENERALS_DUEL");
+		if (duel && duelState == 0 && isInGame() && getFrame() >= 30)
+		{
+			duelState = 2;
+			char nameA[128] = {}, nameB[128] = {};
+			Int countA = 0, countB = 0;
+			if (sscanf(duel, "%127[^:]:%d,%127[^:]:%d", nameA, &countA, nameB, &countB) == 4)
+			{
+				// Each group belongs to a player of its object's side.
+				const ThingTemplate *tmplA = TheThingFactory->findTemplate(nameA);
+				const ThingTemplate *tmplB = TheThingFactory->findTemplate(nameB);
+				auto ownerOf = [](const ThingTemplate *tmpl, const Player *other) -> Player *
+				{
+					for (Int i = 0; tmpl && i < ThePlayerList->getPlayerCount(); ++i)
+					{
+						Player *p = ThePlayerList->getNthPlayer(i);
+						if (p != other && p->isPlayerActive() && !p->isPlayerObserver() && p->getSide() == tmpl->getDefaultOwningSide())
+							return p;
+					}
+					return nullptr;
+				};
+				Player *a = ownerOf(tmplA, nullptr);
+				Player *b = ownerOf(tmplB, a);
+				sides[0] = { tmplA, countA, a, {}, 0 };
+				sides[1] = { tmplB, countB, b, {}, 0 };
+				Region3D extent;
+				TheTerrainLogic->getExtent(&extent);
+				const char *distanceText = getenv("GENERALS_DUEL_DISTANCE");
+				const Real distance = distanceText ? (Real)atof(distanceText) : 220.0f;
+				Coord3D centre;
+				centre.x = (extent.lo.x + extent.hi.x) / 2;
+				centre.y = (extent.lo.y + extent.hi.y) / 2;
+				centre.z = 0;
+				if (sides[0].tmpl && sides[1].tmpl && a && b)
+				{
+					for (Int s = 0; s < 2; ++s)
+					{
+						DuelSide &side = sides[s];
+						const Real dir = s == 0 ? -1.0f : 1.0f;
+						for (Int i = 0; i < side.count; ++i)
+						{
+							Coord3D pos;
+							pos.x = centre.x + dir * (distance / 2 + (i / 5) * 30.0f);
+							pos.y = centre.y + ((i % 5) - 2) * 30.0f;
+							pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
+							Object *obj = TheThingFactory->newObject(side.tmpl, side.owner->getDefaultTeam());
+							obj->setOrientation(s == 0 ? 0.0f : PI);
+							obj->setPosition(&pos);
+							side.ids.push_back(obj->getID());
+							side.value += side.tmpl->calcCostToBuild(side.owner);
+						}
+					}
+					duelState = 1;
+					duelStart = getFrame();
+					fprintf(stderr, "DUEL %s x%d (%s) vs %s x%d (%s)\n", nameA, countA, a->getSide().str(), nameB, countB, b->getSide().str());
+				}
+				else
+				{
+					fprintf(stderr, "DUEL_RESULT error: %s %s, %s %s (%s)\n", nameA, sides[0].tmpl ? "found" : "unknown",
+						nameB, sides[1].tmpl ? "found" : "unknown", a == nullptr ? "no player of the first side" : b == nullptr ? "no player of the second side" : "players found");
+					for (Int i = 0; i < ThePlayerList->getPlayerCount(); ++i)
+					{
+						Player *p = ThePlayerList->getNthPlayer(i);
+						fprintf(stderr, "  player %d side %s active %d observer %d\n", i, p->getSide().str(), p->isPlayerActive(), p->isPlayerObserver());
+					}
+				}
+			}
+			if (duelState == 2)
+				TheGameEngine->setQuitting(TRUE);
+		}
+		if (duelState == 1 && (getFrame() - duelStart) % 15 == 0)
+		{
+			Int alive[2] = {};
+			Real left[2] = {};
+			Coord3D middle[2] = {};
+			for (Int s = 0; s < 2; ++s)
+			{
+				for (ObjectID id : sides[s].ids)
+				{
+					Object *obj = findObjectByID(id);
+					if (obj == nullptr || obj->isEffectivelyDead())
+						continue;
+					BodyModuleInterface *body = obj->getBodyModule();
+					++alive[s];
+					left[s] += sides[s].tmpl->calcCostToBuild(sides[s].owner) * (body ? body->getHealth() / body->getMaxHealth() : 1.0f);
+					middle[s].x += obj->getPosition()->x;
+					middle[s].y += obj->getPosition()->y;
+				}
+				if (alive[s] > 0)
+				{
+					middle[s].x /= alive[s];
+					middle[s].y /= alive[s];
+				}
+			}
+			const char *secondsText = getenv("GENERALS_DUEL_SECONDS");
+			const UnsignedInt limit = (secondsText ? atoi(secondsText) : 180) * LOGICFRAMES_PER_SECOND;
+			if (alive[0] == 0 || alive[1] == 0 || getFrame() - duelStart >= limit)
+			{
+				fprintf(stderr, "DUEL_RESULT %d %.0f %.3f %d %.0f %.3f %.1f\n", alive[0], left[0], left[0] / sides[0].value,
+					alive[1], left[1], left[1] / sides[1].value, (getFrame() - duelStart) / (Real)LOGICFRAMES_PER_SECOND);
+				fflush(stderr);
+				duelState = 2;
+				TheGameEngine->setQuitting(TRUE);
+			}
+			else
+			{
+				// Idle ones go at the other side again.
+				for (Int s = 0; s < 2; ++s)
+					for (ObjectID id : sides[s].ids)
+					{
+						Object *obj = findObjectByID(id);
+						AIUpdateInterface *ai = obj ? obj->getAI() : nullptr;
+						if (ai && !obj->isEffectivelyDead() && ai->isIdle())
+						{
+							Coord3D target = middle[1 - s];
+							target.z = TheTerrainLogic->getGroundHeight(target.x, target.y);
+							ai->aiAttackMoveToPosition(&target, NO_MAX_SHOTS_LIMIT, CMD_FROM_AI);
+						}
+					}
+			}
+		}
+	}
+#endif
+
+#if defined(RTS_POSIX_PORT)
 	// GENERALS_PLAYER_LOG=<seconds> prints every player's money, units and buildings that often, to
 	// watch AI players in a test run.
 	static const int playerLogSeconds = getenv("GENERALS_PLAYER_LOG") ? atoi(getenv("GENERALS_PLAYER_LOG")) : 0;

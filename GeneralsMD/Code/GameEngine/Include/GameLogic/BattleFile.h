@@ -25,7 +25,7 @@
 //	seed 42                            random seed (0: random)
 //	superweapons 0                     1 limits superweapons
 //	result /path/to/result.json        where the result goes
-//	player human FactionAmerica 0 0    controller (human, easy, medium, hard), faction, team (-1 for
+//	player human FactionAmerica 0 0    controller (human, observer, easy, medium, hard), faction, team (-1 for
 //	player hard FactionGLA 1 1         none), colour (-1 for any); the first player is slot 0 and so on
 //
 // The result is JSON: {"outcome": "victory"|"defeat", "frame": N, "players": [{"slot", "team",
@@ -43,7 +43,7 @@
 
 struct BattlePlayer
 {
-	std::string controller; // human, easy, medium, hard
+	std::string controller; // human, observer, easy, medium, hard
 	std::string faction;
 	int team = -1;
 	int color = -1;
