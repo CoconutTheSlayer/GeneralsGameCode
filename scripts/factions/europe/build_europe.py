@@ -321,6 +321,19 @@ def main():
     logic += ["End", ""]
 
     client = ["; The European faction's build menus (scripts/factions/europe/build_europe.py). Generated, do not edit.", ""]
+    # The pictures first: a button finds its picture as it is read.
+    for name, pictures in USA_PICTURES.items():
+        for image, (texture, left, top, right, bottom) in ((name, pictures[0]), (f"{name}_L", pictures[1])):
+            client += [
+                f"MappedImage {image}",
+                f"  Texture = {texture}",
+                "  TextureWidth = 512",
+                "  TextureHeight = 512",
+                f"  Coords = Left:{left} Top:{top} Right:{right} Bottom:{bottom}",
+                "  Status = NONE",
+                "End",
+                "",
+            ]
     buttons = {}
     for set_name, slots in COMMAND_SETS.items():
         for slot, entry in slots.items():
@@ -340,18 +353,6 @@ def main():
                     "End",
                     "",
                 ]
-    for name, pictures in USA_PICTURES.items():
-        for image, (texture, left, top, right, bottom) in ((name, pictures[0]), (f"{name}_L", pictures[1])):
-            client += [
-                f"MappedImage {image}",
-                f"  Texture = {texture}",
-                "  TextureWidth = 512",
-                "  TextureHeight = 512",
-                f"  Coords = Left:{left} Top:{top} Right:{right} Bottom:{bottom}",
-                "  Status = NONE",
-                "End",
-                "",
-            ]
     for set_name, slots in COMMAND_SETS.items():
         client.append(f"CommandSet {set_name}")
         client += [f"  {slot} = {buttons.get(entry, entry)}" for slot, entry in sorted(slots.items())]

@@ -660,6 +660,9 @@ class ControlBar : public SubsystemInterface
 {
 
 public:
+	/// post process step, after all commands and command sets are loaded (again after add-on data)
+	void postProcessCommands();
+
 
 	ControlBar();
 	virtual ~ControlBar() override;
@@ -837,8 +840,6 @@ protected:
 	/// show rally point at world location, a nullptr location will hide any visible rally point marker
 	void showRallyPoint( const Coord3D *loc );
 
-	/// post process step, after all commands and command sets are loaded
-	void postProcessCommands();
 	// TheSuperHackers @feature Unit stance button, defined by the engine and added to the command bar
 	// of units that can use it.
 	static Bool canUseStance( const Object *obj );

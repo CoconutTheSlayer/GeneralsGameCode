@@ -91,6 +91,7 @@
 #include "GameClient/ClientInstance.h"
 #include "GameClient/FXList.h"
 #include "GameClient/GameClient.h"
+#include "GameClient/ControlBar.h"
 #include "GameClient/Keyboard.h"
 #include "GameClient/Shell.h"
 #include "GameClient/GameText.h"
@@ -668,6 +669,9 @@ void GameEngine::init()
 		initSubsystem(TheGameClient,"TheGameClient", createGameClient(), nullptr);
 #if defined(RTS_POSIX_PORT)
 		loadAddonINI("Client", nullptr);
+		// The control bar found its button pictures before the add-on's buttons were read.
+		if (TheControlBar)
+			TheControlBar->postProcessCommands();
 #endif
 
 
