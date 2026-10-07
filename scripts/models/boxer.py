@@ -32,6 +32,17 @@ import w3d  # noqa: E402
 NAME = "EUBOXER"
 HULL_TEXTURE, TIRE_TEXTURE = "euboxer.tga", "euboxer_tire.tga"
 TEXTURE_SIZE = 512
+DAMAGED_TEXTURE = "euboxer_d.tga"
+
+
+def linear(r, g, b):
+    """An sRGB colour (0-255) as Blender's linear RGBA."""
+    c = [x / 255.0 for x in (r, g, b)]
+    return tuple(x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c) + (1.0,)
+
+
+CAMO_BASE, CAMO_DARK, CAMO_LIGHT = linear(124, 138, 150), linear(84, 97, 112), linear(164, 174, 182)
+DUST, SOOT = linear(150, 138, 116), linear(22, 20, 18)
 
 # Shapes, in game units.
 WHEEL_X = (11.2, 6.4, -4.4, -9.2)
@@ -43,6 +54,7 @@ HULL_PROFILE = [(-15.0, HULL_BOTTOM), (14.0, HULL_BOTTOM), (15.6, 6.1), (9.0, 7.
 LOWER_PROFILE = [(-14.5, 2.2), (12.5, 2.2), (14.7, 5.3), (-14.5, 5.3)]
 LOWER_HALF_WIDTH = 3.4
 TURRET_AT = (-3.5, 0.0, 9.0)
+CHINE_Z = 6.3
 
 
 # --- making shapes ---------------------------------------------------------------------------------
@@ -97,6 +109,15 @@ def cylinder(bm, centre, radius, length, axis="Z", segments=16):
 def hull():
     bm = bmesh.new()
     prism(bm, HULL_PROFILE, HULL_HALF_WIDTH, taper_from=7.0, taper=0.9)
+    # The chine: the sides bend out a little above the wheels, as on the real vehicle.
+    geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
+    bmesh.ops.bisect_plane(bm, geom=geom, plane_co=(0, 0, CHINE_Z), plane_no=(0, 0, 1))
+    for v in bm.verts:
+        if abs(v.co.z - CHINE_Z) < 1e-4 and abs(v.co.y) > 1.0:
+            v.co.y *= 1.06
+    # Chamfered edges catch the light.
+    sharp = [e for e in bm.edges if e.is_manifold and e.calc_face_angle(0) > math.radians(25)]
+    bmesh.ops.bevel(bm, geom=sharp, offset=0.22, segments=1, affect="EDGES", profile=0.5)
     prism(bm, LOWER_PROFILE, LOWER_HALF_WIDTH)
     # Hatches, the driver's hatch, headlights, mirrors, an antenna, the rear door and side stowage boxes.
     for x, y in ((-6.5, 2.4), (-6.5, -2.4), (-11.5, 0.0)):
@@ -112,12 +133,19 @@ def hull():
     return new_object("CHASSIS", bm)
 
 
+def side_y(z):
+    """How far out the hull side is at a height above the chine: it leans in towards the roof."""
+    chine = (HULL_HALF_WIDTH + (HULL_HALF_WIDTH * 0.9 - HULL_HALF_WIDTH) * (CHINE_Z - HULL_BOTTOM) / (9.0 - HULL_BOTTOM)) * 1.06
+    roof = HULL_HALF_WIDTH * 0.9
+    return chine + (roof - chine) * (z - CHINE_Z) / (9.0 - CHINE_Z)
+
+
 def house_colour(side):
     """A stripe along the side of the mission module, in the player's colour."""
     bm = bmesh.new()
-    y = side * (HULL_HALF_WIDTH * 0.9 + 0.03)
-    z0, z1 = 7.35, 7.85
-    verts = [bm.verts.new(v) for v in ((-14.5, y, z0), (-1.5, y, z0), (-1.5, y, z1), (-14.5, y, z1))]
+    z0, z1 = 7.3, 8.5
+    y0, y1 = side * (side_y(z0) + 0.06), side * (side_y(z1) + 0.06)
+    verts = [bm.verts.new(v) for v in ((-14.4, y0, z0), (-1.4, y0, z0), (-1.4, y1, z1), (-14.4, y1, z1))]
     bm.faces.new(verts if side < 0 else list(reversed(verts)))
     return new_object(f"HOUSECOLOR0{1 if side > 0 else 2}", bm)
 
@@ -158,32 +186,6 @@ def muzzle_flash():
 
 
 # --- textures --------------------------------------------------------------------------------------
-
-def smooth_noise(size, cells, rng):
-    """Value noise: a coarse random grid, smoothly enlarged."""
-    grid = rng.random((cells + 1, cells + 1))
-    t = np.linspace(0, cells, size, endpoint=False)
-    i = t.astype(int)
-    f = t - i
-    f = f * f * (3 - 2 * f)
-    a = grid[i][:, i] * (1 - f)[None, :] + grid[i][:, i + 1] * f[None, :]
-    b = grid[i + 1][:, i] * (1 - f)[None, :] + grid[i + 1][:, i + 1] * f[None, :]
-    return a * (1 - f)[:, None] + b * f[:, None]
-
-
-def camouflage(size, seed=7):
-    rng = np.random.default_rng(seed)
-    base = np.array([104, 117, 128], float)
-    dark = np.array([70, 82, 95], float)
-    light = np.array([140, 150, 158], float)
-    n1 = smooth_noise(size, 6, rng) * 0.7 + smooth_noise(size, 14, rng) * 0.3
-    n2 = smooth_noise(size, 7, rng) * 0.7 + smooth_noise(size, 16, rng) * 0.3
-    img = np.broadcast_to(base, (size, size, 3)).copy()
-    img[n1 > 0.6] = dark
-    img[(n2 > 0.62) & (n1 <= 0.6)] = light
-    grain = rng.normal(0, 4, (size, size, 1))
-    return np.clip(img + grain, 0, 255)
-
 
 def tire_texture(size):
     """Upper half the tread, lower half the hub."""
@@ -262,23 +264,101 @@ def smooth_by_angle(obj, degrees=35):
     bpy.ops.object.shade_auto_smooth(angle=math.radians(degrees))
 
 
-def bake_occlusion(objects, size):
-    """Ambient occlusion of the hull and turret, all at once into one image."""
-    image = bpy.data.images.new("occlusion", size, size)
+def bake_paint(objects, size, damaged=False):
+    """Paints the hull and turret and bakes the paint into one image, in Cycles: camouflage patches from
+    3D noise (so they run on across UV seams), dust on the lower hull, darker where light hardly
+    reaches, and for the damaged look soot and burns."""
+    image = bpy.data.images.new("paint", size, size)
     for obj in objects:
-        textured(obj, image)
+        mat = bpy.data.materials.new(obj.name + "_paint")
+        mat.use_nodes = True
+        nodes, links = mat.node_tree.nodes, mat.node_tree.links
+        nodes.clear()
+        def node(kind, **values):
+            n = nodes.new(kind)
+            for key, value in values.items():
+                setattr(n, key, value)
+            return n
+        coords = node("ShaderNodeTexCoord")
+        geometry = node("ShaderNodeNewGeometry")
+        noise = node("ShaderNodeTexNoise")
+        noise.inputs["Scale"].default_value = 0.07
+        noise.inputs["Detail"].default_value = 3.0
+        noise.inputs["Roughness"].default_value = 0.45
+        links.new(geometry.outputs["Position"], noise.inputs["Vector"])
+        ramp = node("ShaderNodeValToRGB")
+        ramp.color_ramp.interpolation = "CONSTANT"
+        stops = ramp.color_ramp.elements
+        stops[0].position, stops[0].color = 0.0, CAMO_DARK
+        stops[1].position, stops[1].color = 0.44, CAMO_BASE
+        extra = stops.new(0.58)
+        extra.color = CAMO_LIGHT
+        links.new(noise.outputs["Fac"], ramp.inputs["Fac"])
+        # Fine grain over everything.
+        grain = node("ShaderNodeTexNoise")
+        grain.inputs["Scale"].default_value = 1.6
+        grain_mix = node("ShaderNodeMix", data_type="RGBA", blend_type="MULTIPLY")
+        grain_mix.inputs["Factor"].default_value = 0.12
+        links.new(geometry.outputs["Position"], grain.inputs["Vector"])
+        links.new(ramp.outputs["Color"], grain_mix.inputs["A"])
+        links.new(grain.outputs["Color"], grain_mix.inputs["B"])
+        # Dust, thickest near the ground.
+        xyz = node("ShaderNodeSeparateXYZ")
+        links.new(geometry.outputs["Position"], xyz.inputs["Vector"])
+        low = node("ShaderNodeMapRange")
+        low.inputs["From Min"].default_value, low.inputs["From Max"].default_value = 2.0, 7.0
+        low.inputs["To Min"].default_value, low.inputs["To Max"].default_value = 0.65, 0.0
+        links.new(xyz.outputs["Z"], low.inputs["Value"])
+        dust = node("ShaderNodeMix", data_type="RGBA")
+        dust.inputs["B"].default_value = DUST
+        links.new(low.outputs["Result"], dust.inputs["Factor"])
+        links.new(grain_mix.outputs["Result"], dust.inputs["A"])
+        colour = dust.outputs["Result"]
+        if damaged:
+            soot_noise = node("ShaderNodeTexNoise")
+            soot_noise.inputs["Scale"].default_value = 0.2
+            soot_noise.inputs["Detail"].default_value = 6.0
+            links.new(geometry.outputs["Position"], soot_noise.inputs["Vector"])
+            soot = node("ShaderNodeMapRange")
+            soot.inputs["From Min"].default_value, soot.inputs["From Max"].default_value = 0.42, 0.62
+            links.new(soot_noise.outputs["Fac"], soot.inputs["Value"])
+            burnt = node("ShaderNodeMix", data_type="RGBA")
+            burnt.inputs["B"].default_value = SOOT
+            links.new(soot.outputs["Result"], burnt.inputs["Factor"])
+            links.new(colour, burnt.inputs["A"])
+            colour = burnt.outputs["Result"]
+        # Darker where light hardly reaches.
+        ao = node("ShaderNodeAmbientOcclusion", samples=16)
+        ao.inputs["Distance"].default_value = 3.0
+        shade = node("ShaderNodeMapRange")
+        shade.inputs["To Min"].default_value = 0.65
+        links.new(ao.outputs["AO"], shade.inputs["Value"])
+        lit = node("ShaderNodeMix", data_type="RGBA", blend_type="MULTIPLY")
+        lit.inputs["Factor"].default_value = 1.0
+        links.new(colour, lit.inputs["A"])
+        links.new(shade.outputs["Result"], lit.inputs["B"])
+        emit = node("ShaderNodeEmission")
+        links.new(lit.outputs["Result"], emit.inputs["Color"])
+        out = node("ShaderNodeOutputMaterial")
+        links.new(emit.outputs["Emission"], out.inputs["Surface"])
+        target = node("ShaderNodeTexImage")
+        target.image = image
+        nodes.active = target
+        obj.data.materials.clear()
+        obj.data.materials.append(mat)
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
-    scene.cycles.samples = 64
+    scene.cycles.samples = 32
     scene.render.bake.margin = 8
     bpy.ops.object.select_all(action="DESELECT")
     for obj in objects:
         obj.select_set(True)
     bpy.context.view_layer.objects.active = objects[0]
-    bpy.ops.object.bake(type="AO")
-    ao = np.array(image.pixels[:]).reshape(size, size, 4)[::-1, :, 0]
-    return ao
+    bpy.ops.object.bake(type="EMIT")
+    # The image is sRGB, as the texture is: its pixels need no conversion.
+    pixels = np.array(image.pixels[:]).reshape(size, size, 4)[::-1, :, :3]
+    return pixels * 255.0
 
 
 # --- export ----------------------------------------------------------------------------------------
@@ -335,12 +415,10 @@ def render_previews(prefix):
         bpy.ops.render.render(write_still=True)
 
 
-def main():
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    os.makedirs(BUILD, exist_ok=True)
+def build():
+    """Makes the Boxer in the open scene: its parts, UVs, paint and textures. Returns the parts."""
     tex_dir = os.path.join(DATA, "Art", "TexturesHD")
     os.makedirs(tex_dir, exist_ok=True)
-
     chassis, top = hull(), turret()
     flash = muzzle_flash()
     stripes = [house_colour(1), house_colour(-1)]
@@ -348,7 +426,6 @@ def main():
     for i, x in enumerate(WHEEL_X):
         for j, side in enumerate((1, -1)):
             wheels.append(wheel(f"TIRE0{i * 2 + j + 1}", (x, side * WHEEL_Y, WHEEL_Z)))
-
     for obj in (chassis, top):
         smooth_by_angle(obj)
         unwrap_into(obj, REGIONS[obj.name])
@@ -358,39 +435,52 @@ def main():
     for obj in stripes + [flash]:
         obj.data.uv_layers.new(name="UVMap")
 
-    # Camouflage darkened where light hardly reaches.
-    ao = bake_occlusion([chassis, top], TEXTURE_SIZE)
-    hull_pixels = camouflage(TEXTURE_SIZE) * (0.6 + 0.4 * ao[..., None])
-    hull_image = save_tga(hull_pixels, os.path.join(tex_dir, HULL_TEXTURE))
+    save_tga(bake_paint([chassis, top], TEXTURE_SIZE, damaged=True), os.path.join(tex_dir, DAMAGED_TEXTURE))
+    hull_image = save_tga(bake_paint([chassis, top], TEXTURE_SIZE), os.path.join(tex_dir, HULL_TEXTURE))
     tire_image = save_tga(tire_texture(256), os.path.join(tex_dir, TIRE_TEXTURE))
     for obj in (chassis, top):
         textured(obj, hull_image)
     for obj in wheels:
         textured(obj, tire_image)
+    colour = bpy.data.materials.new("house colour")
+    colour.diffuse_color = (0.9, 0.75, 0.1, 1)
+    for obj in stripes:
+        obj.data.materials.append(colour)
+    return dict(chassis=chassis, turret=top, flash=flash, stripes=stripes, wheels=wheels)
 
-    model = w3d.Model(NAME)
-    bones = {"CHASSIS": w3d.CHASSIS}
-    for obj in wheels + [top]:
+
+def export(parts, name, hull_texture):
+    """Writes the model; the damaged one is the same with another texture."""
+    model = w3d.Model(name)
+    bones = {}
+    for obj in parts["wheels"] + [parts["turret"]]:
         bones[obj.name] = model.bone(obj.name, w3d.CHASSIS, tuple(obj.location))
     model.bone("MUZZLE01", bones["TURRET"], MUZZLE)
     bones["MUZZLEFX01"] = model.bone("MUZZLEFX01", bones["TURRET"], MUZZLE)
-    model.mesh("CHASSIS", w3d.CHASSIS, **mesh_data(chassis), texture=HULL_TEXTURE)
-    model.mesh("TURRET", bones["TURRET"], **mesh_data(top), texture=HULL_TEXTURE)
-    for obj in wheels:
+    model.mesh("CHASSIS", w3d.CHASSIS, **mesh_data(parts["chassis"]), texture=hull_texture)
+    model.mesh("TURRET", bones["TURRET"], **mesh_data(parts["turret"]), texture=hull_texture)
+    for obj in parts["wheels"]:
         model.mesh(obj.name, bones[obj.name], **mesh_data(obj), texture=TIRE_TEXTURE)
-    for obj in stripes:
+    for obj in parts["stripes"]:
         model.mesh(obj.name, w3d.CHASSIS, **mesh_data(obj), texture="Housecolor2.tga", shadow=False)
-    model.mesh("MUZZLEFX01", bones["MUZZLEFX01"], **mesh_data(flash), texture="EXTnkMzl01.tga", shadow=False,
+    model.mesh("MUZZLEFX01", bones["MUZZLEFX01"], **mesh_data(parts["flash"]), texture="EXTnkMzl01.tga", shadow=False,
                shader=w3d.ADDITIVE_SHADER)
-    out = os.path.join(DATA, "Art", "W3D", NAME + ".w3d")
+    out = os.path.join(DATA, "Art", "W3D", name + ".w3d")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     model.save(out)
-    count = sum(len(m[5]) for m in model.meshes)
-    print(f"{NAME}: {len(model.meshes)} meshes, {count} triangles -> {out}")
+    print(f"{name}: {len(model.meshes)} meshes, {sum(len(m[5]) for m in model.meshes)} triangles -> {out}")
 
-    flash.hide_render = True
+
+def main():
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    os.makedirs(BUILD, exist_ok=True)
+    parts = build()
+    export(parts, NAME, HULL_TEXTURE)
+    export(parts, NAME + "_D", DAMAGED_TEXTURE)
+    parts["flash"].hide_render = True
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(BUILD, NAME + ".blend"))
     render_previews(os.path.join(BUILD, NAME))
 
 
-main()
+if __name__ == "__main__":
+    main()
