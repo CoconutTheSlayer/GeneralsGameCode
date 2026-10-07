@@ -49,10 +49,9 @@ BUILDINGS = [
     ("Euro_CommandCenter", "AmericaCommandCenter", "Command Centre",
      "The heart of the European base. Builds engineer vehicles and directs the general's powers.",
      dict(command="Euro_CommandCenterCommandSet")),
-    ("Euro_PowerPlant", "AmericaPowerPlant", "Fusion Plant", "Powers the base.",
-     dict(pre=[["Euro_CommandCenter"]])),
+    ("Euro_PowerPlant", "AmericaPowerPlant", "Fusion Plant", "Powers the base.", dict()),
     ("Euro_Barracks", "AmericaBarracks", "Garrison", "Trains infantry.",
-     dict(command="Euro_BarracksCommandSet", pre=[["Euro_PowerPlant"]])),
+     dict(command="Euro_BarracksCommandSet")),
     ("Euro_SupplyCenter", "AmericaSupplyCenter", "Logistics Centre", "Gathers supplies and builds NH90 helicopters.",
      dict(command="Euro_SupplyCenterCommandSet", pre=[["Euro_PowerPlant"]],
           # Its free helicopter is the European one.

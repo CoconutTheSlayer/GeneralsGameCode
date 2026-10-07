@@ -3772,6 +3772,39 @@ void GameLogic::update()
 	Bool generateForSolo = isSoloGameOrReplay && ((m_frame % REPLAY_CRC_INTERVAL) == 0);
 #endif // DEBUG_CRC
 
+#if defined(RTS_POSIX_PORT)
+	// GENERALS_PLAYER_LOG=<seconds> prints every player's money, units and buildings that often, to
+	// watch AI players in a test run.
+	static const int playerLogSeconds = getenv("GENERALS_PLAYER_LOG") ? atoi(getenv("GENERALS_PLAYER_LOG")) : 0;
+	if (playerLogSeconds > 0 && m_frame % (playerLogSeconds * LOGICFRAMES_PER_SECOND) == 0)
+	{
+		for (Int i = 0; i < ThePlayerList->getPlayerCount(); ++i)
+		{
+			Player *player = ThePlayerList->getNthPlayer(i);
+			if (!player->isPlayerActive() || player->getPlayerTemplate() == nullptr)
+				continue;
+			Int units = 0, buildings = 0;
+			AsciiString names;
+			for (Object *obj = getFirstObject(); obj; obj = obj->getNextObject())
+			{
+				if (obj->getControllingPlayer() != player || obj->isEffectivelyDead())
+					continue;
+				if (obj->isKindOf(KINDOF_STRUCTURE))
+				{
+					++buildings;
+					names.concat(' ');
+					names.concat(obj->getTemplate()->getName());
+				}
+				else if (obj->isKindOf(KINDOF_INFANTRY) || obj->isKindOf(KINDOF_VEHICLE) || obj->isKindOf(KINDOF_AIRCRAFT))
+					++units;
+			}
+			fprintf(stderr, "PLAYER_LOG %us player %d %s money %u units %d buildings %d:%s\n", m_frame / LOGICFRAMES_PER_SECOND, i,
+				player->getPlayerTemplate()->getName().str(), player->getMoney()->countMoney(), units, buildings, names.str());
+		}
+		fflush(stderr);
+	}
+#endif
+
 	if (generateForSolo || generateForMP)
 	{
 		m_CRC = getCRC( CRC_RECALC );
