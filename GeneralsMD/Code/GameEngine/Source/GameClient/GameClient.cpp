@@ -700,36 +700,6 @@ void GameClient::update()
 		}
 	}
 
-	// GENERALS_SPAWN_TEST=Object places three of the object for the local player where the camera looks
-	// (GENERALS_SPAWN_TEST_OFFSET further along y), facing different ways, to look at a new model. Only for test runs: it changes the game on this
-	// machine alone.
-	{
-		static const char *spawnTest = getenv("GENERALS_SPAWN_TEST");
-		static Bool spawned = FALSE;
-		if (spawnTest && !spawned && TheGameLogic->isInGame() && TheTacticalView && TheTerrainLogic && TheGameLogic->getFrame() >= 60)
-		{
-			spawned = TRUE;
-			const ThingTemplate *tmpl = TheThingFactory->findTemplate(spawnTest);
-			Player *player = ThePlayerList->getLocalPlayer();
-			if (tmpl && player)
-			{
-				for (Int i = 0; i < 3; ++i)
-				{
-					Coord3D pos = TheTacticalView->getPosition();
-					static const char *offset = getenv("GENERALS_SPAWN_TEST_OFFSET");
-					pos.x += (i - 1) * 45.0f;
-					pos.y += offset ? (Real)atof(offset) : 0.0f;
-					pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
-					Object *obj = TheThingFactory->newObject(tmpl, player->getDefaultTeam());
-					obj->setOrientation(i * 2.1f + 0.6f);
-					obj->setPosition(&pos);
-				}
-				fprintf(stderr, "SPAWN_TEST %s\n", spawnTest);
-			}
-			else
-				fprintf(stderr, "SPAWN_TEST unknown object %s\n", spawnTest);
-		}
-	}
 #endif
 
 	const Int localPlayerIndex = rts::getObservedOrLocalPlayer()->getPlayerIndex();

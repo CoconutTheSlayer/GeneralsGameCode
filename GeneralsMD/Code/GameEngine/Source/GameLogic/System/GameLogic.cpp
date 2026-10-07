@@ -3773,6 +3773,64 @@ void GameLogic::update()
 #endif // DEBUG_CRC
 
 #if defined(RTS_POSIX_PORT)
+	// It runs in the game logic, as units are made there (their bones are found only then).
+	// GENERALS_SPAWN_TEST=Object places GENERALS_SPAWN_TEST_COUNT (3) of the object for the local player
+	// where the camera looks (GENERALS_SPAWN_TEST_OFFSET further along y), facing different ways, to look
+	// at a new model. GENERALS_SPAWN_TEST_ENEMY=Object places as many for the first enemy player,
+	// GENERALS_SPAWN_TEST_ENEMY_OFFSET (300) further on. Only for test runs: it changes the game on this
+	// machine alone.
+	{
+		static const char *spawnTest = getenv("GENERALS_SPAWN_TEST");
+		static Bool spawned = FALSE;
+		if (spawnTest && !spawned && isInGame() && TheTacticalView && TheTerrainLogic && getFrame() >= 60)
+		{
+			spawned = TRUE;
+			const char *countText = getenv("GENERALS_SPAWN_TEST_COUNT");
+			const char *offsetText = getenv("GENERALS_SPAWN_TEST_OFFSET");
+			const char *enemyText = getenv("GENERALS_SPAWN_TEST_ENEMY");
+			const char *enemyOffsetText = getenv("GENERALS_SPAWN_TEST_ENEMY_OFFSET");
+			const Int count = countText ? max(1, atoi(countText)) : 3;
+			const Real offset = offsetText ? (Real)atof(offsetText) : 0.0f;
+			Player *local = ThePlayerList->getLocalPlayer();
+			Player *enemy = nullptr;
+			for (Int i = 0; local && i < ThePlayerList->getPlayerCount() && enemy == nullptr; ++i)
+			{
+				Player *p = ThePlayerList->getNthPlayer(i);
+				if (p != local && p->isPlayerActive() && p->getPlayerTemplate() && local->getRelationship(p->getDefaultTeam()) == ENEMIES)
+					enemy = p;
+			}
+			struct Group { const char *name; Player *owner; Real y; Real facing; };
+			const Group groups[] = {
+				{ spawnTest, local, offset, 0.6f },
+				{ enemyText, enemy, offset + (enemyOffsetText ? (Real)atof(enemyOffsetText) : -300.0f), PI / 2 },
+			};
+			for (const Group &g : groups)
+			{
+				if (g.name == nullptr || g.owner == nullptr)
+					continue;
+				const ThingTemplate *tmpl = TheThingFactory->findTemplate(g.name);
+				if (tmpl == nullptr)
+				{
+					fprintf(stderr, "SPAWN_TEST unknown object %s\n", g.name);
+					continue;
+				}
+				for (Int i = 0; i < count; ++i)
+				{
+					Coord3D pos = TheTacticalView->getPosition();
+					pos.x += (i - (count - 1) / 2.0f) * 45.0f;
+					pos.y += g.y;
+					pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
+					Object *obj = TheThingFactory->newObject(tmpl, g.owner->getDefaultTeam());
+					obj->setOrientation(g.owner == local ? i * 2.1f + g.facing : g.facing);
+					obj->setPosition(&pos);
+				}
+				fprintf(stderr, "SPAWN_TEST %d %s\n", count, g.name);
+			}
+		}
+	}
+#endif
+
+#if defined(RTS_POSIX_PORT)
 	// GENERALS_PLAYER_LOG=<seconds> prints every player's money, units and buildings that often, to
 	// watch AI players in a test run.
 	static const int playerLogSeconds = getenv("GENERALS_PLAYER_LOG") ? atoi(getenv("GENERALS_PLAYER_LOG")) : 0;
