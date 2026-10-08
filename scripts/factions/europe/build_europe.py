@@ -45,11 +45,15 @@ WEAPONS = [
     ("Euro_BastionHowitzer", "FireBaseHowitzerGun", {"AttackRange": 300}),
 ]
 
-def building_draw(model, remove=()):
+def building_draw(model, remove=(), state_lines=(), particles=None, module_lines=()):
     """A building's own model (scripts/models): intact, damaged and wrecked, each also at night, rising
-    out of the ground while it is built. `remove`: the parent's other draw modules (its add-on parts)."""
+    out of the ground while it is built. `remove`: the parent's other draw modules (its add-on parts).
+    `state_lines`: lines added to every condition state (turrets, weapon bones).
+    `particles`: {"" / "_D" / "_E": [(bone, particle system)]}, effects of the built model's states.
+    `module_lines`: lines added to the draw module itself (ExtraPublicBone)."""
     states = [("", ""), ("DAMAGED", "_D"), ("REALLYDAMAGED RUBBLE", "_E")]
     lines = ["ReplaceModule ModuleTag_01", "  Draw = W3DModelDraw ModuleTag_Euro_01", "    OkToChangeModelColor = Yes"]
+    lines += [f"    {line}" for line in module_lines]
     for building in ("", "AWAITING_CONSTRUCTION PARTIALLY_CONSTRUCTED ACTIVELY_BEING_CONSTRUCTED"):
         for condition, suffix in states:
             for night in (False, True):
@@ -58,6 +62,9 @@ def building_draw(model, remove=()):
                 lines += [f"    ConditionState = {flags}", f"      Model = {name}"]
                 if building:
                     lines.append("      Flags = ADJUST_HEIGHT_BY_CONSTRUCTION_PERCENT")
+                lines += [f"      {line}" for line in state_lines]
+                if particles and not building:
+                    lines += [f"      ParticleSysBone = {bone} {system}" for bone, system in particles.get(suffix, ())]
                 lines.append("    End")
     return lines + ["  End", "End"] + [f"RemoveModule {tag}" for tag in remove]
 
@@ -73,9 +80,27 @@ BUILDINGS = [
      dict(command="Euro_CommandCenterCommandSet", extra=building_draw("EUCMDHQ", remove=(
          "ModuleTag_02", "ModuleTag_03", "ModuleTag_04", "ModuleTag_05", "ModuleTag_06", "ModuleTag_07",
          "ModuleTag_OfficersClub")))),
-    ("Euro_PowerPlant", "AmericaPowerPlant", "Fusion Plant", "Powers the base.", dict()),
+    ("Euro_PowerPlant", "AmericaPowerPlant", "Fusion Plant", "Powers the base.",
+     # ModuleTag_02-04 are the USA's construction scaffolds, 05 its control rods: the upgrade shows the
+     # Fusion Plant's own injectors (EUPWR_A1) instead.
+     dict(extra=building_draw("EUPWR", remove=("ModuleTag_02", "ModuleTag_03", "ModuleTag_04", "ModuleTag_05"), particles={
+         "": [("Steam01", "SteamVent")],
+         "_D": [("Steam01", "SteamVent"), ("Smoke01", "SmolderingSmoke"), ("Fire01", "SmolderingFireLarge"),
+                ("Spark01", "LiveWireSparks")],
+         "_E": [("Smoke01", "SmolderingSmoke"), ("Smoke02", "SmolderingSmoke"), ("Fire01", "SmolderingFireLarge"),
+                ("Spark01", "LiveWireSparks"), ("Spark02", "LiveWireSparks02")]}) + [
+         "Draw = W3DModelDraw ModuleTag_Euro_Rods", "  OkToChangeModelColor = Yes",
+         "  DefaultConditionState", "    Model = None", "  End",
+         "  ConditionState = POWER_PLANT_UPGRADED", "    Model = EUPWR_A1", "  End",
+         "  ConditionState = POWER_PLANT_UPGRADED REALLYDAMAGED RUBBLE", "    Model = None", "  End",
+         "End"])),
     ("Euro_Barracks", "AmericaBarracks", "Garrison", "Trains infantry.",
-     dict(command="Euro_BarracksCommandSet")),
+     # ModuleTag_02-04 are the USA's construction scaffolds. Infantry leave through the gate (+X).
+     dict(command="Euro_BarracksCommandSet", extra=building_draw(
+         "EUBARR", remove=("ModuleTag_02", "ModuleTag_03", "ModuleTag_04"), particles={
+             "_D": [("Smoke01", "SmolderingSmoke")],
+             "_E": [("Smoke01", "SmolderingSmoke"), ("Smoke02", "SmolderingSmoke"), ("Fire01", "SmolderingFireLarge"),
+                    ("Fire02", "SmolderingFireLarge")]}))),
     ("Euro_SupplyCenter", "AmericaSupplyCenter", "Logistics Centre", "Gathers supplies and builds NH90 helicopters.",
      dict(command="Euro_SupplyCenterCommandSet", pre=[["Euro_PowerPlant"]],
           # Its free helicopter is the European one.
@@ -83,26 +108,77 @@ BUILDINGS = [
                  "  Behavior = SpawnBehavior ModuleTag_Euro_12",
                  "    SpawnNumber = 1", "    SpawnReplaceDelay = 9999", "    SpawnTemplateName = Euro_NH90",
                  "    OneShot = Yes", "    CanReclaimOrphans = No", "    SlavesHaveFreeWill = Yes",
-                 "  End", "End"])),
+                 "  End", "End"] + building_draw("EUSUPC", remove=(
+                     "ModuleTag_02", "ModuleTag_03", "ModuleTag_04", "ModuleTag_19", "ModuleTag_SpinnyBelt"),
+                     particles={"_D": [(f"Smoke0{i}", s) for i in (1, 2, 3, 4) for s in ("SmolderingSmoke", "SmolderingFire")],
+                                "_E": [(f"Smoke0{i}", s) for i in (1, 2, 3, 4) for s in ("SmolderingSmoke", "SmolderingFire")]}))),
     ("Euro_WarFactory", "AmericaWarFactory", "Armour Works", "Builds vehicles.",
-     dict(command="Euro_WarFactoryCommandSet", pre=[["Euro_SupplyCenter"]])),
+     dict(command="Euro_WarFactoryCommandSet", pre=[["Euro_SupplyCenter"]], extra=building_draw("EUFACT", remove=(
+         "ModuleTag_02", "ModuleTag_03", "ModuleTag_04", "ModuleTag_05", "ModuleTag_06", "ModuleTag_07",
+         "ModuleTag_08")))),
     ("Euro_Airfield", "AmericaAirfield", "Air Base", "Builds and rearms aircraft.",
-     dict(command="Euro_AirfieldCommandSet", pre=[["Euro_SupplyCenter"]])),
+     dict(command="Euro_AirfieldCommandSet", pre=[["Euro_SupplyCenter"]], extra=building_draw("EUAIRF", remove=(
+         "ModuleTag_02", "ModuleTag_03", "ModuleTag_04", "ModuleTag_05", "ModuleTag_06", "ModuleTag_07",
+         "ModuleTag_08", "ModuleTag_09"), module_lines=[f"ExtraPublicBone = {bone}" for bone in (
+         "Runway1Parking1", "Runway1Parking2", "Runway2Parking1", "Runway2Parking2", "Runway1Park1Han",
+         "Runway1Park2Han", "Runway2Park1Han", "Runway2Park2Han", "Runway1Prep1", "Runway1Prep2", "Runway2Prep1",
+         "Runway2Prep2", "RunwayStart1", "RunwayStart2", "RunwayEnd1", "RunwayEnd2", "HeliPark01")]))),
     ("Euro_StrategyCenter", "AmericaStrategyCenter", "Joint Command",
      "Battle plans and the most advanced research.",
-     dict(pre=[["Euro_WarFactory", "Euro_Airfield"]])),
+     dict(pre=[["Euro_WarFactory", "Euro_Airfield"]],
+          # Placed with its entrance (-Y) to the camera, as the model is drawn.
+          fields={"PlacementViewAngle": 45},
+          # Each battle plan shows its own part while it is active: the bombardment gun (EUSTRAT_G, the
+          # turret the plan's weapon aims), the hold-the-line barriers (_H), the search-and-destroy radar (_S).
+          extra=building_draw("EUSTRAT", remove=("ModuleTag_02", "ModuleTag_03", "ModuleTag_04", "ModuleTag_05",
+                                                 "ModuleTag_09")) + [
+              line for tag, door, model, bones in (
+                  ("ModuleTag_06", "DOOR_1", "EUSTRAT_G", ["Turret = TURRET01", "TurretPitch = TURRETEL",
+                                                           "WeaponLaunchBone = PRIMARY Muzzle",
+                                                           "WeaponFireFXBone = PRIMARY Muzzle",
+                                                           "WeaponMuzzleFlash = PRIMARY MuzzleFX",
+                                                           "WeaponRecoilBone = PRIMARY Barrel"]),
+                  ("ModuleTag_07", "DOOR_2", "EUSTRAT_H", []), ("ModuleTag_08", "DOOR_3", "EUSTRAT_S", []))
+              for line in [f"ReplaceModule {tag}", f"  Draw = W3DModelDraw {tag}_Euro", "    OkToChangeModelColor = Yes",
+                           "    DefaultConditionState", "      Model = NONE", "    End"]
+              + [state for phase in ("OPENING", "WAITING_TO_CLOSE", "CLOSING")
+                 for state in [f"    ConditionState = {door}_{phase}", f"      Model = {model}"]
+                 + [f"      {bone}" for bone in bones] + ["    End"]]
+              + ["  End", "End"]])),
     ("Euro_PatriotBattery", "AmericaPatriotBattery", "SAMP/T Battery",
      "Long range missile defence against aircraft and vehicles.",
      dict(pre=[["Euro_PowerPlant"]], weapons={"PatriotMissileWeapon": "Euro_SampMissile",
-                                             "PatriotMissileWeaponAir": "Euro_SampMissileAir"})),
+                                             "PatriotMissileWeaponAir": "Euro_SampMissileAir"},
+          extra=building_draw("EUSAMP", remove=("ModuleTag_02", "ModuleTag_03"), state_lines=(
+              "Turret = TURRET01", "TurretPitch = TURRETEL",
+              *(f"{k} = {slot} WeaponA" for k in ("WeaponLaunchBone", "WeaponFireFXBone")
+                for slot in ("PRIMARY", "SECONDARY", "TERTIARY")))))),
     ("Euro_FireBase", "AmericaFireBase", "Artillery Bastion",
      "A fortified howitzer that outranges ground attackers. Infantry can garrison it.",
-     dict(pre=[["Euro_PowerPlant"]], weapons={"FireBaseHowitzerGun": "Euro_BastionHowitzer"})),
+     dict(pre=[["Euro_PowerPlant"]], weapons={"FireBaseHowitzerGun": "Euro_BastionHowitzer"},
+          extra=building_draw("EUBAST", remove=("ModuleTag_02", "ModuleTag_03"), state_lines=(
+              "Turret = TURRET01", "TurretPitch = TURRETEL", "WeaponMuzzleFlash = PRIMARY MuzzleFX",
+              "WeaponRecoilBone = PRIMARY Barrel", "WeaponLaunchBone = PRIMARY MUZZLE01",
+              "WeaponFireFXBone = PRIMARY MUZZLEFX"),
+              module_lines=tuple(f"ExtraPublicBone = STATION0{k}" for k in range(1, 5))))),
     ("Euro_ParticleCannonUplink", "AmericaParticleCannonUplink", "Orbital Lance",
      "A satellite beam that burns a precise path through the enemy.",
-     dict(pre=[["Euro_StrategyCenter"]])),
-    ("Euro_SupplyDropZone", "AmericaSupplyDropZone", "Airlift Depot", "Supplies arrive by air.",
-     dict(pre=[["Euro_StrategyCenter"]])),
+     dict(pre=[["Euro_StrategyCenter"]],
+          # Placed with the tower's and the bunker's doors (-Y) to the camera.
+          fields={"PlacementViewAngle": 45},
+          # The beam's bones are in the model itself (no rising dish): the five pylons' tops FX01..FX05, the
+          # emitter (FXConnector) and its tip (FXMain).
+          extra=building_draw("EULANCE", remove=("ModuleTag_02", "ModuleTag_03", "ModuleTag_04", "ModuleTag_05"),
+                              module_lines=[f"ExtraPublicBone = {bone}" for bone in
+                                            ("FX01", "FX02", "FX03", "FX04", "FX05", "FXConnector", "FXMain")]))),
+    # Europe's money maker: a steady grant instead of the USA's drops by plane, and the Green Deal research
+    # (see MODULES and UPGRADES).
+    ("Euro_FundsOffice", "AmericaSupplyDropZone", "EU Funds Office",
+     "Receives a steady grant from the Union's funds. Researches the Green Deal: subsidies for every Fusion Plant.",
+     dict(command="Euro_FundsOfficeCommandSet", pre=[["Euro_StrategyCenter"]],
+          extra=building_draw("EUFUNDS", remove=("ModuleTag_02", "ModuleTag_03"), particles={
+              "_D": [("Smoke01", "SmolderingSmoke"), ("Smoke02", "SmolderingSmoke"), ("Smoke01", "SmolderingFire")],
+              "_E": [(f"Smoke0{i}", s) for i in (1, 2, 3) for s in ("SmolderingSmoke", "SmolderingFire")]}))),
 ]
 
 UNITS = [
@@ -221,10 +297,40 @@ TEXTURES = {
 }
 
 # ---------------------------------------------------------------------------------------------------
+# Europe's economy: subsidies. The USA's drop zone earns 6 crates of $250 every 2 minutes ($12.5 a second)
+# and the GLA's Black Market $20 every 2 seconds ($10), each for $2500. The Funds Office earns a little
+# less than the drops ($90 every 8 seconds, $11.25), as no plane can be shot down on the way; the Green Deal
+# ($1500) makes every Fusion Plant earn $4 every 4 seconds, so the income grows with the base, and raids
+# on the power hit the economy too. Modules added to objects, by object (tags unique to Europe):
+MODULES = {
+    "Euro_FundsOffice": [
+        "RemoveModule ModuleTag_05",  # the drop by plane
+        "Behavior = AutoDepositUpdate ModuleTag_Euro_Grant",
+        "  DepositTiming = 8000",
+        "  DepositAmount = 90",
+        "  InitialCaptureBonus = 0",
+        "End",
+    ],
+    "Euro_PowerPlant": [
+        "Behavior = AutoDepositUpdate ModuleTag_Euro_Subsidy",
+        "  DepositTiming = 4000",
+        "  DepositAmount = 0",
+        "  InitialCaptureBonus = 0",
+        "  UpgradedBoost = UpgradeType:Upgrade_EuroGreenDeal Boost:4",
+        "End",
+    ],
+}
+# Upgrades: (name, display name, description, cost, time, button picture).
+UPGRADES = [
+    ("Upgrade_EuroGreenDeal", "Green Deal", "Every Fusion Plant receives a subsidy: $4 every 4 seconds.",
+     1500, 45, "Euro_UpgradeGreenDeal"),
+]
+
+# ---------------------------------------------------------------------------------------------------
 # Build menus. Each slot: an object to build (it gets a button), or the name of an existing button.
 COMMAND_SETS = {
     "Euro_DozerCommandSet": {1: "Euro_PowerPlant", 2: "Euro_StrategyCenter", 3: "Euro_Barracks",
-                             4: "Euro_SupplyDropZone", 5: "Euro_SupplyCenter", 6: "Euro_ParticleCannonUplink",
+                             4: "Euro_FundsOffice", 5: "Euro_SupplyCenter", 6: "Euro_ParticleCannonUplink",
                              7: "Euro_PatriotBattery", 8: "Euro_CommandCenter", 9: "Euro_FireBase",
                              11: "Euro_WarFactory", 13: "Euro_Airfield", 14: "Command_DisarmMinesAtPosition"},
     "Euro_CommandCenterCommandSet": {1: "Euro_Dozer", 2: "Euro_Command_SpectreGunship", 4: "Euro_Command_LeafletDrop",
@@ -244,6 +350,7 @@ COMMAND_SETS = {
                                 9: "Command_UpgradeAmericaCountermeasures", 10: "Command_UpgradeAmericaBunkerBusters",
                                 13: "Command_SetRallyPoint", 14: "Command_Sell"},
     "Euro_SupplyCenterCommandSet": {1: "Euro_NH90", 13: "Command_SetRallyPoint", 14: "Command_Sell"},
+    "Euro_FundsOfficeCommandSet": {1: "Euro_Command_UpgradeGreenDeal", 14: "Command_Sell"},
     # Vehicles: no drones, the USA's edge.
     "Euro_VehicleCommandSet": {11: "Command_AttackMove", 13: "Command_Guard", 14: "Command_Stop"},
     "Euro_BoxerCommandSet": {4: "Command_TransportExit", 5: "Command_TransportExit", 6: "Command_TransportExit",
@@ -312,7 +419,9 @@ USA_PICTURES = {
     "Euro_PatriotBattery": (("SAUserInterface512_005.tga", 435, 51, 495, 99), ("SAUserInterface512_003.tga", 367, 99, 487, 195)),
     "Euro_FireBase": (("SAUserInterface512_005.tga", 249, 51, 309, 99), ("SAUserInterface512_003.tga", 1, 197, 121, 293)),
     "Euro_ParticleCannonUplink": (("SAUserInterface512_004.tga", 63, 345, 123, 393), ("SAUserInterface512_004.tga", 1, 197, 121, 293)),
-    "Euro_SupplyDropZone": (("SAUserInterface512_005.tga", 187, 151, 247, 199), ("SAUserInterface512_002.tga", 245, 295, 365, 391)),
+    # The Green Deal research: the USA's Supply Lines picture until make_icons.py draws its own.
+    "Euro_UpgradeGreenDeal": (("SAUserInterface512_005.tga", 187, 351, 247, 399), ("SAUserInterface512_005.tga", 187, 351, 247, 399)),
+    "Euro_FundsOffice": (("SAUserInterface512_005.tga", 187, 151, 247, 199), ("SAUserInterface512_002.tga", 245, 295, 365, 391)),
     "Euro_Dozer": (("SAUserInterface512_005.tga", 63, 301, 123, 349), ("SAUserInterface512_001.tga", 123, 393, 243, 489)),
     "Euro_Rifleman": (("SAUserInterface512_003.tga", 123, 393, 243, 489), ("SAUserInterface512_003.tga", 245, 393, 365, 489)),
     "Euro_Milan": (("SAUserInterface512_005.tga", 311, 101, 371, 149), ("SAUserInterface512_003.tga", 123, 1, 243, 97)),
@@ -335,7 +444,7 @@ USA_PICTURES = {
 
 # Hot keys, unique within each build menu.
 HOTKEYS = {
-    "Euro_PowerPlant": "P", "Euro_StrategyCenter": "J", "Euro_Barracks": "G", "Euro_SupplyDropZone": "D",
+    "Euro_PowerPlant": "P", "Euro_StrategyCenter": "J", "Euro_Barracks": "G", "Euro_FundsOffice": "F",
     "Euro_SupplyCenter": "L", "Euro_ParticleCannonUplink": "O", "Euro_PatriotBattery": "S", "Euro_CommandCenter": "C",
     "Euro_FireBase": "B", "Euro_WarFactory": "A", "Euro_Airfield": "R", "Euro_Dozer": "E", "Euro_Rifleman": "R",
     "Euro_Milan": "M", "Euro_Commando": "F", "Euro_Marksman": "K", "Euro_Leopard": "L", "Euro_Puls": "P",
@@ -348,7 +457,7 @@ FACTION = {
     "name": "Europe",
     "strategy": "Precision and protection: a small, expensive army that sees first, shoots accurately and shoots down "
                 "missiles, weak when swarmed early.",
-    "features": "Long range artillery, active protection, the best air defence",
+    "features": "Long range artillery, active protection, the best air defence, subsidies",
 }
 
 
@@ -407,8 +516,13 @@ def main():
                           "      SubdualDamageHealAmount = 50"]
             logic += ["    End", "  End"]
         logic += [f"  {line}" for line in c.get("extra", [])]
+        logic += [f"  {line}" for line in MODULES.get(name, [])]
         logic += [f"  TextureReplace = {t} {european_texture(t)}" for t in TEXTURES.get(name, [])]
         logic += ["End", ""]
+
+    for name, display, _, cost, time, picture in UPGRADES:
+        logic += [f"Upgrade {name}", f"  DisplayName = UPGRADE:{name}", f"  BuildCost = {cost}",
+                  f"  BuildTime = {time}", f"  ButtonImage = {picture}", "End", ""]
 
     # The faction: plays with the USA's skirmish AI, building its own units.
     logic += [
@@ -482,6 +596,11 @@ def main():
                     "",
                 ]
     power_labels = {}
+    for name, display, description, _, _, picture in UPGRADES:
+        button = f"Euro_Command_Upgrade{name[len('Upgrade_Euro'):]}"
+        client += [f"CommandButton {button}", "  Command = PLAYER_UPGRADE", f"  Upgrade = {name}",
+                   f"  TextLabel = CONTROLBAR:{button}", f"  DescriptLabel = CONTROLBAR:ToolTip{button}",
+                   f"  ButtonImage = {picture}", "  ButtonBorderType = UPGRADE", "End", ""]
 
     def child_button(parent, name, text, description):
         nonlocal client
@@ -524,6 +643,12 @@ def main():
         if name in buttons:
             string(f"CONTROLBAR:{buttons[name]}", label(display, HOTKEYS.get(name, "")))
             string(f"CONTROLBAR:ToolTip{buttons[name]}", description)
+
+    for name, display, description, _, _, _ in UPGRADES:
+        button = f"Euro_Command_Upgrade{name[len('Upgrade_Euro'):]}"
+        string(f"UPGRADE:{name}", display)
+        string(f"CONTROLBAR:{button}", label(display, display[0]))
+        string(f"CONTROLBAR:ToolTip{button}", description)
 
     for name, (text, description) in power_labels.items():
         string(f"CONTROLBAR:{name}", label(text, text[0]))

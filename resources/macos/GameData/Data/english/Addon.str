@@ -9,7 +9,7 @@ TOOLTIP:BioStrategyLong_Europe
 END
 
 GUI:BioFeatures_Europe
-"Long range artillery, active protection, the best air defence"
+"Long range artillery, active protection, the best air defence, subsidies"
 END
 
 OBJECT:Euro_CommandCenter
@@ -132,16 +132,16 @@ CONTROLBAR:ToolTipEuro_Command_ConstructParticleCannonUplink
 "A satellite beam that burns a precise path through the enemy."
 END
 
-OBJECT:Euro_SupplyDropZone
-"Airlift Depot"
+OBJECT:Euro_FundsOffice
+"EU Funds Office"
 END
 
-CONTROLBAR:Euro_Command_ConstructSupplyDropZone
-"Airlift &Depot"
+CONTROLBAR:Euro_Command_ConstructFundsOffice
+"EU &Funds Office"
 END
 
-CONTROLBAR:ToolTipEuro_Command_ConstructSupplyDropZone
-"Supplies arrive by air."
+CONTROLBAR:ToolTipEuro_Command_ConstructFundsOffice
+"Receives a steady grant from the Union's funds. Researches the Green Deal: subsidies for every Fusion Plant."
 END
 
 OBJECT:Euro_Dozer
@@ -358,6 +358,18 @@ END
 
 CONTROLBAR:ToolTipEuro_Command_ConstructNH90
 "A transport helicopter that also carries supplies."
+END
+
+UPGRADE:Upgrade_EuroGreenDeal
+"Green Deal"
+END
+
+CONTROLBAR:Euro_Command_UpgradeGreenDeal
+"&Green Deal"
+END
+
+CONTROLBAR:ToolTipEuro_Command_UpgradeGreenDeal
+"Every Fusion Plant receives a subsidy: $4 every 4 seconds."
 END
 
 CONTROLBAR:Euro_Command_SpectreGunship

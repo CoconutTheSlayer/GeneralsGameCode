@@ -52,15 +52,24 @@ ADDITIVE_SHADER = bytes([3, 0, 0, 1, 2, 1, 0, 1, 1, 0, 0, 2, 0, 0, 0, 2])
 DEFAULT_MATERIAL = struct.pack("<I4B4B4B4Bfff", 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 0, 0, 0, 0.1, 1.0, 0.0)
 
 
+def _yaw_quaternion(degrees):
+    """x, y, z, w of a turn about Z (0, 0, 0, 1 when there is none)."""
+    if not degrees:
+        return 0, 0, 0, 1
+    half = math.radians(degrees) / 2
+    return 0, 0, math.sin(half), math.cos(half)
+
+
 class Model:
     def __init__(self, model_name):
         self.name = model_name.upper()
         self.pivots = [("ROOTTRANSFORM", -1, (0, 0, 0)), ("CHASSIS", ROOT, (0, 0, 0))]
         self.meshes = []
 
-    def bone(self, bone_name, parent=CHASSIS, at=(0, 0, 0)):
-        """A bone at a place relative to its parent; its index."""
-        self.pivots.append((bone_name.upper(), parent, tuple(at)))
+    def bone(self, bone_name, parent=CHASSIS, at=(0, 0, 0), yaw=0.0):
+        """A bone at a place relative to its parent, turned by yaw degrees about Z (the way it faces: the
+        game reads it for parking places); its index."""
+        self.pivots.append((bone_name.upper(), parent, tuple(at), yaw))
         return len(self.pivots) - 1
 
     def mesh(self, mesh_name, bone, verts, normals, uvs, tris, texture, shadow=True, shader=OPAQUE_SHADER):
@@ -68,7 +77,8 @@ class Model:
 
     def _hierarchy(self):
         header = struct.pack("<I", HTREE_VERSION) + name(self.name) + struct.pack("<I3f", len(self.pivots), 0, 0, 0)
-        pivots = b"".join(name(n) + struct.pack("<i3f3f4f", parent, *at, 0, 0, 0, 0, 0, 0, 1) for n, parent, at in self.pivots)
+        pivots = b"".join(name(p[0]) + struct.pack("<i3f3f4f", p[1], *p[2], 0, 0, 0, *_yaw_quaternion(p[3] if len(p) > 3 else 0.0))
+                          for p in self.pivots)
         fixups = b"".join(struct.pack("<12f", 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0) for _ in self.pivots)
         return chunk(HIERARCHY, chunk(HIERARCHY_HEADER, header) + chunk(PIVOTS, pivots) + chunk(PIVOT_FIXUPS, fixups), True)
 
