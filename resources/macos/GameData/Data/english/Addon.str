@@ -120,6 +120,18 @@ CONTROLBAR:ToolTipEuro_Command_ConstructFireBase
 "A fortified howitzer that outranges ground attackers. Infantry can garrison it."
 END
 
+OBJECT:Euro_Outpost
+"Forward Outpost"
+END
+
+CONTROLBAR:Euro_Command_ConstructOutpost
+"For&ward Outpost"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructOutpost
+"A small fortified bunker to build anywhere: five soldiers fire from it, and it patches up friendly infantry and vehicles around it."
+END
+
 OBJECT:Euro_ParticleCannonUplink
 "Orbital Lance"
 END

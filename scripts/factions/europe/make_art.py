@@ -125,6 +125,12 @@ ART = {
         "more paratroopers descending under round olive grey parachutes against a pale sky.", []),
     "Euro_PowerParadrop3": ("button",
         "many paratroopers descending under round olive grey parachutes, with a four-engine transport aircraft.", []),
+    "Euro_PowerArtilleryBarrage": ("button",
+        "a battery of European self-propelled howitzers firing in a row, big muzzle flashes and smoke, shells arcing "
+        "towards a distant target.", []),
+    "Euro_PowerCoalition": ("button",
+        "two four-engine transport aircraft dropping an eight-wheeled Boxer armoured vehicle on large cargo "
+        "parachutes and paratroopers under round olive grey parachutes against a pale sky.", ["icon:Euro_Boxer"]),
     "Euro_PowerSpyDrone": ("button",
         "a European reconnaissance drone (long slender wings, a V-tail and a rear propeller) in light grey, flying "
         "over the clouds.", []),

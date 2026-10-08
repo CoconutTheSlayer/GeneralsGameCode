@@ -199,6 +199,28 @@ BUILDINGS = [
               "WeaponRecoilBone = PRIMARY Barrel", "WeaponLaunchBone = PRIMARY MUZZLE01",
               "WeaponFireFXBone = PRIMARY MUZZLEFX"),
               module_lines=tuple(f"ExtraPublicBone = STATION0{k}" for k in range(1, 5))))),
+    # The Forward Outpost: China's Bunker is the game's one weaponless, powerless, cheap garrison bunker (the
+    # USA has none; the Fire Base would lose its gun, turret, hive body and open gun deck). Its garrison
+    # fires from the slits (FIREPOINT bones in the model), and it heals friendly infantry and vehicles near
+    # it, as the USA's Ambulance does. ModuleTag_02-04 are China's scaffolds; 09, 10, 25, 26 its mines.
+    ("Euro_Outpost", "ChinaBunker", "Forward Outpost",
+     "A small fortified bunker to build anywhere: five soldiers fire from it, and it patches up friendly "
+     "infantry and vehicles around it.",
+     dict(cost=500, time=8, pre=[["Euro_Barracks"]], command="Euro_OutpostCommandSet",
+          fields={"VisionRange": 220, "ShroudClearingRange": 220, "VoiceSelect": "FireBaseSelect",
+                  # Placed with its door (+X) to the camera.
+                  "PlacementViewAngle": -45, "GeometryMajorRadius": 20.0, "GeometryMinorRadius": 20.0, "GeometryHeight": 14.0},
+          extra=building_draw("EUOUTP", remove=("ModuleTag_02", "ModuleTag_03", "ModuleTag_04", "ModuleTag_09",
+                                                "ModuleTag_10", "ModuleTag_25", "ModuleTag_26"), particles={
+              "_D": [("Smoke01", "SmolderingSmoke")],
+              "_E": [("Smoke01", "SmolderingSmoke"), ("Smoke02", "SmolderingSmoke"), ("Fire01", "SmolderingFire")]}) + [
+              "ReplaceModule ModuleTag_05", "  Body = StructureBody ModuleTag_Euro_Body", "    MaxHealth = 750",
+              "    InitialHealth = 750", "    SubdualDamageCap = 900", "    SubdualDamageHealRate = 500",
+              "    SubdualDamageHealAmount = 100", "  End", "End"] + [
+              line for tag, kinds, amount in (("Infantry", "INFANTRY", 3), ("Vehicles", "VEHICLE", 4))
+              for line in (f"Behavior = AutoHealBehavior ModuleTag_Euro_Heal{tag}", f"  HealingAmount = {amount}",
+                           "  HealingDelay = 1000", "  Radius = 90.0", "  StartsActive = Yes", f"  KindOf = {kinds}",
+                           "  ForbiddenKindOf = AIRCRAFT STRUCTURE", "  SkipSelfForHealing = Yes", "End")])),
     ("Euro_ParticleCannonUplink", "AmericaParticleCannonUplink", "Orbital Lance",
      "A satellite beam that burns a precise path through the enemy.",
      dict(pre=[["Euro_StrategyCenter"]],
@@ -595,7 +617,7 @@ SKIRMISH_AI_UPGRADES = [("Upgrade_EuroGreenDeal", "Euro_PowerPlant", 4)]
 COMMAND_SETS = {
     "Euro_DozerCommandSet": {1: "Euro_PowerPlant", 2: "Euro_StrategyCenter", 3: "Euro_Barracks",
                              4: "Euro_FundsOffice", 5: "Euro_SupplyCenter", 6: "Euro_ParticleCannonUplink",
-                             7: "Euro_PatriotBattery", 8: "Euro_CommandCenter", 9: "Euro_FireBase",
+                             7: "Euro_PatriotBattery", 8: "Euro_CommandCenter", 9: "Euro_FireBase", 10: "Euro_Outpost",
                              11: "Euro_WarFactory", 13: "Euro_Airfield", 14: "Command_DisarmMinesAtPosition"},
     "Euro_CommandCenterCommandSet": {1: "Euro_Dozer", 2: "Euro_Command_ArtilleryBarrage", 4: "Euro_Command_Coalition",
                                      6: "Euro_Command_Paradrop", 7: "Euro_Command_SpyDrone",
@@ -615,6 +637,8 @@ COMMAND_SETS = {
                                 13: "Command_SetRallyPoint", 14: "Command_Sell"},
     "Euro_SupplyCenterCommandSet": {1: "Euro_NH90", 13: "Command_SetRallyPoint", 14: "Command_Sell"},
     "Euro_FundsOfficeCommandSet": {1: "Euro_Command_UpgradeGreenDeal", 14: "Command_Sell"},
+    "Euro_OutpostCommandSet": {**{k: "Command_BunkerExit" for k in range(1, 6)}, 6: "Command_Evacuate",
+                               13: "Command_Stop", 14: "Command_Sell"},
     # Vehicles: no drones, the USA's edge.
     "Euro_VehicleCommandSet": {11: "Command_AttackMove", 13: "Command_Guard", 14: "Command_Stop"},
     "Euro_BoxerCommandSet": {4: "Command_TransportExit", 5: "Command_TransportExit", 6: "Command_TransportExit",
@@ -767,6 +791,9 @@ EURO_ART = {
     "Euro_PowerA10ThunderboltMissileStrike2": ("SAUserInterface512_004.tga", 512, 245, 288, 305, 336),
     "Euro_PowerA10ThunderboltMissileStrike3": ("SAUserInterface512_005.tga", 512, 187, 251, 247, 299),
     "Euro_PowerParadrop": ("SAUserInterface512_005.tga", 512, 1, 251, 61, 299),
+    # Europe's own powers: China's barrage and the USA's paradrop pictures until make_art.py paints them.
+    "Euro_PowerArtilleryBarrage": ("SNUserInterface512_003.tga", 512, 435, 397, 495, 445),
+    "Euro_PowerCoalition": ("SAUserInterface512_005.tga", 512, 1, 251, 61, 299),
     "Euro_PowerParadrop2": ("SAUserInterface512_005.tga", 512, 373, 201, 433, 249),
     "Euro_PowerParadrop3": ("SAUserInterface512_005.tga", 512, 249, 201, 309, 249),
     "Euro_PowerSpyDrone": ("SAUserInterface512_005.tga", 512, 187, 1, 247, 49),
@@ -800,6 +827,7 @@ USA_PICTURES = {
     "Euro_StrategyCenter": (("SAUserInterface512_004.tga", 435, 438, 495, 486), ("SAUserInterface512_004.tga", 1, 99, 121, 195)),
     "Euro_PatriotBattery": (("SAUserInterface512_005.tga", 435, 51, 495, 99), ("SAUserInterface512_003.tga", 367, 99, 487, 195)),
     "Euro_FireBase": (("SAUserInterface512_005.tga", 249, 51, 309, 99), ("SAUserInterface512_003.tga", 1, 197, 121, 293)),
+    "Euro_Outpost": (("SAUserInterface512_005.tga", 249, 51, 309, 99), ("SAUserInterface512_003.tga", 1, 197, 121, 293)),
     "Euro_ParticleCannonUplink": (("SAUserInterface512_004.tga", 63, 345, 123, 393), ("SAUserInterface512_004.tga", 1, 197, 121, 293)),
     # The Green Deal research: the USA's Supply Lines picture until make_icons.py draws its own.
     "Euro_UpgradeGreenDeal": (("SAUserInterface512_005.tga", 187, 351, 247, 399), ("SAUserInterface512_005.tga", 187, 351, 247, 399)),
@@ -832,7 +860,7 @@ HOTKEYS = {
     "Euro_Milan": "M", "Euro_Commando": "F", "Euro_Marksman": "K", "Euro_Leopard": "L", "Euro_Puls": "P",
     "Euro_Boxer": "B", "Euro_Ambulance": "A", "Euro_Leclerc": "C", "Euro_ReconDrone": "D", "Euro_Skyranger": "S",
     "Euro_Wiesel": "W", "Euro_Typhoon": "T", "Euro_Tiger": "I", "Euro_Tornado": "O", "Euro_Rafale": "R",
-    "Euro_NH90": "N",
+    "Euro_NH90": "N", "Euro_Outpost": "W",
 }
 
 FACTION = {
@@ -1007,7 +1035,7 @@ def main():
 
     used = {entry for slots in COMMAND_SETS.values() for entry in slots.values()}
     def power_image(power):
-        return None if power in NEW_POWERS else f"Euro_Power{power}"  # new ones keep their parent's picture for now
+        return f"Euro_Power{power}"
 
     for power, (text, description) in POWERS.items():
         if f"Euro_Command_{power}" in used:
@@ -1022,7 +1050,8 @@ def main():
     for menu, slots in PROMOTION_MENUS.items():
         menus[menu] = {slot: entry if entry.startswith("Command_") else
                        child_button(SCIENCES[entry][1], f"Euro_Command_PurchaseScience{entry}", *SCIENCES[entry][2:],
-                                    fields=[f"Science = SCIENCE_{entry}"]) if entry in SCIENCES else
+                                    "Euro_PowerCoalition" if entry == "EuroCoalition" else "Euro_PowerArtilleryBarrage",
+                                    [f"Science = SCIENCE_{entry}"]) if entry in SCIENCES else
                        child_button(f"Command_PurchaseScience{entry}", f"Euro_Command_PurchaseScience{entry}", *PROMOTIONS[entry],
                                     PROMOTION_PICTURES.get(entry))
                        for slot, entry in slots.items()}

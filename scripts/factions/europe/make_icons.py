@@ -33,8 +33,8 @@ from install_textures import big_entries
 MODEL = "google/gemini-3-pro-image"
 CACHE = os.path.expanduser("~/.cache/generals/eu_icons")
 CELL = (200, 160)  # the shape of the game's buttons and portraits, 5:4
-COLUMNS = 5
-ATLAS = 1024
+COLUMNS = 10
+ATLAS = 2048
 
 SHOTS = os.path.expanduser("~/.cache/generals/eu_shots")  # each object as it looks in the game (icon_shots.py)
 
@@ -79,6 +79,7 @@ SUBJECTS = {
     "Euro_FireBase": "the European artillery bastion: a low hexagonal casemate of dark bare concrete with firing slits, half buried in earth mounds, with a howitzer turret on top.",
     "Euro_ParticleCannonUplink": "the orbital lance: a giant sky-facing dish on a tall tapered concrete tower, ringed by glowing capacitor pylons, beside an armoured control bunker.",
     "Euro_FundsOffice": "the EU funds office: a slim octagonal glass office tower with a navy pylon carrying a gold chevron, and a fountain plaza at its foot.",
+    "Euro_Outpost": "the European forward outpost: a small concrete blockhouse with firing slits, a lattice lookout tower with a flag, sandbag walls and a white medical container with red crosses.",
     "Euro_Dozer": "a European armoured engineering vehicle: a tracked hull with a curved dozer blade and a telescopic excavator arm.",
     "Euro_Rifleman": "a modern European infantry soldier in a steel blue-grey and grey-green camouflage combat uniform, helmet and body armour, holding an assault rifle (a modern soldier, never a historical uniform).",
     "Euro_Milan": "a European soldier aiming a MILAN anti-tank guided missile launcher on a tripod.",
