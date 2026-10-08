@@ -3823,6 +3823,9 @@ void GameLogic::update()
 					Object *obj = TheThingFactory->newObject(tmpl, g.owner->getDefaultTeam());
 					obj->setOrientation(g.owner == local ? i * 2.1f + g.facing : g.facing);
 					obj->setPosition(&pos);
+					// GENERALS_SPAWN_TEST_LOOK=1 points the camera at the middle of the player's new objects.
+					if (g.owner == local && i == (count - 1) / 2 && getenv("GENERALS_SPAWN_TEST_LOOK"))
+						TheTacticalView->lookAt(&pos);
 				}
 				fprintf(stderr, "SPAWN_TEST %d %s\n", count, g.name);
 			}
