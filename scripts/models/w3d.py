@@ -14,9 +14,11 @@ import struct
 
 MESH, VERTICES, NORMALS, HEADER3, TRIANGLES, SHADE_IDX = 0x0, 0x2, 0x3, 0x1F, 0x20, 0x22
 MATERIAL_INFO, SHADERS, VERTEX_MATERIALS, VERTEX_MATERIAL, VM_NAME, VM_INFO = 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D
+MAPPER_ARGS0 = 0x2E
 TEXTURES, TEXTURE, TEXTURE_NAME = 0x30, 0x31, 0x32
 MATERIAL_PASS, VM_IDS, SHADER_IDS, TEXTURE_STAGE, TEXTURE_IDS, STAGE_TEXCOORDS = 0x38, 0x39, 0x3A, 0x48, 0x49, 0x4A
 HIERARCHY, HIERARCHY_HEADER, PIVOTS, PIVOT_FIXUPS = 0x100, 0x101, 0x102, 0x103
+ANIMATION, ANIMATION_HEADER, ANIMATION_CHANNEL, ANIM_CHANNEL_Q, ANIMATION_VERSION = 0x200, 0x201, 0x202, 6, 0x40001
 HLOD, HLOD_HEADER, HLOD_LOD_ARRAY, HLOD_SUB_OBJECT_ARRAY_HEADER, HLOD_SUB_OBJECT = 0x700, 0x701, 0x702, 0x703, 0x704
 
 MESH_VERSION, HTREE_VERSION, HLOD_VERSION = 0x40002, 0x40001, 0x10000
@@ -48,12 +50,19 @@ OPAQUE_SHADER = bytes([3, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0])
 ALPHA_TEST_SHADER = bytes([3, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0])
 # Additive, for muzzle flashes: no depth write, src one dst one.
 ADDITIVE_SHADER = bytes([3, 0, 0, 1, 2, 1, 0, 1, 1, 0, 0, 2, 0, 0, 0, 2])
+# Alpha blended, no depth write: src alpha, dst one minus src alpha (the blurred rotor discs of helicopters).
+ALPHA_BLEND_SHADER = bytes([3, 0, 0, 5, 2, 1, 0, 2, 1, 0, 0, 2, 0, 0, 0, 2])
 # White ambient, diffuse and specular, no emission, shininess 0.1, opacity 1.
 DEFAULT_MATERIAL = struct.pack("<I4B4B4B4Bfff", 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 0, 0, 0, 0, 0.1, 1.0, 0.0)
+# The same with a linear offset texture mapper on stage 0 (W3DVERTMAT_STAGE0_MAPPING_LINEAR_OFFSET): tank treads, whose
+# texture W3DTankDraw scrolls on meshes named TREADS* (mesh(..., mapper_args="UPerSec=0.0")).
+LINEAR_OFFSET_MATERIAL = struct.pack("<I4B4B4B4Bfff", 0x00040000, 255, 255, 255, 0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0, 1.0, 0.0)
 
 
 def _yaw_quaternion(degrees):
-    """x, y, z, w of a turn about Z (0, 0, 0, 1 when there is none)."""
+    """x, y, z, w of a turn about Z (0, 0, 0, 1 when there is none); a quaternion (x, y, z, w) is kept as it is."""
+    if isinstance(degrees, tuple):
+        return degrees
     if not degrees:
         return 0, 0, 0, 1
     half = math.radians(degrees) / 2
@@ -65,15 +74,32 @@ class Model:
         self.name = model_name.upper()
         self.pivots = [("ROOTTRANSFORM", -1, (0, 0, 0)), ("CHASSIS", ROOT, (0, 0, 0))]
         self.meshes = []
+        self.animation = None
 
-    def bone(self, bone_name, parent=CHASSIS, at=(0, 0, 0), yaw=0.0):
+    def animate(self, frames, rate, rotations):
+        """A looping animation <name>.<name> in the model's file (the INI's Animation = NAME.NAME): rotations
+        {bone index: [quaternion (x, y, z, w) per frame]}, turns added to each bone's own (spinning rotors)."""
+        self.animation = (frames, rate, rotations)
+
+    def _animation(self):
+        frames, rate, rotations = self.animation
+        body = chunk(ANIMATION_HEADER, struct.pack("<I", ANIMATION_VERSION) + name(self.name) + name(self.name)
+                     + struct.pack("<II", frames, rate))
+        for bone, quaternions in rotations.items():
+            body += chunk(ANIMATION_CHANNEL, struct.pack("<6H", 0, len(quaternions) - 1, 4, ANIM_CHANNEL_Q, bone, 0)
+                          + b"".join(struct.pack("<4f", *q) for q in quaternions))
+        return chunk(ANIMATION, body, True)
+
+    def bone(self, bone_name, parent=CHASSIS, at=(0, 0, 0), yaw=0.0, rotation=None):
         """A bone at a place relative to its parent, turned by yaw degrees about Z (the way it faces: the
-        game reads it for parking places); its index."""
-        self.pivots.append((bone_name.upper(), parent, tuple(at), yaw))
+        game reads it for parking places); its index. rotation: any turn instead, a quaternion (x, y, z, w)."""
+        self.pivots.append((bone_name.upper(), parent, tuple(at), tuple(rotation) if rotation is not None else yaw))
         return len(self.pivots) - 1
 
-    def mesh(self, mesh_name, bone, verts, normals, uvs, tris, texture, shadow=True, shader=OPAQUE_SHADER):
-        self.meshes.append((mesh_name.upper(), bone, verts, normals, uvs, tris, texture, shadow, shader))
+    def mesh(self, mesh_name, bone, verts, normals, uvs, tris, texture, shadow=True, shader=OPAQUE_SHADER, mapper_args=None):
+        """mapper_args: give the material a linear offset texture mapper with these arguments (scrolling treads)."""
+        entry = (mesh_name.upper(), bone, verts, normals, uvs, tris, texture, shadow, shader)
+        self.meshes.append(entry + (mapper_args,) if mapper_args is not None else entry)
 
     def _hierarchy(self):
         header = struct.pack("<I", HTREE_VERSION) + name(self.name) + struct.pack("<I3f", len(self.pivots), 0, 0, 0)
@@ -82,7 +108,7 @@ class Model:
         fixups = b"".join(struct.pack("<12f", 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0) for _ in self.pivots)
         return chunk(HIERARCHY, chunk(HIERARCHY_HEADER, header) + chunk(PIVOTS, pivots) + chunk(PIVOT_FIXUPS, fixups), True)
 
-    def _mesh(self, mesh_name, verts, normals, uvs, tris, texture, shadow, shader):
+    def _mesh(self, mesh_name, verts, normals, uvs, tris, texture, shadow, shader, mapper_args=None):
         lo = [min(v[i] for v in verts) for i in range(3)]
         hi = [max(v[i] for v in verts) for i in range(3)]
         centre = [(a + b) / 2 for a, b in zip(lo, hi)]
@@ -105,7 +131,12 @@ class Model:
         body += chunk(TRIANGLES, faces)
         body += chunk(SHADE_IDX, b"".join(struct.pack("<I", i) for i in range(len(verts))))
         body += chunk(MATERIAL_INFO, struct.pack("<4I", 1, 1, 1, 1))
-        body += chunk(VERTEX_MATERIALS, chunk(VERTEX_MATERIAL, chunk(VM_NAME, cstring(mesh_name.lower())) + chunk(VM_INFO, DEFAULT_MATERIAL), True), True)
+        if mapper_args is None:
+            material = chunk(VM_NAME, cstring(mesh_name.lower())) + chunk(VM_INFO, DEFAULT_MATERIAL)
+        else:
+            material = (chunk(VM_NAME, cstring(mesh_name.lower())) + chunk(VM_INFO, LINEAR_OFFSET_MATERIAL)
+                        + chunk(MAPPER_ARGS0, cstring(mapper_args)))
+        body += chunk(VERTEX_MATERIALS, chunk(VERTEX_MATERIAL, material, True), True)
         body += chunk(SHADERS, shader)
         body += chunk(TEXTURES, chunk(TEXTURE, chunk(TEXTURE_NAME, cstring(texture)), True), True)
         stage = chunk(TEXTURE_IDS, struct.pack("<I", 0)) + chunk(STAGE_TEXCOORDS, b"".join(struct.pack("<2f", u, v) for u, v in uvs))
@@ -121,8 +152,10 @@ class Model:
 
     def save(self, path):
         data = self._hierarchy()
-        for mesh_name, bone, verts, normals, uvs, tris, texture, shadow, shader in self.meshes:
-            data += self._mesh(mesh_name, verts, normals, uvs, tris, texture, shadow, shader)
+        if getattr(self, "animation", None):
+            data += self._animation()
+        for mesh_name, bone, verts, normals, uvs, tris, texture, shadow, shader, *mapper in self.meshes:
+            data += self._mesh(mesh_name, verts, normals, uvs, tris, texture, shadow, shader, *mapper)
         data += self._hlod()
         with open(path, "wb") as f:
             f.write(data)
