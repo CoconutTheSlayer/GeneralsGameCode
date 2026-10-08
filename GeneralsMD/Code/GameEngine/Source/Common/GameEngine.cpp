@@ -167,6 +167,12 @@ static void loadAddonINI(const char *stage, Xfer *xfer)
 	const char *extraData = Win32Shim_GetExtraDataDirectory();
 	if (extraData == nullptr)
 		return;
+	if (!isAddonDataEnabled())
+	{
+		fprintf(stderr, "Add-on data: switched off (EnableEurope = no or -noEurope), %s not loaded\n", stage);
+		fflush(stderr);
+		return;
+	}
 	AsciiString dir;
 	dir.format("%s/Data/INI/Addon/%s", extraData, stage);
 	AsciiString listed = dir;

@@ -62,6 +62,7 @@
 #include "Common/file.h"
 #include "Common/FileSystem.h"
 #include "Common/version.h"
+#include "Common/OptionPreferences.h"
 
 
 
@@ -1128,7 +1129,7 @@ quit:
 void GameTextManager::appendAddonStrings()
 {
 	const char *extraData = Win32Shim_GetExtraDataDirectory();
-	if (extraData == nullptr)
+	if (extraData == nullptr || !isAddonDataEnabled())
 		return;
 	AsciiString path;
 	path.format("%s/Data/%s/Addon.str", extraData, GetRegistryLanguage().str());

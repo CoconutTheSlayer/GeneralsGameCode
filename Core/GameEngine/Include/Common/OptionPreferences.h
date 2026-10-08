@@ -137,3 +137,9 @@ public:
 
 	Real getGameWindowTransitionSpeedMultiplier() const;
 };
+
+// TheSuperHackers @feature The add-on data (the European faction) loads unless switched off with
+// EnableEurope = no in Options.ini or -noEurope on the command line. Without it the game is the original
+// one, and plays online with players who do not have the faction.
+Bool isAddonDataEnabled();
+void disableAddonData();
