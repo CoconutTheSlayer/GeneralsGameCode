@@ -1,14 +1,13 @@
 """Paints the European Funds Office's textures, in two steps that funds_office.py runs (Python 3 and Pillow),
-with the Logistics Centre's painter (logistics_centre_paint.py) and the Command Centre's tiles:
+with the Command Centre's tiles and the SAMP/T Battery's painter (samp_battery_paint.py):
 
-    tiles OUT_DIR             tiling surfaces Blender projects onto the model: plaster, trim, deck, grilles,
-                              crates, roller shutters, and the office's own curtain-wall glass, hedges and
-                              paving; and the emblem
-    compose BAKE_DIR OUT_DIR  the building's texture (grime, damaged, wrecked and night versions) and the pad
-                              painted as one picture: a paved plaza with a ring round the fountain, parking
-                              bays, a driveway past the guard booth
+    tiles OUT_DIR             tiling surfaces Blender projects onto the model: plaster, trim, deck, steel,
+                              grilles, crates, and the office's own curtain-wall glass, hedges, blast
+                              barriers; and the emblem
+    compose BAKE_DIR OUT_DIR  the building's texture (grime, damaged, wrecked and night versions) and the
+                              ground painted as one picture: a paved plaza with a ring round the fountain,
+                              parking bays, a driveway past the guard booth
 """
-import math
 import os
 import sys
 
@@ -16,12 +15,24 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from command_centre_paint import (UP, emblem, grime, panels, pad, tile_crate, tile_deck, tile_grille,  # noqa: E402
-                                  tile_hazard, tile_metal, tile_sandbag, tile_trim, tile_wall)
-from logistics_centre_paint import (NAVY, WHITE, YELLOW, PadCanvas, compose_building, tile_office,  # noqa: E402
-                                    tile_shutter)
+from command_centre_paint import (UP, emblem, grime, panels, tile_crate, tile_deck, tile_grille,  # noqa: E402
+                                  tile_hazard, tile_metal, tile_sandbag, tile_trim)
+import samp_battery_paint as sa  # noqa: E402
 
 PREFIX = "eufo"
+NAVY, WHITE, YELLOW = (40, 52, 92), (226, 224, 214), (214, 176, 52)
+
+
+def tile_office(rng):
+    """The office's plaster, a little warmer than the Command Centre's."""
+    return grime(panels((228, 220, 200), rng, step=128, seam=(130, 122, 106), rivets=False, light=(246, 240, 226)), rng,
+                 amount=0.22, streaks=30, streak_colour=(170, 160, 140)).resize((256, 256), Image.LANCZOS)
+
+
+def tile_barrier(rng):
+    """Cast concrete blast barriers."""
+    return grime(panels((182, 180, 172), rng, step=128, seam=(120, 118, 110), rivets=False, light=(200, 198, 190)),
+                 rng, amount=0.3, streaks=30, streak_colour=(130, 126, 118)).resize((128, 128), Image.LANCZOS)
 
 
 def tile_curtain(rng):
@@ -31,7 +42,7 @@ def tile_curtain(rng):
     arr = np.zeros((w, w, 3))
     ys, xs = np.mgrid[0:w, 0:w] / w
     sky = 0.75 + 0.35 * np.clip(1 - np.abs((xs + ys) - 0.9) * 2.2, 0, 1)   # a diagonal glint
-    arr[:] = np.array([62, 92, 118])
+    arr[:] = np.array([70, 112, 150])
     arr *= sky[..., None]
     img = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
     d = ImageDraw.Draw(img)
@@ -75,11 +86,10 @@ def tile_paving(rng):
 
 def tiles(out):
     rng = np.random.default_rng(31)
-    images = {"tile_wall": tile_wall(rng), "tile_trim": tile_trim(rng), "tile_deck": tile_deck(rng),
-              "tile_metal": tile_metal(rng), "tile_crate": tile_crate(rng), "tile_sandbag": tile_sandbag(rng),
-              "tile_hazard": tile_hazard(rng), "tile_grille": tile_grille(rng), "tile_shutter": tile_shutter(rng),
-              "tile_office": tile_office(rng), "tile_curtain": tile_curtain(rng), "tile_hedge": tile_hedge(rng),
-              "tile_paving": tile_paving(rng),
+    images = {"tile_trim": tile_trim(rng), "tile_deck": tile_deck(rng), "tile_metal": tile_metal(rng),
+              "tile_crate": tile_crate(rng), "tile_sandbag": tile_sandbag(rng), "tile_hazard": tile_hazard(rng),
+              "tile_grille": tile_grille(rng), "tile_office": tile_office(rng), "tile_curtain": tile_curtain(rng),
+              "tile_hedge": tile_hedge(rng), "tile_steel": sa.tile_steel(rng), "tile_barrier": tile_barrier(rng),
               "tile_dome": grime(panels((222, 224, 226), rng, step=64, seam=(170, 172, 176), rivets=False,
                                         light=(240, 240, 240)), rng, amount=0.15).resize((256, 256), Image.LANCZOS),
               f"{PREFIX}_emblem": emblem(rng)}
@@ -88,45 +98,54 @@ def tiles(out):
     print(f"painted {len(images)} tiles")
 
 
-EXTENT = (-27.0, 27.0, -27.0, 27.0)
-FOUNTAIN = (-6.0, -11.0)
+HALF = 27.0
+FOUNTAIN = (-12.0, -12.0)
 
 
-def paint_pad(bake_dir, out, rng):
-    c = PadCanvas(EXTENT, size=1024, rng=rng)
-    c.stains(rng, count=12)
-    # The plaza: stone paving from the entrance to the fountain and round it.
-    slab = tile_paving(rng).resize((int(6 * c.unit), int(6 * c.unit)))
-    x0, y0 = c.px(-24.0, 0.0)
-    x1, y1 = c.px(6.0, -18.0)
-    plaza = Image.new("RGB", (int(x1 - x0), int(y1 - y0)))
-    for x in range(0, plaza.width, slab.width):
-        for y in range(0, plaza.height, slab.height):
-            plaza.paste(slab, (x, y))
-    c.img.paste(plaza, (int(x0), int(y0)))
-    c.rect((-24.0, 0.0), (6.0, -18.0), outline=(120, 114, 102), width=c.width(0.5))
-    c.circle(FOUNTAIN, 5.6, (150, 142, 128), 1.0)
-    c.circle(FOUNTAIN, 6.4, NAVY, 0.5)
-    # Parking bays for the official cars, at the front edge.
-    for x in (-23.0, -15.5, -8.0):
-        c.line((x, -25.0), (x, -16.0), WHITE, 0.4)
-    c.line((-23.0, -25.0), (-8.0, -25.0), WHITE, 0.4)
-    # The driveway past the guard booth, with a stop line and yellow kerb marks.
-    c.rect((8.0, -26.5), (20.0, -9.0), fill=(104, 104, 102))
-    c.line((8.0, -12.6), (20.0, -12.6), WHITE, 0.7)
-    for y in range(-26, -9, 3):
-        c.line((7.6, y), (7.6, y + 1.5), YELLOW, 0.6)
-        c.line((20.4, y), (20.4, y + 1.5), YELLOW, 0.6)
-    # Walkway to the wing's door.
-    for y in range(-1, 7, 2):
-        c.rect((4.0, y), (9.0, y + 1.0), fill=WHITE)
-    c.save(bake_dir, out, PREFIX, rng)
+def paving(rng, size):
+    """The lot paved in light stone slabs (the whole ground's picture)."""
+    slab = tile_paving(rng).resize((size // 9, size // 9))
+    img = Image.new("RGB", (size, size))
+    for x in range(0, size, slab.width):
+        for y in range(0, size, slab.height):
+            img.paste(slab, (x, y))
+    return img
+
+
+def office_inside(x, y):
+    """The square lot, its corners a little rounded."""
+    return 26.6 - (np.abs(x) ** 8 + np.abs(y) ** 8) ** 0.125
+
+
+def office_marks(d, pixel, scale):
+    def rect(a, b, **kw):
+        p, q = pixel(*a), pixel(*b)
+        d.rectangle([min(p[0], q[0]), min(p[1], q[1]), max(p[0], q[0]), max(p[1], q[1])], **kw)
+
+    def circle(c, r, **kw):
+        p = pixel(*c)
+        d.ellipse([p[0] - r * scale, p[1] - r * scale, p[0] + r * scale, p[1] + r * scale], **kw)
+    asphalt = (98, 98, 96)
+    rect((-26.0, -26.0), (-6.0, -16.0), fill=asphalt)                 # the car park by the plaza
+    for x in (-21.0, -15.0, -9.0):
+        rect((x - 0.2, -25.0), (x + 0.2, -17.0), fill=WHITE)
+    rect((14.0, -27.0), (24.0, -4.0), fill=asphalt)                    # the driveway past the booth
+    rect((14.0, -9.4), (24.0, -8.8), fill=WHITE)
+    for y in range(-26, -4, 3):
+        rect((13.6, y), (14.0, y + 1.5), fill=YELLOW)
+    circle(FOUNTAIN, 6.4, fill=(150, 142, 128))
+    circle(FOUNTAIN, 6.4, outline=NAVY, width=max(2, int(0.5 * scale)))
+    circle(FOUNTAIN, 4.6, fill=(176, 168, 152))
+    for x in range(-1, 6, 2):                                           # the walk to the doors
+        rect((x, -10.5), (x + 1.0, -8.5), fill=WHITE)
 
 
 def compose(bake_dir, out):
-    rng = compose_building(bake_dir, out, PREFIX)
-    paint_pad(bake_dir, out, rng)
-    print("composed the building's textures")
+    rng = np.random.default_rng(7)
+    sa.compose(bake_dir, out, PREFIX)
+    sa.paint_ground(bake_dir, out, PREFIX, HALF, rng, office_inside, office_marks, base=paving(rng, 1024),
+                    ragged=0.1)
+    print("composed the ground")
 
 
 def main():
