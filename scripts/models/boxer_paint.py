@@ -1,9 +1,9 @@
 """Paints the Boxer's textures in the style of the game's vehicles: crisp panels with dark seams and lit
 edges, rivets, hatches, grilles and lights, painted shading, stains, streaks and dust, over a blue-grey
 camouflage. boxer.py writes the faces of the model on the texture (build/models/EUBOXER_layout.json) and
-runs this with Python 3 and Pillow:
+runs this with Python 3 and Pillow, with the ambient occlusion it baked:
 
-    python3 scripts/models/boxer_paint.py build/models/EUBOXER_layout.json OUT_DIR
+    python3 scripts/models/boxer_paint.py build/models/EUBOXER_layout.json OUT_DIR [OCCLUSION.png]
 """
 import json
 import math
@@ -51,7 +51,7 @@ def camouflage(rng):
     return img
 
 
-def paint_hull(layout, damaged=False, seed=11):
+def paint_hull(layout, damaged=False, seed=11, occlusion=None):
     rng = np.random.default_rng(seed)
     base = camouflage(rng)
 
@@ -121,6 +121,13 @@ def paint_hull(layout, damaged=False, seed=11):
                 draw.line([(a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy)], fill=LIT, width=UP)
 
     paint_details(draw, rng)
+    canvas = weather(canvas, layout, rng)
+
+    if occlusion is not None:
+        # Contact shadows from the baked occlusion, softened so the painted shading still leads.
+        ao = np.asarray(occlusion.convert("L").resize((W, W), Image.BILINEAR), float) / 255.0
+        arr = np.asarray(canvas, float) * (0.55 + 0.45 * ao)[..., None]
+        canvas = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
 
     if damaged:
         arr = np.asarray(canvas, float)
@@ -137,6 +144,57 @@ def paint_hull(layout, damaged=False, seed=11):
     canvas.paste((0, 0, 0), mask=outside)
     small = canvas.resize((SIZE, SIZE), Image.LANCZOS)
     return small.filter(ImageFilter.UnsharpMask(radius=1.2, percent=60, threshold=2))
+
+
+MUD = (88, 72, 52)
+
+
+def weather(canvas, layout, rng):
+    """Mud thrown up by the wheels and worn paint along the edges; returns the weathered canvas."""
+    side = lambda x, z: P("hull", "side", (x, 5.0, z))  # noqa: E731
+    # Mud goes on a layer of its own, softened and laid on thinly.
+    mud = Image.new("L", (W, W), 0)
+    draw = ImageDraw.Draw(mud)
+    # Mud: dense low down and around each wheel, thinning upwards.
+    for wx in (11.2, 6.4, -4.4, -9.2):
+        for _ in range(170):
+            a = rng.uniform(math.pi * 0.05, math.pi * 0.95)
+            r = rng.uniform(2.6, 4.8)
+            x, z = wx + math.cos(a) * r * 1.2, 2.5 + math.sin(a) * r * 0.9
+            if z > 6.6:
+                continue
+            px, py = side(x, z)
+            s_ = rng.uniform(0.3, 1.2) * UP
+            draw.ellipse([px - s_, py - s_ * 0.8, px + s_, py + s_ * 0.8], fill=int(rng.uniform(120, 255)))
+    for _ in range(400):
+        px, py = side(rng.uniform(-15, 15), rng.uniform(2.2, 4.4))
+        s_ = rng.uniform(0.4, 1.6) * UP
+        draw.ellipse([px - s_, py - s_, px + s_, py + s_], fill=int(rng.uniform(100, 220)))
+    for _ in range(120):
+        px, py = P("hull", "front", (15.0, rng.uniform(-5.5, 5.5), rng.uniform(2.2, 5.2)))
+        s_ = rng.uniform(0.4, 1.4) * UP
+        draw.ellipse([px - s_, py - s_, px + s_, py + s_], fill=int(rng.uniform(100, 220)))
+    amount = np.asarray(mud.filter(ImageFilter.GaussianBlur(UP * 0.6)), float)[..., None] / 255.0 * 0.8
+    arr = np.asarray(canvas, float) * (1 - amount) + np.array(MUD, float) * amount
+    canvas = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
+    draw = ImageDraw.Draw(canvas)
+    # Worn edges: short light scratches beside the hull's seams.
+    for f in layout["faces"]:
+        if f.get("part") == "turret" or f["group"] == "bottom":
+            continue
+        poly = [(x * UP, y * UP) for x, y in f["px"]]
+        for i, sharp in enumerate(f["sharp"]):
+            if not sharp:
+                continue
+            (ax, ay), (bx, by) = poly[i], poly[(i + 1) % len(poly)]
+            length = math.hypot(bx - ax, by - ay)
+            for _ in range(int(length / (40 * UP))):
+                t = rng.uniform(0, 1)
+                x, y = ax + (bx - ax) * t, ay + (by - ay) * t
+                ox, oy = rng.uniform(-3, 3) * UP, rng.uniform(-3, 3) * UP
+                draw.line([(x + ox, y + oy), (x + ox + rng.uniform(-4, 4) * UP, y + oy + rng.uniform(-1, 1) * UP)],
+                          fill=(150, 158, 164), width=UP)
+    return canvas
 
 
 def rivets(draw, points, r=0.55):
@@ -184,6 +242,24 @@ def emblem(draw, centre, size):
                   (x, y - s * 0.12), (x - s * 0.45, y + s * 0.4)], fill=(235, 200, 40))
 
 
+def text(draw, centre, words, size):
+    """Stencilled white letters."""
+    from PIL import ImageFont
+    font = ImageFont.load_default(size=size * UP // 4)
+    x, y = centre
+    draw.text((x, y), words, font=font, fill=(222, 222, 214), anchor="mm")
+
+
+def plate(draw, centre):
+    """A number plate: white with black characters."""
+    x, y = centre
+    draw.rectangle([x - 16 * UP, y - 4 * UP, x + 16 * UP, y + 4 * UP], fill=(225, 225, 220), outline=SEAM, width=UP)
+    text_colour = (20, 20, 20)
+    from PIL import ImageFont
+    font = ImageFont.load_default(size=6 * UP)
+    draw.text((x, y), "Y-7042", font=font, fill=text_colour, anchor="mm")
+
+
 def paint_details(draw, rng):
     top = lambda x, y: P("hull", "top", (x, y, 9.0))  # noqa: E731
     side = lambda x, z: P("hull", "side", (x, 5.0, z))  # noqa: E731
@@ -198,9 +274,13 @@ def paint_details(draw, rng):
         rivets(draw, [top(x, y) for x in np.arange(-14.5, 14.0, 1.2)])
     for (x, y), r in (((-6.5, 2.4), 1.1), ((-6.5, -2.4), 1.1), ((-11.5, 0.0), 1.1), ((3.5, 2.6), 0.9)):
         hatch(draw, top(x, y), r)
-    gx0, gy0 = top(12.5, -1.0)
-    gx1, gy1 = top(9.8, -4.2)
-    grille(draw, min(gx0, gx1), min(gy0, gy1), max(gx0, gx1), max(gy0, gy1), slats=7)
+    gx0, gy0 = top(12.5, 4.0)
+    gx1, gy1 = top(9.9, 1.1)
+    grille(draw, min(gx0, gx1), min(gy0, gy1), max(gx0, gx1), max(gy0, gy1), slats=8)
+    # Air intake on the roof's right, behind the step.
+    gx0, gy0 = top(-0.9, -2.6)
+    gx1, gy1 = top(-2.5, -4.2)
+    grille(draw, min(gx0, gx1), min(gy0, gy1), max(gx0, gx1), max(gy0, gy1), slats=5, vertical=False)
     gx0, gy0 = top(-1.8, 1.4)
     gx1, gy1 = top(-4.0, -1.4)
     draw.rectangle([min(gx0, gx1), min(gy0, gy1), max(gx0, gx1), max(gy0, gy1)], outline=SEAM, width=2 * UP)
@@ -218,6 +298,14 @@ def paint_details(draw, rng):
     draw.line(cable, fill=(70, 74, 80), width=2 * UP)
     draw.line(cable, fill=(150, 156, 160), width=UP)
     emblem(draw, side(-6.0, 6.9), 10)
+    # Stowage bins between the wheels: lids, latches.
+    a, b = side(-1.6, 5.1), side(3.6, 3.0)
+    draw.rectangle([a[0], a[1], b[0], b[1]], outline=SEAM, width=2 * UP)
+    draw.line([(a[0], a[1] + 3 * UP), (b[0], a[1] + 3 * UP)], fill=LIT, width=UP)
+    for x in (-0.4, 2.4):
+        l = side(x, 4.6)
+        draw.rectangle([l[0] - 3 * UP, l[1] - 2 * UP, l[0] + 3 * UP, l[1] + 2 * UP], fill=(52, 58, 66))
+    text(draw, side(-11.0, 6.55), "Y-7042", 26)
 
     # Front: headlights, a grille between them, tow hooks.
     for y in (3.4, -3.4):
@@ -227,6 +315,7 @@ def paint_details(draw, rng):
         draw.ellipse([hx - 5 * UP, hy - 4 * UP, hx + 5 * UP, hy + 4 * UP], outline=SEAM, width=2 * UP)
     a, b = front(-1.6, 5.9), front(1.6, 4.6)
     grille(draw, a[0], a[1], b[0], b[1], slats=6, vertical=False)
+    plate(draw, front(0.0, 6.6))
 
     # Back: the ramp with its hinges and handle, tail lights.
     a, b = back(-2.6, 8.3), back(2.6, 5.4)
@@ -237,6 +326,7 @@ def paint_details(draw, rng):
         draw.rectangle([h[0] - 3 * UP, h[1] - 2 * UP, h[0] + 3 * UP, h[1] + 2 * UP], fill=(50, 55, 62))
     hx, hy = back(1.6, 7.0)
     draw.rectangle([hx - 4 * UP, hy - UP, hx + 4 * UP, hy + UP], fill=(190, 196, 200))
+    plate(draw, back(0.0, 5.0))
     for y in (4.3, -4.3):
         lx, ly = back(y, 7.6)
         draw.rectangle([lx - 4 * UP, ly - 3 * UP, lx + 4 * UP, ly + 3 * UP], fill=(170, 30, 25), outline=SEAM, width=UP)
@@ -261,19 +351,28 @@ def paint_tire(rng):
     for a in range(0, 360, 45):
         bx, by = cx + math.cos(math.radians(a)) * rx * 0.4, cy + math.sin(math.radians(a)) * ry * 0.4
         draw.ellipse([bx - 2 * UP, by - UP, bx + 2 * UP, by + UP], fill=(40, 44, 48))
-    # Tread: blocks across the lower half, three times around.
-    for i in range(36):
-        x = i * w / 36
-        draw.rectangle([x + UP, w * 0.55, x + w / 36 - UP, w * 0.95], fill=(22, 23, 25))
-        draw.line([(x + UP, w * 0.55), (x + w / 36 - UP, w * 0.55)], fill=(70, 72, 76), width=UP)
+    # The sidewall: a raised ring near the rim.
+    draw.ellipse([cx - rx * 0.8, cy - ry * 0.8, cx + rx * 0.8, cy + ry * 0.8], outline=(48, 50, 54), width=2 * UP)
+    draw.ellipse([cx - rx * 0.62, cy - ry * 0.62, cx + rx * 0.62, cy + ry * 0.62], outline=(20, 22, 26), width=UP)
+    # Tread: chevron lugs across the lower half, three times around.
+    top_, mid, bottom = w * 0.56, w * 0.75, w * 0.94
+    n = 30
+    for i in range(n):
+        x = i * w / n
+        step = w / n
+        lug = [(x, top_), (x + step * 0.45, top_), (x + step * 0.85, mid), (x + step * 0.45, bottom), (x, bottom),
+               (x + step * 0.4, mid)]
+        draw.polygon(lug, fill=(46, 47, 50))
+        draw.line([(x, top_), (x + step * 0.4, mid)], fill=(76, 78, 82), width=UP)
     return img.resize((256, 256), Image.LANCZOS)
 
 
 def main():
     layout = json.load(open(sys.argv[1]))
     out = sys.argv[2]
-    paint_hull(layout).save(os.path.join(out, "euboxer.tga"))
-    paint_hull(layout, damaged=True).save(os.path.join(out, "euboxer_d.tga"))
+    occlusion = Image.open(sys.argv[3]) if len(sys.argv) > 3 and os.path.exists(sys.argv[3]) else None
+    paint_hull(layout, occlusion=occlusion).save(os.path.join(out, "euboxer.tga"))
+    paint_hull(layout, damaged=True, occlusion=occlusion).save(os.path.join(out, "euboxer_d.tga"))
     paint_tire(np.random.default_rng(3)).save(os.path.join(out, "euboxer_tire.tga"))
     print("painted")
 
