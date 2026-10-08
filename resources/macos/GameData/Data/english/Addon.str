@@ -5,11 +5,11 @@ INI:FactionEurope
 END
 
 TOOLTIP:BioStrategyLong_Europe
-"Precision and protection: a small, expensive army that sees first, shoots accurately and shoots down missiles, weak when swarmed early."
+"Fortress and combined arms: mechanised infantry in Boxers, forward outposts and the strongest defences, advancing step by step behind its artillery. Slow to start, with a small air force."
 END
 
 GUI:BioFeatures_Europe
-"Long range artillery, active protection, the best air defence, subsidies"
+"Mechanised infantry, forward outposts, artillery and fortifications, subsidies"
 END
 
 OBJECT:Euro_CommandCenter
@@ -320,24 +320,8 @@ OBJECT:Euro_Rafale
 "Rafale"
 END
 
-CONTROLBAR:Euro_Command_ConstructRafale
-"&Rafale"
-END
-
-CONTROLBAR:ToolTipEuro_Command_ConstructRafale
-"A strike fighter that slips past air defences."
-END
-
 OBJECT:Euro_Tornado
 "Tornado"
-END
-
-CONTROLBAR:Euro_Command_ConstructTornado
-"T&ornado"
-END
-
-CONTROLBAR:ToolTipEuro_Command_ConstructTornado
-"A fast bomber that strikes before the defence can react."
 END
 
 OBJECT:Euro_Tiger
@@ -361,7 +345,7 @@ CONTROLBAR:Euro_Command_ConstructNH90
 END
 
 CONTROLBAR:ToolTipEuro_Command_ConstructNH90
-"A transport helicopter that also carries supplies."
+"A transport helicopter that also carries supplies. Its passengers fire from its doors."
 END
 
 UPGRADE:Upgrade_EuroGreenDeal
@@ -376,28 +360,20 @@ CONTROLBAR:ToolTipEuro_Command_UpgradeGreenDeal
 "Every Fusion Plant receives a subsidy: $3 every 4 seconds."
 END
 
-CONTROLBAR:Euro_Command_SpectreGunship
-"&A400M Gunship"
+SCIENCE:EuroArtilleryBarrage1
+"Artillery Barrage"
 END
 
-CONTROLBAR:ToolTipEuro_Command_SpectreGunship
-"A gunship circles the target and fires on everything below."
+SCIENCE:EuroArtilleryBarrage2
+"Artillery Barrage 2"
 END
 
-CONTROLBAR:Euro_Command_LeafletDrop
-"&Information Strike"
+SCIENCE:EuroArtilleryBarrage3
+"Artillery Barrage 3"
 END
 
-CONTROLBAR:ToolTipEuro_Command_LeafletDrop
-"Leaflets and broadcasts: enemy units in the area stop fighting for a while."
-END
-
-CONTROLBAR:Euro_Command_A10ThunderboltMissileStrike
-"&Typhoon Strike"
-END
-
-CONTROLBAR:ToolTipEuro_Command_A10ThunderboltMissileStrike
-"Strike jets fire missiles at the target area."
+SCIENCE:EuroCoalition
+"Coalition Reinforcements"
 END
 
 CONTROLBAR:Euro_Command_Paradrop
@@ -424,14 +400,6 @@ CONTROLBAR:ToolTipEuro_Command_EmergencyRepair
 "Repairs vehicles in the area."
 END
 
-CONTROLBAR:Euro_Command_DaisyCutter
-"&Thermobaric Strike"
-END
-
-CONTROLBAR:ToolTipEuro_Command_DaisyCutter
-"A heavy bomb that flattens everything in a wide area."
-END
-
 CONTROLBAR:Euro_Command_SpySatelliteScan
 "&Galileo Scan"
 END
@@ -440,12 +408,20 @@ CONTROLBAR:ToolTipEuro_Command_SpySatelliteScan
 "A satellite reveals any part of the map for a while."
 END
 
-CONTROLBAR:Euro_Command_SpyDroneFromShortcut
-"&Recon UAV"
+CONTROLBAR:Euro_Command_ArtilleryBarrage
+"&Artillery Barrage"
 END
 
-CONTROLBAR:ToolTipEuro_Command_SpyDroneFromShortcut
-"A drone that watches an area and reveals stealthed units."
+CONTROLBAR:ToolTipEuro_Command_ArtilleryBarrage
+"Heavy guns far behind the lines shell the target area."
+END
+
+CONTROLBAR:Euro_Command_Coalition
+"&Coalition Reinforcements"
+END
+
+CONTROLBAR:ToolTipEuro_Command_Coalition
+"Allied transports drop two Boxers and a company of riflemen at the target."
 END
 
 CONTROLBAR:Euro_Command_ParadropFromShortcut
@@ -456,12 +432,20 @@ CONTROLBAR:ToolTipEuro_Command_ParadropFromShortcut
 "Paratroopers land at the target."
 END
 
-CONTROLBAR:Euro_Command_A10ThunderboltMissileStrikeFromShortcut
-"&Typhoon Strike"
+CONTROLBAR:Euro_Command_ArtilleryBarrageFromShortcut
+"&Artillery Barrage"
 END
 
-CONTROLBAR:ToolTipEuro_Command_A10ThunderboltMissileStrikeFromShortcut
-"Strike jets fire missiles at the target area."
+CONTROLBAR:ToolTipEuro_Command_ArtilleryBarrageFromShortcut
+"Heavy guns far behind the lines shell the target area."
+END
+
+CONTROLBAR:Euro_Command_CoalitionFromShortcut
+"&Coalition Reinforcements"
+END
+
+CONTROLBAR:ToolTipEuro_Command_CoalitionFromShortcut
+"Allied transports drop two Boxers and a company of riflemen at the target."
 END
 
 CONTROLBAR:Euro_Command_EmergencyRepairFromShortcut
@@ -472,12 +456,12 @@ CONTROLBAR:ToolTipEuro_Command_EmergencyRepairFromShortcut
 "Repairs vehicles in the area."
 END
 
-CONTROLBAR:Euro_Command_DaisyCutterFromShortcut
-"&Thermobaric Strike"
+CONTROLBAR:Euro_Command_SpyDroneFromShortcut
+"&Recon UAV"
 END
 
-CONTROLBAR:ToolTipEuro_Command_DaisyCutterFromShortcut
-"A heavy bomb that flattens everything in a wide area."
+CONTROLBAR:ToolTipEuro_Command_SpyDroneFromShortcut
+"A drone that watches an area and reveals stealthed units."
 END
 
 CONTROLBAR:Euro_Command_FireParticleUplinkCannonFromShortcut
@@ -504,36 +488,12 @@ CONTROLBAR:ToolTipEuro_Command_CIAIntelligenceFromShortcut
 "Reveals what the enemy is building."
 END
 
-CONTROLBAR:Euro_Command_SpectreGunshipFromShortcut
-"&A400M Gunship"
-END
-
-CONTROLBAR:ToolTipEuro_Command_SpectreGunshipFromShortcut
-"A gunship circles the target and fires on everything below."
-END
-
-CONTROLBAR:Euro_Command_LeafletDropFromShortcut
-"&Information Strike"
-END
-
-CONTROLBAR:ToolTipEuro_Command_LeafletDropFromShortcut
-"Leaflets and broadcasts: enemy units in the area stop fighting for a while."
-END
-
 CONTROLBAR:Euro_Command_PurchaseSciencePaladinTank
 "&Leclerc Tank"
 END
 
 CONTROLBAR:ToolTipEuro_Command_PurchaseSciencePaladinTank
 "Lets the Armour Works build the Leclerc heavy tank."
-END
-
-CONTROLBAR:Euro_Command_PurchaseScienceStealthFighter
-"&Rafale"
-END
-
-CONTROLBAR:ToolTipEuro_Command_PurchaseScienceStealthFighter
-"Lets the Air Base build the Rafale strike fighter."
 END
 
 CONTROLBAR:Euro_Command_PurchaseScienceSpyDrone
@@ -576,28 +536,28 @@ CONTROLBAR:ToolTipEuro_Command_PurchaseScienceParadrop3
 "Paratroopers land at the target. A whole company."
 END
 
-CONTROLBAR:Euro_Command_PurchaseScienceA10ThunderboltMissileStrike1
-"&Typhoon Strike"
+CONTROLBAR:Euro_Command_PurchaseScienceEuroArtilleryBarrage1
+"&Artillery Barrage"
 END
 
-CONTROLBAR:ToolTipEuro_Command_PurchaseScienceA10ThunderboltMissileStrike1
-"Strike jets fire missiles at the target area."
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEuroArtilleryBarrage1
+"Heavy guns far behind the lines shell the target area."
 END
 
-CONTROLBAR:Euro_Command_PurchaseScienceA10ThunderboltMissileStrike2
-"&Typhoon Strike 2"
+CONTROLBAR:Euro_Command_PurchaseScienceEuroArtilleryBarrage2
+"&Artillery Barrage 2"
 END
 
-CONTROLBAR:ToolTipEuro_Command_PurchaseScienceA10ThunderboltMissileStrike2
-"Strike jets fire missiles at the target area. More jets."
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEuroArtilleryBarrage2
+"Heavy guns far behind the lines shell the target area. More guns."
 END
 
-CONTROLBAR:Euro_Command_PurchaseScienceA10ThunderboltMissileStrike3
-"&Typhoon Strike 3"
+CONTROLBAR:Euro_Command_PurchaseScienceEuroArtilleryBarrage3
+"&Artillery Barrage 3"
 END
 
-CONTROLBAR:ToolTipEuro_Command_PurchaseScienceA10ThunderboltMissileStrike3
-"Strike jets fire missiles at the target area. A full squadron."
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEuroArtilleryBarrage3
+"Heavy guns far behind the lines shell the target area. A whole regiment."
 END
 
 CONTROLBAR:Euro_Command_PurchaseScienceEmergencyRepair1
@@ -624,26 +584,10 @@ CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEmergencyRepair3
 "Repairs vehicles in the area. Faster still."
 END
 
-CONTROLBAR:Euro_Command_PurchaseScienceDaisyCutter
-"&Thermobaric Strike"
+CONTROLBAR:Euro_Command_PurchaseScienceEuroCoalition
+"&Coalition Reinforcements"
 END
 
-CONTROLBAR:ToolTipEuro_Command_PurchaseScienceDaisyCutter
-"A heavy bomb that flattens everything in a wide area."
-END
-
-CONTROLBAR:Euro_Command_PurchaseScienceLeafletDrop
-"&Information Strike"
-END
-
-CONTROLBAR:ToolTipEuro_Command_PurchaseScienceLeafletDrop
-"Leaflets and broadcasts: enemy units in the area stop fighting for a while."
-END
-
-CONTROLBAR:Euro_Command_PurchaseScienceSpectreGunship
-"&A400M Gunship"
-END
-
-CONTROLBAR:ToolTipEuro_Command_PurchaseScienceSpectreGunship
-"A gunship circles the target and fires on everything below."
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEuroCoalition
+"Allied transports drop two Boxers and a company of riflemen at the target."
 END

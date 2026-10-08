@@ -185,7 +185,7 @@ BUILDINGS = [
               + ["  End", "End"]])),
     ("Euro_PatriotBattery", "AmericaPatriotBattery", "SAMP/T Battery",
      "Long range missile defence against aircraft and vehicles.",
-     dict(pre=[["Euro_PowerPlant"]], weapons={"PatriotMissileWeapon": "Euro_SampMissile",
+     dict(cost=850, pre=[["Euro_PowerPlant"]], weapons={"PatriotMissileWeapon": "Euro_SampMissile",
                                              "PatriotMissileWeaponAir": "Euro_SampMissileAir"},
           extra=building_draw("EUSAMP", remove=("ModuleTag_02", "ModuleTag_03"), state_lines=(
               "Turret = TURRET01", "TurretPitch = TURRETEL",
@@ -193,7 +193,7 @@ BUILDINGS = [
                 for slot in ("PRIMARY", "SECONDARY", "TERTIARY")))))),
     ("Euro_FireBase", "AmericaFireBase", "Artillery Bastion",
      "A fortified howitzer that outranges ground attackers. Infantry can garrison it.",
-     dict(pre=[["Euro_PowerPlant"]], weapons={"FireBaseHowitzerGun": "Euro_BastionHowitzer"},
+     dict(cost=800, pre=[["Euro_PowerPlant"]], weapons={"FireBaseHowitzerGun": "Euro_BastionHowitzer"},
           extra=building_draw("EUBAST", remove=("ModuleTag_02", "ModuleTag_03"), state_lines=(
               "Turret = TURRET01", "TurretPitch = TURRETEL", "WeaponMuzzleFlash = PRIMARY MuzzleFX",
               "WeaponRecoilBone = PRIMARY Barrel", "WeaponLaunchBone = PRIMARY MUZZLE01",
@@ -248,7 +248,7 @@ UNITS = [
          "End"])),
     ("Euro_Rifleman", "AmericaInfantryRanger", "Rifleman",
      "Line infantry with a longer reach than most foot soldiers.",
-     dict(cost=250, time=5.5, pre=[["Euro_Barracks"]], weapons={"RangerAdvancedCombatRifle": "Euro_RiflemanRifle"})),
+     dict(cost=200, time=5, pre=[["Euro_Barracks"]], weapons={"RangerAdvancedCombatRifle": "Euro_RiflemanRifle"})),
     ("Euro_Milan", "AmericaInfantryMissileDefender", "MILAN Team",
      "Anti-tank missiles, guided much further with their laser designator.",
      dict(cost=325, time=5.5, pre=[["Euro_Barracks"]],
@@ -263,7 +263,10 @@ UNITS = [
     ("Euro_Boxer", "AmericaVehicleHumvee", "Boxer",
      "An armoured infantry fighting vehicle for five soldiers. Its 30 mm cannon hunts vehicles, its machine gun "
      "infantry, and its laser shoots down incoming missiles.",
-     dict(cost=1000, time=12, pre=[["Euro_WarFactory"]], command="Euro_BoxerCommandSet",
+     dict(cost=800, time=10, pre=[["Euro_WarFactory"]], command="Euro_BoxerCommandSet",
+          # It can be dropped by the Coalition Reinforcements power, on a crate parachute.
+          fields={"KindOf": "PRELOAD SELECTABLE CAN_ATTACK ATTACK_NEEDS_LINE_OF_SIGHT CAN_CAST_REFLECTIONS VEHICLE SCORE "
+                            "TRANSPORT PARACHUTABLE"},
           health=("ModuleTag_02", 270, True),
           extra=[
               # Two guns on the turret: the game picks the better one for each target.
@@ -304,12 +307,12 @@ UNITS = [
               "End"])),
     ("Euro_Leopard", "AmericaTankCrusader", "Leopard 2",
      "Main battle tank: hard to kill, accurate, a little longer reach than other tanks.",
-     dict(cost=1000, time=11, pre=[["Euro_WarFactory"]], command="Euro_VehicleCommandSet",
+     dict(cost=1100, time=12, pre=[["Euro_WarFactory"]], command="Euro_VehicleCommandSet",
           health=("ModuleTag_02", 500, True), weapons={"CrusaderTankGun": "Euro_LeopardGun"},
           extra=tank_draw("EULEO", "Turret"))),
     ("Euro_Leclerc", "AmericaTankPaladin", "Leclerc",
      "A heavy tank whose laser shoots down incoming missiles and shells for the whole group.",
-     dict(cost=1200, time=13, pre=[["Euro_WarFactory"]], science="SCIENCE_PaladinTank", command="Euro_VehicleCommandSet",
+     dict(cost=1350, time=14, pre=[["Euro_WarFactory"]], science="SCIENCE_PaladinTank", command="Euro_VehicleCommandSet",
           health=("ModuleTag_02", 520, True), weapons={"PaladinTankGun": "Euro_LeclercGun"},
           extra=tank_draw("EULEC", "Turret01", module_lines=("ExtraPublicBone = Laser",)))),
     ("Euro_Puls", "AmericaVehicleTomahawk", "PULS Launcher",
@@ -500,7 +503,8 @@ UNITS = [
               "    End",
               "  End",
               "End"])),
-    ("Euro_NH90", "AmericaVehicleChinook", "NH90", "A transport helicopter that also carries supplies.",
+    ("Euro_NH90", "AmericaVehicleChinook", "NH90",
+     "A transport helicopter that also carries supplies. Its passengers fire from its doors.",
      dict(pre=[["Euro_SupplyCenter"]],
           # Its own model (scripts/models/nh90.py), the rotors spun by its own animation; the Chinook's
           # cargo net (ModuleTag_02) still hangs below it with the supplies.
@@ -522,6 +526,18 @@ UNITS = [
               "      Model = EUNH90_D",
               "      HideSubObject = Props01",
               "    End",
+              "  End",
+              "End",
+              # Mechanised infantry: the troops it carries shoot from its doors.
+              "ReplaceModule ModuleTag_08",
+              "  Behavior = TransportContain ModuleTag_Euro_08",
+              "    Slots = 8",
+              "    DamagePercentToUnits = 100%",
+              "    AllowInsideKindOf = INFANTRY VEHICLE",
+              "    ForbidInsideKindOf = AIRCRAFT HUGE_VEHICLE",
+              "    ExitDelay = 100",
+              "    NumberOfExitPaths = 1",
+              "    PassengersAllowedToFire = Yes",
               "  End",
               "End"])),
 ]
@@ -581,10 +597,10 @@ COMMAND_SETS = {
                              4: "Euro_FundsOffice", 5: "Euro_SupplyCenter", 6: "Euro_ParticleCannonUplink",
                              7: "Euro_PatriotBattery", 8: "Euro_CommandCenter", 9: "Euro_FireBase",
                              11: "Euro_WarFactory", 13: "Euro_Airfield", 14: "Command_DisarmMinesAtPosition"},
-    "Euro_CommandCenterCommandSet": {1: "Euro_Dozer", 2: "Euro_Command_SpectreGunship", 4: "Euro_Command_LeafletDrop",
-                                     5: "Euro_Command_A10ThunderboltMissileStrike", 6: "Euro_Command_Paradrop",
-                                     7: "Euro_Command_SpyDrone", 8: "Euro_Command_EmergencyRepair", 9: "Euro_Command_DaisyCutter",
-                                     10: "Euro_Command_SpySatelliteScan", 13: "Command_SetRallyPoint", 14: "Command_Sell"},
+    "Euro_CommandCenterCommandSet": {1: "Euro_Dozer", 2: "Euro_Command_ArtilleryBarrage", 4: "Euro_Command_Coalition",
+                                     6: "Euro_Command_Paradrop", 7: "Euro_Command_SpyDrone",
+                                     8: "Euro_Command_EmergencyRepair", 10: "Euro_Command_SpySatelliteScan",
+                                     13: "Command_SetRallyPoint", 14: "Command_Sell"},
     "Euro_BarracksCommandSet": {1: "Euro_Rifleman", 2: "Euro_Milan", 3: "Euro_Commando", 4: "Euro_Marksman",
                                 7: "Command_UpgradeAmericaRangerFlashBangGrenade",
                                 8: "Command_UpgradeAmericaRangerCaptureBuilding",
@@ -593,7 +609,7 @@ COMMAND_SETS = {
                                   5: "Euro_Leclerc", 6: "Euro_ReconDrone", 7: "Euro_Skyranger", 8: "Euro_Wiesel",
                                   9: "Command_UpgradeAmericaSentryDroneGun", 11: "Command_UpgradeAmericaTOWMissile",
                                   13: "Command_SetRallyPoint", 14: "Command_Sell"},
-    "Euro_AirfieldCommandSet": {1: "Euro_Typhoon", 2: "Euro_Tiger", 3: "Euro_Tornado", 4: "Euro_Rafale",
+    "Euro_AirfieldCommandSet": {1: "Euro_Typhoon", 2: "Euro_Tiger",
                                 7: "Command_UpgradeComancheRocketPods", 8: "Command_UpgradeAmericaLaserMissiles",
                                 9: "Command_UpgradeAmericaCountermeasures", 10: "Command_UpgradeAmericaBunkerBusters",
                                 13: "Command_SetRallyPoint", 14: "Command_Sell"},
@@ -622,6 +638,67 @@ POWERS = {
     "FireParticleUplinkCannon": ("Orbital Lance", "Fires the satellite beam."),
     "CIAIntelligence": ("Intelligence Report", "Reveals what the enemy is building."),
 }
+# Europe's own powers (the fortress general): a power of its own (SPECIAL_POWERS), a research to buy it
+# (SCIENCES) and buttons copied from another faction's, pointed at them.
+NEW_POWERS = {
+    "ArtilleryBarrage": dict(
+        text="Artillery Barrage", description="Heavy guns far behind the lines shell the target area.",
+        button="Command_ArtilleryBarrage", shortcut="Command_ArtilleryBarrageFromShortcut",
+        fields=["SpecialPower = Euro_SuperweaponArtilleryBarrage",
+                "Science = SCIENCE_EuroArtilleryBarrage1 SCIENCE_EuroArtilleryBarrage2 SCIENCE_EuroArtilleryBarrage3"]),
+    "Coalition": dict(
+        text="Coalition Reinforcements",
+        description="Allied transports drop two Boxers and a company of riflemen at the target.",
+        button="Command_Paradrop", shortcut="Command_ParadropFromShortcut",
+        fields=["SpecialPower = Euro_SuperweaponCoalition", "Science = SCIENCE_EuroCoalition"]),
+}
+POWERS.update({k: (v["text"], v["description"]) for k, v in NEW_POWERS.items()})
+# Their researches: (prerequisites, purchase button to copy, name, description).
+SCIENCES = {
+    "EuroArtilleryBarrage1": ("SCIENCE_AMERICA SCIENCE_Rank3", "Command_PurchaseScienceArtilleryBarrage1",
+                              "Artillery Barrage", NEW_POWERS["ArtilleryBarrage"]["description"]),
+    "EuroArtilleryBarrage2": ("SCIENCE_EuroArtilleryBarrage1 SCIENCE_Rank3", "Command_PurchaseScienceArtilleryBarrage2",
+                              "Artillery Barrage 2", NEW_POWERS["ArtilleryBarrage"]["description"] + " More guns."),
+    "EuroArtilleryBarrage3": ("SCIENCE_EuroArtilleryBarrage2 SCIENCE_Rank3", "Command_PurchaseScienceArtilleryBarrage3",
+                              "Artillery Barrage 3", NEW_POWERS["ArtilleryBarrage"]["description"] + " A whole regiment."),
+    "EuroCoalition": ("SCIENCE_AMERICA SCIENCE_Rank8", "Command_PurchaseScienceParadrop1",
+                      "Coalition Reinforcements", NEW_POWERS["Coalition"]["description"]),
+}
+SPECIAL_POWERS = [
+    "SpecialPower Euro_SuperweaponArtilleryBarrage", "  Enum = SPECIAL_ARTILLERY_BARRAGE", "  ReloadTime = 300000",
+    "  RequiredScience = SCIENCE_EuroArtilleryBarrage1", "  InitiateSound = FireArtilleryCannonSound", "  PublicTimer = No",
+    "  SharedSyncedTimer = Yes", "  ViewObjectDuration = 30000", "  ViewObjectRange = 250", "  RadiusCursorRadius = 125",
+    "  ShortcutPower = Yes", "  AcademyClassify = ACT_SUPERPOWER", "End", "",
+    "SpecialPower Euro_SuperweaponCoalition", "  Enum = SPECIAL_PARADROP_AMERICA", "  ReloadTime = 360000",
+    "  RequiredScience = SCIENCE_EuroCoalition", "  PublicTimer = No", "  SharedSyncedTimer = Yes",
+    "  RadiusCursorRadius = 60", "  ShortcutPower = Yes", "  AcademyClassify = ACT_SUPERPOWER", "End", "",
+]
+# Coalition Reinforcements: one transport drops the Boxers on crate parachutes, another the riflemen.
+DROP = ["  StartAtPreferredHeight = Yes", "  StartAtMaxSpeed = Yes", "  MaxAttempts = 4", "  DropOffset = X:0 Y:0 Z:-10",
+        "  DropDelay = 300", "  ParachuteDirectly = Yes", "  DeliveryDistance = 0", "  PreOpenDistance = 300"]
+OBJECT_CREATION_LISTS = [
+    "ObjectCreationList Euro_OCL_Coalition",
+    "  DeliverPayload", "    Transport = AmericaJetCargoPlane", "    PutInContainer = AmericaCrateParachute",
+    "    Payload = Euro_Boxer 2"] + ["  " + line for line in DROP] + ["  End",
+    "  DeliverPayload", "    Transport = AmericaJetCargoPlane", "    PutInContainer = AmericaParachute",
+    "    Payload = Euro_Rifleman 8"] + ["  " + line for line in DROP] + ["  End", "End", ""]
+# The Command Centre fires them.
+MODULES_COMMAND_CENTRE = [
+    "Behavior = OCLSpecialPower ModuleTag_Euro_Barrage",
+    "  SpecialPowerTemplate = Euro_SuperweaponArtilleryBarrage",
+    "  UpgradeOCL = SCIENCE_EuroArtilleryBarrage3 SUPERWEAPON_ArtilleryBarrage3",
+    "  UpgradeOCL = SCIENCE_EuroArtilleryBarrage2 SUPERWEAPON_ArtilleryBarrage2",
+    "  OCL = SUPERWEAPON_ArtilleryBarrage1",
+    "  CreateLocation = CREATE_AT_EDGE_FARTHEST_FROM_TARGET",
+    "End",
+    "Behavior = OCLSpecialPower ModuleTag_Euro_Coalition",
+    "  SpecialPowerTemplate = Euro_SuperweaponCoalition",
+    "  OCL = Euro_OCL_Coalition",
+    "  CreateLocation = CREATE_AT_EDGE_NEAR_SOURCE",
+    "  OCLAdjustPositionToPassable = Yes",
+    "End",
+]
+
 # Promotions: the purchase button's science (without Command_PurchaseScience) and its European name.
 PROMOTIONS = {
     "PaladinTank": ("Leclerc Tank", "Lets the Armour Works build the Leclerc heavy tank."),
@@ -642,17 +719,14 @@ PROMOTIONS = {
     "SpectreGunship": POWERS["SpectreGunship"],
 }
 PROMOTION_MENUS = {
-    "Euro_SCIENCE_CommandSetRank1": {1: "PaladinTank", 2: "StealthFighter", 3: "SpyDrone"},
+    "Euro_SCIENCE_CommandSetRank1": {1: "PaladinTank", 3: "SpyDrone"},
     "Euro_SCIENCE_CommandSetRank3": {1: "Pathfinder", 4: "Paradrop1", 5: "Paradrop2", 6: "Paradrop3",
-                                     7: "A10ThunderboltMissileStrike1", 8: "A10ThunderboltMissileStrike2",
-                                     9: "A10ThunderboltMissileStrike3", 10: "EmergencyRepair1",
-                                     11: "EmergencyRepair2", 12: "EmergencyRepair3"},
-    "Euro_SCIENCE_CommandSetRank8": {1: "DaisyCutter", 2: "LeafletDrop", 3: "SpectreGunship",
-                                     4: "Command_FAKECOMMAND_PurchaseScienceMOAB"},
+                                     7: "EuroArtilleryBarrage1", 8: "EuroArtilleryBarrage2", 9: "EuroArtilleryBarrage3",
+                                     10: "EmergencyRepair1", 11: "EmergencyRepair2", 12: "EmergencyRepair3"},
+    "Euro_SCIENCE_CommandSetRank8": {1: "EuroCoalition"},
 }
-SHORTCUTS = {1: "SpyDrone", 2: "Paradrop", 3: "A10ThunderboltMissileStrike", 4: "EmergencyRepair", 5: "DaisyCutter",
-             6: "FireParticleUplinkCannon", 7: "SpySatelliteScan", 8: "CIAIntelligence", 9: "SpectreGunship",
-             10: "LeafletDrop"}
+SHORTCUTS = {1: "Paradrop", 2: "ArtilleryBarrage", 3: "Coalition", 4: "EmergencyRepair", 5: "SpyDrone",
+             6: "FireParticleUplinkCannon", 7: "SpySatelliteScan", 8: "CIAIntelligence"}
 # Each power's buttons show Euro_Power<power>; each promotion its own picture.
 PROMOTION_PICTURES = {
     "PaladinTank": "Euro_Leclerc", "StealthFighter": "Euro_Rafale", "Pathfinder": "Euro_Marksman",
@@ -763,9 +837,9 @@ HOTKEYS = {
 
 FACTION = {
     "name": "Europe",
-    "strategy": "Precision and protection: a small, expensive army that sees first, shoots accurately and shoots down "
-                "missiles, weak when swarmed early.",
-    "features": "Long range artillery, active protection, the best air defence, subsidies",
+    "strategy": "Fortress and combined arms: mechanised infantry in Boxers, forward outposts and the strongest "
+                "defences, advancing step by step behind its artillery. Slow to start, with a small air force.",
+    "features": "Mechanised infantry, forward outposts, artillery and fortifications, subsidies",
 }
 
 
@@ -793,6 +867,11 @@ def main():
         logic.append(f"ChildWeapon {name} {parent}")
         logic += [f"  {k} = {v}" for k, v in changes.items()]
         logic += ["End", ""]
+    for key, (prerequisites, _, display, description) in SCIENCES.items():
+        logic += [f"Science SCIENCE_{key}", f"  PrerequisiteSciences = {prerequisites}", "  SciencePurchasePointCost = 1",
+                  "  IsGrantable = Yes", f"  DisplayName = SCIENCE:{key}",
+                  f"  Description = CONTROLBAR:ToolTipEuro_Command_PurchaseScience{key}", "End", ""]
+    logic += SPECIAL_POWERS + OBJECT_CREATION_LISTS
     for name, parent, display, _, c in objects:
         logic.append(f"ChildObject {name} {parent}")
         logic.append(f"  DisplayName = OBJECT:{name}")
@@ -825,6 +904,8 @@ def main():
             logic += ["    End", "  End"]
         logic += [f"  {line}" for line in c.get("extra", [])]
         logic += [f"  {line}" for line in MODULES.get(name, [])]
+        if name == "Euro_CommandCenter":
+            logic += [f"  {line}" for line in MODULES_COMMAND_CENTRE]
         logic += [f"  TextureReplace = {t} {european_texture(t)}" for t in TEXTURES.get(name, [])]
         logic += ["End", ""]
 
@@ -916,22 +997,32 @@ def main():
                    f"  TextLabel = CONTROLBAR:{button}", f"  DescriptLabel = CONTROLBAR:ToolTip{button}",
                    f"  ButtonImage = {picture}", "  ButtonBorderType = UPGRADE", "End", ""]
 
-    def child_button(parent, name, text, description, image=None):
+    def child_button(parent, name, text, description, image=None, fields=()):
         nonlocal client
         client += [f"ChildCommandButton {name} {parent}", f"  TextLabel = CONTROLBAR:{name}",
-                   f"  DescriptLabel = CONTROLBAR:ToolTip{name}"] + ([f"  ButtonImage = {image}"] if image else []) + ["End", ""]
+                   f"  DescriptLabel = CONTROLBAR:ToolTip{name}"] + ([f"  ButtonImage = {image}"] if image else []) + \
+                  [f"  {line}" for line in fields] + ["End", ""]
         power_labels[name] = (text, description)
         return name
 
     used = {entry for slots in COMMAND_SETS.values() for entry in slots.values()}
+    def power_image(power):
+        return None if power in NEW_POWERS else f"Euro_Power{power}"  # new ones keep their parent's picture for now
+
     for power, (text, description) in POWERS.items():
         if f"Euro_Command_{power}" in used:
-            child_button(f"Command_{power}", f"Euro_Command_{power}", text, description, f"Euro_Power{power}")
-    shortcut = {slot: child_button(f"Command_{p}FromShortcut", f"Euro_Command_{p}FromShortcut", *POWERS[p], f"Euro_Power{p}")
+            new = NEW_POWERS.get(power, {})
+            child_button(new.get("button", f"Command_{power}"), f"Euro_Command_{power}", text, description,
+                         power_image(power), new.get("fields", ()))
+    shortcut = {slot: child_button(NEW_POWERS.get(p, {}).get("shortcut", f"Command_{p}FromShortcut"),
+                                   f"Euro_Command_{p}FromShortcut", *POWERS[p], power_image(p),
+                                   NEW_POWERS.get(p, {}).get("fields", ()))
                 for slot, p in SHORTCUTS.items()}
     menus = {}
     for menu, slots in PROMOTION_MENUS.items():
         menus[menu] = {slot: entry if entry.startswith("Command_") else
+                       child_button(SCIENCES[entry][1], f"Euro_Command_PurchaseScience{entry}", *SCIENCES[entry][2:],
+                                    fields=[f"Science = SCIENCE_{entry}"]) if entry in SCIENCES else
                        child_button(f"Command_PurchaseScience{entry}", f"Euro_Command_PurchaseScience{entry}", *PROMOTIONS[entry],
                                     PROMOTION_PICTURES.get(entry))
                        for slot, entry in slots.items()}
@@ -969,6 +1060,9 @@ def main():
         string(f"UPGRADE:{name}", display)
         string(f"CONTROLBAR:{button}", label(display, display[0]))
         string(f"CONTROLBAR:ToolTip{button}", description)
+
+    for key, (_, _, display, _) in SCIENCES.items():
+        string(f"SCIENCE:{key}", display)
 
     for name, (text, description) in power_labels.items():
         string(f"CONTROLBAR:{name}", label(text, text[0]))
