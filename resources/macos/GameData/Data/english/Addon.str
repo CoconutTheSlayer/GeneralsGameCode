@@ -264,6 +264,10 @@ CONTROLBAR:ToolTipEuro_Command_ConstructSkyranger
 "Air defence that tracks aircraft and marks targets for the army."
 END
 
+OBJECT:Euro_SkyrangerTurret
+"Skyranger"
+END
+
 OBJECT:Euro_Wiesel
 "Wiesel EW"
 END
@@ -369,7 +373,7 @@ CONTROLBAR:Euro_Command_UpgradeGreenDeal
 END
 
 CONTROLBAR:ToolTipEuro_Command_UpgradeGreenDeal
-"Every Fusion Plant receives a subsidy: $4 every 4 seconds."
+"Every Fusion Plant receives a subsidy: $3 every 4 seconds."
 END
 
 CONTROLBAR:Euro_Command_SpectreGunship

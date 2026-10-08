@@ -45,6 +45,44 @@ WEAPONS = [
     ("Euro_BastionHowitzer", "FireBaseHowitzerGun", {"AttackRange": 300}),
 ]
 
+def tank_draw(model, turret, module_lines=()):
+    """A tracked vehicle drawn with its own model (scripts/models/leopard.py, leclerc.py): the USA tank's draw
+    module replaced by one with the same bones (Turret, TurretMS, Barrel, TurretFX) and scrolling treads."""
+    lines = ["ReplaceModule ModuleTag_01", "  Draw = W3DTankDraw ModuleTag_Euro_01", "    OkToChangeModelColor = Yes"]
+    lines += [f"    {line}" for line in module_lines]
+    for state, suffix in (("NONE", ""), ("REALLYDAMAGED", "_D"), ("RUBBLE", "_D")):
+        lines += [f"    ConditionState = {state}", f"      Model = {model}{suffix}", f"      Turret = {turret}",
+                  "      WeaponFireFXBone = PRIMARY TurretMS", "      WeaponRecoilBone = PRIMARY Barrel",
+                  "      WeaponMuzzleFlash = PRIMARY TurretFX", "      WeaponLaunchBone = PRIMARY TurretMS", "    End"]
+    lines += ["    TrackMarks = EXTnkTrack.tga", "    TreadAnimationRate = 2.0", "    TreadDriveSpeedFraction = 0.3",
+              "    TreadPivotSpeedFraction = 0.6", "  End", "End"]
+    return lines
+
+
+def jet_draw(model, burners):
+    """A jet drawn with its own model (scripts/models/typhoon.py, rafale.py, tornado.py): the USA jet's draw
+    module replaced by one with the same states and bones (WeaponA, Engine, Wingtip, Smoke), the afterburner
+    flames `burners` shown only with the afterburner, the damaged model also as the crashed wreck."""
+    flames = " ".join(burners)
+    trails = ["ParticleSysBone = Wingtip01 JetContrail", "ParticleSysBone = Wingtip02 JetContrail"]
+    burning = [f"ShowSubObject = {flames}", "ParticleSysBone = Engine01 JetLenzflare",
+               "ParticleSysBone = Engine02 JetLenzflare"]
+    smoke = ["ParticleSysBone = Smoke01 JetSmoke", "ParticleSysBone = Engine01 JetEngineDamagedSmoke"]
+    states = [("JETEXHAUST", "", trails), ("JETEXHAUST JETAFTERBURNER", "", trails + burning),
+              ("REALLYDAMAGED", "_D", smoke), ("REALLYDAMAGED JETEXHAUST", "_D", smoke + trails),
+              ("REALLYDAMAGED JETEXHAUST JETAFTERBURNER", "_D", smoke + trails + burning),
+              ("RUBBLE", "_D", []),
+              ("RUBBLE JETEXHAUST JETAFTERBURNER", "_D",
+               ["ParticleSysBone = Engine01 JetExhaust", "ParticleSysBone = Engine02 JetExhaust"] + trails)]
+    lines = ["ReplaceModule ModuleTag_01", "  Draw = W3DModelDraw ModuleTag_Euro_01", "    OkToChangeModelColor = Yes",
+             "    DefaultConditionState", f"      Model = {model}", f"      HideSubObject = {flames}",
+             "      WeaponLaunchBone = PRIMARY WeaponA", "    End"]
+    for state, suffix, state_lines in states:
+        lines += [f"    ConditionState = {state}", f"      Model = {model}{suffix}"]
+        lines += [f"      {line}" for line in state_lines] + ["    End"]
+    return lines + ["  End", "End"]
+
+
 def building_draw(model, remove=(), state_lines=(), particles=None, module_lines=()):
     """A building's own model (scripts/models): intact, damaged and wrecked, each also at night, rising
     out of the ground while it is built. `remove`: the parent's other draw modules (its add-on parts).
@@ -183,7 +221,31 @@ BUILDINGS = [
 
 UNITS = [
     ("Euro_Dozer", "AmericaVehicleDozer", "Engineer Vehicle", "Builds and repairs the base, and clears mines.",
-     dict(command="Euro_DozerCommandSet")),
+     dict(command="Euro_DozerCommandSet", extra=[
+         # Its own model (scripts/models/engineer.py), tracked; at work (building, repairing, clearing mines)
+         # the arm swings forward to dig and the blade comes down (EUDOZ_W). A tank's draw module, not the
+         # parent's truck one: ReplaceModule only takes the same kind, so the old one goes and the new one is added.
+         "RemoveModule ModuleTag_01",
+         "AddModule",
+         "  Draw = W3DTankDraw ModuleTag_Euro_01",
+         "    OkToChangeModelColor = Yes",
+     ] + [line for state, model, smoke, dirt in (
+         ("NONE", "EUDOZ", "DozerSmokeLight", False),
+         ("MOVING", "EUDOZ", "DozerSmokeHeavy", False),
+         ("ACTIVELY_CONSTRUCTING", "EUDOZ_W", "DozerSmokeHeavy", True),
+         ("PREATTACK_A", "EUDOZ_W", "DozerSmokeHeavy", True),
+         ("REALLYDAMAGED", "EUDOZ_D", "DozerSmokeHeavy", False),
+         ("MOVING REALLYDAMAGED", "EUDOZ_D", "DozerSmokeHeavy", False),
+         ("ACTIVELY_CONSTRUCTING REALLYDAMAGED", "EUDOZ_WD", "DozerSmokeHeavy", True),
+         ("PREATTACK_A REALLYDAMAGED", "EUDOZ_WD", "DozerSmokeHeavy", True),
+     ) for line in [f"    ConditionState = {state}", f"      Model = {model}",
+                    f"      ParticleSysBone = EXHAUSTFX01 {smoke}"]
+         + (["      ParticleSysBone = DIRTFX01 DozerDirtFall", "      ParticleSysBone = DIRTFX02 DozerDirtFall"] if dirt else [])
+         + ["    End"]] + [
+         "    TrackMarks = EXTnkTrack.tga",
+         "    TreadAnimationRate = 4.0",
+         "  End",
+         "End"])),
     ("Euro_Rifleman", "AmericaInfantryRanger", "Rifleman",
      "Line infantry with a longer reach than most foot soldiers.",
      dict(cost=250, time=5.5, pre=[["Euro_Barracks"]], weapons={"RangerAdvancedCombatRifle": "Euro_RiflemanRifle"})),
@@ -243,72 +305,255 @@ UNITS = [
     ("Euro_Leopard", "AmericaTankCrusader", "Leopard 2",
      "Main battle tank: hard to kill, accurate, a little longer reach than other tanks.",
      dict(cost=1000, time=11, pre=[["Euro_WarFactory"]], command="Euro_VehicleCommandSet",
-          health=("ModuleTag_02", 500, True), weapons={"CrusaderTankGun": "Euro_LeopardGun"})),
+          health=("ModuleTag_02", 500, True), weapons={"CrusaderTankGun": "Euro_LeopardGun"},
+          extra=tank_draw("EULEO", "Turret"))),
     ("Euro_Leclerc", "AmericaTankPaladin", "Leclerc",
      "A heavy tank whose laser shoots down incoming missiles and shells for the whole group.",
      dict(cost=1200, time=13, pre=[["Euro_WarFactory"]], science="SCIENCE_PaladinTank", command="Euro_VehicleCommandSet",
-          health=("ModuleTag_02", 520, True), weapons={"PaladinTankGun": "Euro_LeclercGun"})),
+          health=("ModuleTag_02", 520, True), weapons={"PaladinTankGun": "Euro_LeclercGun"},
+          extra=tank_draw("EULEC", "Turret01", module_lines=("ExtraPublicBone = Laser",)))),
     ("Euro_Puls", "AmericaVehicleTomahawk", "PULS Launcher",
      "Rocket artillery with the longest reach in the war. Needs eyes: a Recon Drone or other spotter.",
      dict(cost=1300, time=22, pre=[["Euro_WarFactory"], ["Euro_StrategyCenter"]], command="Euro_VehicleCommandSet",
-          health=("ModuleTag_02", 200, True), weapons={"TomahawkMissileWeapon": "Euro_PulsRocket"})),
+          health=("ModuleTag_02", 200, True), weapons={"TomahawkMissileWeapon": "Euro_PulsRocket"},
+          extra=[
+              # Its own model (scripts/models/puls.py): the pods elevate on TURRETEL, the rocket leaves from
+              # WEAPONA01, and the caps in the pod fronts (MISSILE) are hidden while it reloads.
+              "ReplaceModule ModuleTag_01",
+              "  Draw = W3DTankDraw ModuleTag_Euro_01",
+              "    OkToChangeModelColor = Yes",
+              "    ProjectileBoneFeedbackEnabledSlots = PRIMARY",
+          ] + [line for state, model in (("DefaultConditionState", "EUPULS"), ("ConditionState = REALLYDAMAGED", "EUPULS_D"))
+               for line in (f"    {state}", f"      Model = {model}", "      Turret = TURRET", "      TurretPitch = TURRETEL",
+                            "      WeaponLaunchBone = PRIMARY WeaponA", "      WeaponHideShowBone = PRIMARY MISSILE",
+                            "    End")] + [
+              "    AliasConditionState = RUBBLE",
+              "    TrackMarks = EXTnkTrack.tga",
+              "    TreadAnimationRate = 4.0",
+              "  End",
+              "End"])),
     ("Euro_Skyranger", "AmericaTankAvenger", "Skyranger",
      "Air defence that tracks aircraft and marks targets for the army.",
-     dict(cost=2000, time=11, pre=[["Euro_WarFactory"]], command="Euro_VehicleCommandSet")),
+     dict(cost=2000, time=11, pre=[["Euro_WarFactory"]], command="Euro_VehicleCommandSet",
+          extra=[
+              # Its own models (scripts/models/skyranger.py): the Boxer's hull, and the turret riding on it as
+              # an object of its own, as the Avenger's does.
+              "ReplaceModule ModuleTag_OverlordContain",
+              "  Behavior = OverlordContain ModuleTag_Euro_OverlordContain",
+              "    Slots = 1", "    DamagePercentToUnits = 100%", "    AllowInsideKindOf = PORTABLE_STRUCTURE",
+              "    PassengersAllowedToFire = Yes", "    PayloadTemplateName = Euro_SkyrangerTurret",
+              "    ExperienceSinkForRider = Yes", "  End",
+              "End",
+              "ReplaceModule ModuleTag_01",
+              "  Draw = W3DOverlordTruckDraw ModuleTag_Euro_01",
+              "    OkToChangeModelColor = Yes",
+              "    ExtraPublicBone = TurretFX03", "    ExtraPublicBone = LazerSpot01", "    ExtraPublicBone = LazerSpot02",
+          ] + [line for state, model, sub in (("DefaultConditionState", "EUSKYR", "HideSubObject = TURRET01"),
+                                               ("ConditionState = REALLYDAMAGED", "EUSKYR_D", "HideSubObject = TURRET01"),
+                                               ("ConditionState = DISGUISED", "EUSKYR", "ShowSubObject = TURRET01"),
+                                               ("ConditionState = REALLYDAMAGED DISGUISED", "EUSKYR_D", "ShowSubObject = TURRET01"))
+               for line in (f"    {state}", f"      Model = {model}", f"      {sub}", "    End")
+               + (("    AliasConditionState = RUBBLE",) if state.endswith("= REALLYDAMAGED") else ())] + [
+              "    TrackMarks = EXTireTrack.tga",
+              "    Dust = RocketBuggyDust",
+              "    DirtSpray = RocketBuggyDirtSpray",
+              "    PowerslideSpray = RocketBuggyDirtPowerSlide",
+              "    LeftFrontTireBone = TIRE01",
+              "    RightFrontTireBone = TIRE02",
+              "    MidLeftFrontTireBone = TIRE03",
+              "    MidRightFrontTireBone = TIRE04",
+              "    MidLeftRearTireBone = TIRE05",
+              "    MidRightRearTireBone = TIRE06",
+              "    LeftRearTireBone = TIRE07",
+              "    RightRearTireBone = TIRE08",
+              "    TireRotationMultiplier = 0.2",
+              "    PowerslideRotationAddition = 0.0",
+              "  End",
+              "End"])),
+    # The Skyranger's turret, riding on its hull (FIREPOINT01): the 30 mm gun and missile pod pitch on
+    # TURRETEL01, and the lasers fire from the muzzle (TURRETFX01) and the pod (TURRETFX02).
+    ("Euro_SkyrangerTurret", "AmericaTankAvengerLaserTurret", "Skyranger", "",
+     dict(extra=[
+         "ReplaceModule ModuleTag_01",
+         "  Draw = W3DDependencyModelDraw ModuleTag_Euro_01",
+         "    OkToChangeModelColor = Yes",
+         "    ExtraPublicBone = TurretFX01", "    ExtraPublicBone = TurretFX02", "    ExtraPublicBone = TURRET01",
+         "    ExtraPublicBone = TURRETEL", "    ExtraPublicBone = TURRETEL01",
+         "    AttachToBoneInContainer = FIREPOINT01",
+     ] + [line for state, model in (("DefaultConditionState", "EUSKYR_G"), ("ConditionState = REALLYDAMAGED", "EUSKYR_GD"))
+          for line in (f"    {state}", f"      Model = {model}", "      Turret = TURRET01", "      TurretPitch = TURRETEL01",
+                       "    End")] + [
+         "  End",
+         "End"])),
     ("Euro_Wiesel", "AmericaTankMicrowave", "Wiesel EW", "Electronic warfare: disables buildings and clears garrisons.",
-     dict(cost=850, time=11, pre=[["Euro_WarFactory"], ["Euro_StrategyCenter"]], command="Euro_VehicleCommandSet")),
+     dict(cost=850, time=11, pre=[["Euro_WarFactory"], ["Euro_StrategyCenter"]], command="Euro_VehicleCommandSet",
+          extra=[
+              # Its own model (scripts/models/wiesel.py): the beam leaves the emitter dish on the mast (WEAPON02).
+              "ReplaceModule ModuleTag_01",
+              "  Draw = W3DTankDraw ModuleTag_Euro_01",
+              "    ExtraPublicBone = WEAPON02",
+              "    OkToChangeModelColor = Yes",
+          ] + [line for state, model, glow in (
+              ("NONE", "EUWIES", True), ("USING_WEAPON_A USING_WEAPON_B USING_WEAPON_C", "EUWIES", False),
+              ("REALLYDAMAGED RUBBLE", "EUWIES_D", True),
+              ("REALLYDAMAGED RUBBLE USING_WEAPON_A USING_WEAPON_B USING_WEAPON_C", "EUWIES_D", False))
+               for line in ((f"    ConditionState = {state}", f"      Model = {model}")
+                            + (("      ParticleSysBone = PROJECTORGLOW09 MicrowaveLenzflare",
+                                "      ParticleSysBone = NONE MicrowaveRotisserie") if glow else ())
+                            + ("    End",))] + [
+              "    TrackMarks = EXTnkTrack.tga",
+              "    TreadAnimationRate = 4.0",
+              "  End",
+              "End"])),
     ("Euro_Ambulance", "AmericaVehicleMedic", "Field Ambulance", "Heals infantry and cleans up toxins.",
-     dict(cost=650, time=11, pre=[["Euro_WarFactory"]])),
+     dict(cost=650, time=11, pre=[["Euro_WarFactory"]], extra=[
+         # Its own model (scripts/models/ambulance.py), with the USA Ambulance's bones.
+         "ReplaceModule ModuleTag_01",
+         "  Draw = W3DTruckDraw ModuleTag_Euro_01",
+         "    OkToChangeModelColor = Yes",
+     ] + [line for state, model in (("NONE", "EUAMB"), ("REALLYDAMAGED", "EUAMB_D")) for line in (
+         f"    ConditionState = {state}", f"      Model = {model}", "      Turret = TURRET", "      TurretPitch = TURRETEL",
+         "      WeaponFireFXBone = PRIMARY WeaponA", "      WeaponLaunchBone = PRIMARY WeaponA", "    End")] + [
+         "    ConditionState = RUBBLE",
+         "      Model = EUAMB_D",
+         "    End",
+         "    TrackMarks = EXTireTrack.tga",
+         "    Dust = RocketBuggyDust",
+         "    DirtSpray = RocketBuggyDirtSpray",
+         "    PowerslideSpray = RocketBuggyDirtPowerSlide",
+         "    LeftFrontTireBone = TIRE01",
+         "    RightFrontTireBone = TIRE02",
+         "    LeftRearTireBone = TIRE03",
+         "    RightRearTireBone = TIRE04",
+         "    TireRotationMultiplier = 0.2",
+         "    PowerslideRotationAddition = 2.5",
+         "  End",
+         "End"])),
     ("Euro_ReconDrone", "AmericaVehicleSentryDrone", "Recon Drone",
      "Sees further than any other vehicle and reveals stealthed units: the eyes of the PULS.",
      dict(cost=850, time=11, pre=[["Euro_WarFactory"]], weapons={"SentryDroneGun": "Euro_DroneGun"},
-          fields={"VisionRange": 240, "ShroudClearingRange": 420})),
+          fields={"VisionRange": 240, "ShroudClearingRange": 420},
+          extra=[
+              # Its own model (scripts/models/recon_drone.py), with the Sentry Drone's bones; the gun TURRETUP09
+              # shows with the upgrade.
+              "ReplaceModule ModuleTag_01",
+              "  Draw = W3DTankDraw ModuleTag_Euro_01",
+              "    OkToChangeModelColor = Yes",
+              "    InitialRecoilSpeed = 10",
+              "    MaxRecoilDistance = 1.5",
+              "    RecoilSettleSpeed = 3",
+          ] + [line for state, model, gun in (
+              ("NONE", "EUDRONE", "HideSubObject"), ("REALLYDAMAGED", "EUDRONE_D", "HideSubObject"),
+              ("RUBBLE", "EUDRONE_D", "HideSubObject"), ("WEAPONSET_PLAYER_UPGRADE", "EUDRONE", "ShowSubObject"),
+              ("WEAPONSET_PLAYER_UPGRADE REALLYDAMAGED", "EUDRONE_D", "ShowSubObject"),
+              ("WEAPONSET_PLAYER_UPGRADE RUBBLE", "EUDRONE_D", "ShowSubObject"),
+          ) for line in (
+              f"    ConditionState = {state}", f"      Model = {model}", "      Turret = TURRET01",
+              f"      {gun} = TURRETUP09", "      WeaponFireFXBone = PRIMARY TurretFX",
+              "      WeaponMuzzleFlash = PRIMARY TurretFX", "      WeaponRecoilBone = PRIMARY TurretUp", "    End")] + [
+              "    TrackMarks = EXTnkTrack.tga",
+              "    TreadDebrisLeft = SentryDroneTrackDebrisDirtLeft",
+              "    TreadDebrisRight = SentryDroneTrackDebrisDirtRight",
+              "    TreadAnimationRate = 4.0",
+              "  End",
+              "End"])),
     ("Euro_Typhoon", "AmericaJetRaptor", "Typhoon", "A multirole fighter: long range missiles against air and ground.",
      dict(cost=1500, time=22, pre=[["Euro_Airfield"]], health=("ModuleTag_02", 170, False),
-          weapons={"RaptorJetMissileWeapon": "Euro_TyphoonMissile"})),
+          weapons={"RaptorJetMissileWeapon": "Euro_TyphoonMissile"},
+          extra=jet_draw("EUTYPH", ("BurnerFX01", "BurnerFX02")))),
     ("Euro_Rafale", "AmericaJetStealthFighter", "Rafale", "A strike fighter that slips past air defences.",
      dict(cost=1700, time=27.5, pre=[["Euro_Airfield"]], science="SCIENCE_StealthFighter",
-          health=("ModuleTag_02", 130, False), weapons={"StealthJetMissileWeapon": "Euro_RafaleMissile"})),
+          health=("ModuleTag_02", 130, False), weapons={"StealthJetMissileWeapon": "Euro_RafaleMissile"},
+          extra=jet_draw("EURAF", ("BurnerFX03", "BurnerFX04")))),
     ("Euro_Tornado", "AmericaJetAurora", "Tornado", "A fast bomber that strikes before the defence can react.",
-     dict(cost=2600, time=33, pre=[["Euro_Airfield"], ["Euro_StrategyCenter"]], health=("ModuleTag_02", 90, False))),
+     dict(cost=2600, time=33, pre=[["Euro_Airfield"], ["Euro_StrategyCenter"]], health=("ModuleTag_02", 90, False),
+          extra=jet_draw("EUTORN", ("BurnerFX03", "BurnerFX04")))),
     ("Euro_Tiger", "AmericaVehicleComanche", "Tiger", "An attack helicopter armed with cannon and anti-tank missiles.",
      dict(cost=1600, time=22, pre=[["Euro_Airfield"]], health=("ModuleTag_04", 240, False),
-          weapons={"Comanche20mmCannonWeapon": "Euro_TigerCannon", "ComancheAntiTankMissileWeapon": "Euro_TigerMissile"})),
+          weapons={"Comanche20mmCannonWeapon": "Euro_TigerCannon", "ComancheAntiTankMissileWeapon": "Euro_TigerMissile"},
+          # Its own model (scripts/models/tiger.py): the rotors spin by the model's own animation, as the
+          # Comanche's do; missiles leave the wing launchers, rockets the pods of the upgrade.
+          extra=[
+              "ReplaceModule ModuleTag_01",
+              "  Draw = W3DModelDraw ModuleTag_Euro_01",
+              "    OkToChangeModelColor = Yes",
+              "    DefaultConditionState",
+              "      Model = EUTIGR",
+              "      HideSubObject = MissileUpgrade",
+              "      Animation = EUTIGR.EUTIGR",
+              "      AnimationMode = LOOP",
+              "      WeaponMuzzleFlash = PRIMARY TurretFX",
+              "      WeaponFireFXBone = PRIMARY Muzzle",
+              "      WeaponFireFXBone = SECONDARY WeaponA",
+              "      WeaponLaunchBone = SECONDARY WeaponA",
+              "    End",
+          ] + [line for state, model, upgrade in (
+              ("REALLYDAMAGED", "EUTIGR_D", False), ("WEAPONSET_PLAYER_UPGRADE", "EUTIGR", True),
+              ("WEAPONSET_PLAYER_UPGRADE REALLYDAMAGED", "EUTIGR_D", True), ("RUBBLE", "EUTIGR_D", False))
+              for line in [f"    ConditionState = {state}", f"      Model = {model}", f"      Animation = {model}.{model}",
+                           "      AnimationMode = LOOP"] + ([
+                  "      ShowSubObject = MissileUpgrade", "      WeaponFireFXBone = TERTIARY WeaponB",
+                  "      WeaponLaunchBone = TERTIARY WeaponB"] if upgrade else []) + ["    End"]] + [
+              "    ConditionState = RUBBLE SPECIAL_DAMAGED",
+              "      Model = EUTIGR_D",
+              "      HideSubObject = Props01",
+              "    End",
+              "  End",
+              "End"])),
     ("Euro_NH90", "AmericaVehicleChinook", "NH90", "A transport helicopter that also carries supplies.",
-     dict(pre=[["Euro_SupplyCenter"]])),
+     dict(pre=[["Euro_SupplyCenter"]],
+          # Its own model (scripts/models/nh90.py), the rotors spun by its own animation; the Chinook's
+          # cargo net (ModuleTag_02) still hangs below it with the supplies.
+          extra=[
+              "ReplaceModule ModuleTag_01",
+              "  Draw = W3DModelDraw ModuleTag_Euro_01",
+              "    OkToChangeModelColor = Yes",
+              "    ExtraPublicBone = RopeStart",
+              "    ExtraPublicBone = RopeEnd",
+              "    DefaultConditionState",
+              "      Model = EUNH90",
+              "      Animation = EUNH90.EUNH90",
+              "      AnimationMode = LOOP",
+              "    End",
+          ] + [line for state in ("REALLYDAMAGED", "RUBBLE") for line in (
+              f"    ConditionState = {state}", "      Model = EUNH90_D", "      Animation = EUNH90_D.EUNH90_D",
+              "      AnimationMode = LOOP", "    End")] + [
+              "    ConditionState = RUBBLE SPECIAL_DAMAGED",
+              "      Model = EUNH90_D",
+              "      HideSubObject = Props01",
+              "    End",
+              "  End",
+              "End"])),
 ]
 
 # The textures of each vehicle's models, intact and damaged, drawn in European colours (eu_<name>,
 # made by install_textures.py). Model textures are shared: the Skyranger has the Leopard's hull.
 TEXTURES = {
-    "Euro_Dozer": ["avconstdoz.tga", "avconstdoz_D.tga"],
-    "Euro_Leopard": ["avleopard.tga", "avleopard_d.tga"],
-    "Euro_Leclerc": ["avPaladin.tga", "avPaladin_d.tga"],
-    "Euro_Puls": ["avtomahawk.tga", "avtomahawk_m.tga", "avtomahawk_d.tga", "avtomahawk_md.tga"],
-    "Euro_Skyranger": ["AVAvnger.tga", "AVAvnger_D.tga", "avleopard.tga", "avleopard_d.tga"],
-    "Euro_Wiesel": ["AvThunderBolt.tga", "AvThunderBolt_d.tga", "avtomahawk.tga", "avPaladin_d.tga"],
-    "Euro_Ambulance": ["AvAmbulance.tga", "AvAmbulance_D.tga"],
-    "Euro_ReconDrone": ["AVSentry.tga", "AVSentry_d.tga"],
-    "Euro_Typhoon": ["avraptor.tga", "avraptor_d.tga"],
-    "Euro_Rafale": ["avstealth.tga", "avstealth_d.tga"],
-    "Euro_Tornado": ["AVAurora.tga", "AVAurora_d.tga"],
-    "Euro_Tiger": ["AVComanche.tga", "AVComanche_d.tga"],
-    "Euro_NH90": ["AVChinook.tga", "AVChinook_d.tga"],
+    # Infantry: uniforms in European grey-green; the Rifleman's captured-building flag is Europe's.
+    "Euro_Rifleman": ["ZHCA_AIRanger.tga", "ATFlag01.tga"],
+    "Euro_Milan": ["ZHCA_NITHunter.tga"],
+    "Euro_Marksman": ["ZHCA_AIPthFindr.tga", "Z_AIPthFindr2.tga"],
+    "Euro_Commando": ["ZHCA_AIHero2.tga", "Z_InfXtras.tga"],
 }
 
 # ---------------------------------------------------------------------------------------------------
 # Europe's economy: subsidies. The USA's drop zone earns 6 crates of $250 every 2 minutes ($12.5 a second)
-# and the GLA's Black Market $20 every 2 seconds ($10), each for $2500. The Funds Office earns a little
-# less than the drops ($90 every 8 seconds, $11.25), as no plane can be shot down on the way; the Green Deal
-# ($1500) makes every Fusion Plant earn $4 every 4 seconds, so the income grows with the base, and raids
-# on the power hit the economy too. Modules added to objects, by object (tags unique to Europe):
+# and the GLA's Black Market $20 every 2 seconds ($10), each for $2500. The Funds Office earns as much as
+# the Black Market ($80 every 8 seconds), as no plane can be shot down on the way; the Green Deal ($1500)
+# makes every Fusion Plant earn $3 every 4 seconds, so the income grows with the base, and raids on the
+# power hit the economy too. (AI tournaments with $90 and $4 had Europe a few points above the USA's AI
+# against the USA and China, and well above it against GLA.) Modules added to objects, by object (tags unique to Europe):
 MODULES = {
     "Euro_FundsOffice": [
         "RemoveModule ModuleTag_05",  # the drop by plane
         "Behavior = AutoDepositUpdate ModuleTag_Euro_Grant",
         "  DepositTiming = 8000",
-        "  DepositAmount = 90",
+        "  DepositAmount = 80",
         "  InitialCaptureBonus = 0",
+        "End",
+        # The drop zone produces nothing: without this the Green Deal button cannot research.
+        "Behavior = ProductionUpdate ModuleTag_Euro_Research",
+        "  MaxQueueEntries = 1",
         "End",
     ],
     "Euro_PowerPlant": [
@@ -316,15 +561,18 @@ MODULES = {
         "  DepositTiming = 4000",
         "  DepositAmount = 0",
         "  InitialCaptureBonus = 0",
-        "  UpgradedBoost = UpgradeType:Upgrade_EuroGreenDeal Boost:4",
+        "  UpgradedBoost = UpgradeType:Upgrade_EuroGreenDeal Boost:3",
         "End",
     ],
 }
 # Upgrades: (name, display name, description, cost, time, button picture).
 UPGRADES = [
-    ("Upgrade_EuroGreenDeal", "Green Deal", "Every Fusion Plant receives a subsidy: $4 every 4 seconds.",
+    ("Upgrade_EuroGreenDeal", "Green Deal", "Every Fusion Plant receives a subsidy: $3 every 4 seconds.",
      1500, 45, "Euro_UpgradeGreenDeal"),
 ]
+# Research the skirmish AI starts on its own (the USA's scripts know nothing of it): (upgrade, object, at
+# least this many of it). The Green Deal once a Funds Office offers it and the base has 4 Fusion Plants.
+SKIRMISH_AI_UPGRADES = [("Upgrade_EuroGreenDeal", "Euro_PowerPlant", 4)]
 
 # ---------------------------------------------------------------------------------------------------
 # Build menus. Each slot: an object to build (it gets a button), or the name of an existing button.
@@ -405,6 +653,66 @@ PROMOTION_MENUS = {
 SHORTCUTS = {1: "SpyDrone", 2: "Paradrop", 3: "A10ThunderboltMissileStrike", 4: "EmergencyRepair", 5: "DaisyCutter",
              6: "FireParticleUplinkCannon", 7: "SpySatelliteScan", 8: "CIAIntelligence", 9: "SpectreGunship",
              10: "LeafletDrop"}
+# Each power's buttons show Euro_Power<power>; each promotion its own picture.
+PROMOTION_PICTURES = {
+    "PaladinTank": "Euro_Leclerc", "StealthFighter": "Euro_Rafale", "Pathfinder": "Euro_Marksman",
+    "SpyDrone": "Euro_PowerSpyDrone", "DaisyCutter": "Euro_PowerDaisyCutter", "LeafletDrop": "Euro_PowerLeafletDrop",
+    "SpectreGunship": "Euro_PowerSpectreGunship", "Paradrop1": "Euro_PowerParadrop", "Paradrop2": "Euro_PowerParadrop2",
+    "Paradrop3": "Euro_PowerParadrop3", "A10ThunderboltMissileStrike1": "Euro_PowerA10ThunderboltMissileStrike",
+    "A10ThunderboltMissileStrike2": "Euro_PowerA10ThunderboltMissileStrike2",
+    "A10ThunderboltMissileStrike3": "Euro_PowerA10ThunderboltMissileStrike3",
+    "EmergencyRepair1": "Euro_PowerEmergencyRepair", "EmergencyRepair2": "Euro_PowerEmergencyRepair2",
+    "EmergencyRepair3": "Euro_PowerEmergencyRepair3",
+}
+# USA buttons in the European menus: each gets a European copy (Euro_<button>) with its own picture.
+USA_BUTTONS = {
+    "Command_UpgradeAmericaRangerFlashBangGrenade": "Euro_UpgradeFlashBang",
+    "Command_UpgradeAmericaRangerCaptureBuilding": "Euro_UpgradeCaptureBuilding",
+    "Command_UpgradeAmericaSentryDroneGun": "Euro_UpgradeSentryDroneGun",
+    "Command_UpgradeAmericaTOWMissile": "Euro_UpgradeTOWMissile",
+    "Command_UpgradeComancheRocketPods": "Euro_UpgradeRocketPods",
+    "Command_UpgradeAmericaLaserMissiles": "Euro_UpgradeLaserMissiles",
+    "Command_UpgradeAmericaCountermeasures": "Euro_UpgradeCountermeasures",
+    "Command_UpgradeAmericaBunkerBusters": "Euro_UpgradeBunkerBusters",
+    "Command_FAKECOMMAND_PurchaseScienceMOAB": "Euro_PowerMOAB",
+}
+# The faction's own pictures, painted by make_art.py (which redefines these images); until then each
+# shows the USA picture it replaces: (texture, texture size, left, top, right, bottom).
+EURO_ART = {
+    "Euro_LoadScreen": ("SCShellUserInterface512_003.tga", 512, 1, 1, 389, 389),
+    "Euro_ScoreScreen": ("America_ScoreScreenuserinterface.tga", 1024, 0, 0, 799, 599),
+    "Euro_Watermark": ("SCShellUserInterface512_001.tga", 512, 345, 391, 505, 487),
+    "Euro_SideIcon": ("SCSmShellUserInterface512_001.tga", 512, 111, 424, 135, 446),
+    "Euro_Logo": ("SCShellUserInterface512_006.tga", 512, 449, 153, 497, 201),
+    "Euro_MedallionRegular": ("SCGenChallengeSelect512_001.tga", 512, 211, 402, 251, 442),
+    "Euro_MedallionHilite": ("SCGenChallengeSelect512_001.tga", 512, 127, 392, 167, 432),
+    "Euro_MedallionSelect": ("SCGenChallengeSelect512_001.tga", 512, 169, 392, 209, 432),
+    "Euro_PowerSpectreGunship": ("SAUserInterface512_005.tga", 512, 125, 301, 185, 349),
+    "Euro_PowerLeafletDrop": ("SAUserInterface512_005.tga", 512, 373, 151, 433, 199),
+    "Euro_PowerA10ThunderboltMissileStrike": ("SAUserInterface512_004.tga", 512, 63, 445, 123, 493),
+    "Euro_PowerA10ThunderboltMissileStrike2": ("SAUserInterface512_004.tga", 512, 245, 288, 305, 336),
+    "Euro_PowerA10ThunderboltMissileStrike3": ("SAUserInterface512_005.tga", 512, 187, 251, 247, 299),
+    "Euro_PowerParadrop": ("SAUserInterface512_005.tga", 512, 1, 251, 61, 299),
+    "Euro_PowerParadrop2": ("SAUserInterface512_005.tga", 512, 373, 201, 433, 249),
+    "Euro_PowerParadrop3": ("SAUserInterface512_005.tga", 512, 249, 201, 309, 249),
+    "Euro_PowerSpyDrone": ("SAUserInterface512_005.tga", 512, 187, 1, 247, 49),
+    "Euro_PowerEmergencyRepair": ("SSUserInterface512_002.tga", 512, 1, 1, 61, 49),
+    "Euro_PowerEmergencyRepair2": ("SSUserInterface512_002.tga", 512, 63, 1, 123, 49),
+    "Euro_PowerEmergencyRepair3": ("SSUserInterface512_002.tga", 512, 125, 1, 185, 49),
+    "Euro_PowerDaisyCutter": ("SAUserInterface512_005.tga", 512, 249, 301, 309, 349),
+    "Euro_PowerSpySatelliteScan": ("SAUserInterface512_004.tga", 512, 63, 395, 123, 443),
+    "Euro_PowerFireParticleUplinkCannon": ("SAUserInterface512_004.tga", 512, 187, 388, 247, 436),
+    "Euro_PowerCIAIntelligence": ("SAUserInterface512_004.tga", 512, 63, 295, 123, 343),
+    "Euro_PowerMOAB": ("SAUserInterface512_005.tga", 512, 311, 201, 371, 249),
+    "Euro_UpgradeFlashBang": ("SAUserInterface512_004.tga", 512, 435, 338, 495, 386),
+    "Euro_UpgradeCaptureBuilding": ("SSUserInterface512_002.tga", 512, 187, 51, 247, 99),
+    "Euro_UpgradeSentryDroneGun": ("SAUserInterface512_005.tga", 512, 311, 251, 371, 299),
+    "Euro_UpgradeTOWMissile": ("SAUserInterface512_004.tga", 512, 187, 438, 247, 486),
+    "Euro_UpgradeRocketPods": ("SAUserInterface512_004.tga", 512, 125, 295, 185, 343),
+    "Euro_UpgradeLaserMissiles": ("SAUserInterface512_004.tga", 512, 249, 388, 309, 436),
+    "Euro_UpgradeCountermeasures": ("SAUserInterface512_005.tga", 512, 373, 51, 433, 99),
+    "Euro_UpgradeBunkerBusters": ("SAUserInterface512_005.tga", 512, 63, 1, 123, 49),
+}
 
 # Where the pictures of the USA objects are (texture, left, top, right, bottom), for the European
 # buttons and portraits until make_icons.py has drawn their own.
@@ -542,24 +850,26 @@ def main():
         "  DisplayName = INI:FactionEurope",
         "  StartingBuilding = Euro_CommandCenter",
         "  StartingUnit0 = Euro_Dozer",
-        "  ScoreScreenImage = America_ScoreScreen",
-        "  LoadScreenImage = SAFactionLogoPage_US",
+        "  ScoreScreenImage = Euro_ScoreScreen",
+        "  LoadScreenImage = Euro_LoadScreen",
         "  LoadScreenMusic = Load_USA",
         "  ScoreScreenMusic = Score_USA",
-        "  FlagWaterMark = WatermarkUSA",
-        "  EnabledImage = SSObserverUSA",
+        "  FlagWaterMark = Euro_Watermark",
+        "  EnabledImage = Euro_SideIcon",
         "  BeaconName = MultiplayerBeacon",
-        "  SideIconImage = GameinfoAMRCA",
-        "  GeneralImage = USA_Logo",
+        "  SideIconImage = Euro_SideIcon",
+        "  GeneralImage = Euro_Logo",
         "  OldFaction = No",
         "  ArmyTooltip = TOOLTIP:BioStrategyLong_Europe",
         "  Features = GUI:BioFeatures_Europe",
-        "  MedallionRegular = USAGeneral_slvr",
-        "  MedallionHilite = USAGeneral_blue",
-        "  MedallionSelect = USAGeneral_orng",
+        "  MedallionRegular = Euro_MedallionRegular",
+        "  MedallionHilite = Euro_MedallionHilite",
+        "  MedallionSelect = Euro_MedallionSelect",
         "  SkirmishAISide = America",
     ]
     logic += [f"  SkirmishAIReplace = {o[1]} {o[0]}" for o in objects]
+    # Researches the USA's scripts know nothing of (AISkirmishPlayer.cpp).
+    logic += [f"  SkirmishAIUpgrade = {u} {o} {n}" for u, o, n in SKIRMISH_AI_UPGRADES]
     logic += ["End", ""]
 
     client = ["; The European faction's build menus (scripts/factions/europe/build_europe.py). Generated, do not edit.", ""]
@@ -576,6 +886,10 @@ def main():
                 "End",
                 "",
             ]
+    for image, (texture, size, left, top, right, bottom) in EURO_ART.items():
+        client += [f"MappedImage {image}", f"  Texture = {texture}", f"  TextureWidth = {size}",
+                   f"  TextureHeight = {size}", f"  Coords = Left:{left} Top:{top} Right:{right} Bottom:{bottom}",
+                   "  Status = NONE", "End", ""]
     buttons = {}
     for set_name, slots in COMMAND_SETS.items():
         for slot, entry in slots.items():
@@ -602,24 +916,30 @@ def main():
                    f"  TextLabel = CONTROLBAR:{button}", f"  DescriptLabel = CONTROLBAR:ToolTip{button}",
                    f"  ButtonImage = {picture}", "  ButtonBorderType = UPGRADE", "End", ""]
 
-    def child_button(parent, name, text, description):
+    def child_button(parent, name, text, description, image=None):
         nonlocal client
         client += [f"ChildCommandButton {name} {parent}", f"  TextLabel = CONTROLBAR:{name}",
-                   f"  DescriptLabel = CONTROLBAR:ToolTip{name}", "End", ""]
+                   f"  DescriptLabel = CONTROLBAR:ToolTip{name}"] + ([f"  ButtonImage = {image}"] if image else []) + ["End", ""]
         power_labels[name] = (text, description)
         return name
 
     used = {entry for slots in COMMAND_SETS.values() for entry in slots.values()}
     for power, (text, description) in POWERS.items():
         if f"Euro_Command_{power}" in used:
-            child_button(f"Command_{power}", f"Euro_Command_{power}", text, description)
-    shortcut = {slot: child_button(f"Command_{p}FromShortcut", f"Euro_Command_{p}FromShortcut", *POWERS[p])
+            child_button(f"Command_{power}", f"Euro_Command_{power}", text, description, f"Euro_Power{power}")
+    shortcut = {slot: child_button(f"Command_{p}FromShortcut", f"Euro_Command_{p}FromShortcut", *POWERS[p], f"Euro_Power{p}")
                 for slot, p in SHORTCUTS.items()}
     menus = {}
     for menu, slots in PROMOTION_MENUS.items():
         menus[menu] = {slot: entry if entry.startswith("Command_") else
-                       child_button(f"Command_PurchaseScience{entry}", f"Euro_Command_PurchaseScience{entry}", *PROMOTIONS[entry])
+                       child_button(f"Command_PurchaseScience{entry}", f"Euro_Command_PurchaseScience{entry}", *PROMOTIONS[entry],
+                                    PROMOTION_PICTURES.get(entry))
                        for slot, entry in slots.items()}
+    for usa, image in USA_BUTTONS.items():
+        client += [f"ChildCommandButton Euro_{usa} {usa}", f"  ButtonImage = {image}", "End", ""]
+        buttons[usa] = f"Euro_{usa}"
+        for slots in menus.values():
+            slots.update({slot: f"Euro_{usa}" for slot, entry in slots.items() if entry == usa})
     menus["Euro_SpecialPowerShortcut"] = shortcut
     for set_name, slots in menus.items():
         client.append(f"CommandSet {set_name}")
