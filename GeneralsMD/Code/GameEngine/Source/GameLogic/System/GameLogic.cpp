@@ -47,6 +47,7 @@
 #include "Common/OSDisplay.h"
 #include "Common/PerfTimer.h"
 #include "Common/Player.h"
+#include "Common/Upgrade.h"
 #include "Common/PlayerList.h"
 #include "Common/PlayerTemplate.h"
 #include "Common/Radar.h"
@@ -3828,6 +3829,14 @@ void GameLogic::update()
 						TheTacticalView->lookAt(&pos);
 				}
 				fprintf(stderr, "SPAWN_TEST %d %s\n", count, g.name);
+			}
+			// GENERALS_SPAWN_TEST_UPGRADE=Upgrade gives the local player that research, finished.
+			if (const char *upgradeName = getenv("GENERALS_SPAWN_TEST_UPGRADE"))
+			{
+				const UpgradeTemplate *upgrade = TheUpgradeCenter->findUpgrade(upgradeName);
+				if (upgrade && local)
+					local->addUpgrade(upgrade, UPGRADE_STATUS_COMPLETE);
+				fprintf(stderr, "SPAWN_TEST upgrade %s %s\n", upgradeName, upgrade ? "given" : "unknown");
 			}
 			// GENERALS_SPAWN_TEST_ZOOM=z brings the camera that much closer (1 as it is, smaller is closer).
 			if (const char *zoom = getenv("GENERALS_SPAWN_TEST_ZOOM"))
