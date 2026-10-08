@@ -320,6 +320,7 @@ def build():
     for obj in stripes + [flash]:
         obj.data.uv_layers.new(name="UVMap")
 
+    w3d.write_house_colour(tex_dir)
     layout = os.path.join(BUILD, NAME + "_layout.json")
     os.makedirs(BUILD, exist_ok=True)
     export_layout(((chassis, "hull"), (top, "turret")), layout)
@@ -355,7 +356,7 @@ def export(parts, name, hull_texture):
     for obj in parts["wheels"]:
         model.mesh(obj.name, bones[obj.name], **mesh_data(obj), texture=TIRE_TEXTURE)
     for obj in parts["stripes"]:
-        model.mesh(obj.name, w3d.CHASSIS, **mesh_data(obj), texture="Housecolor2.tga", shadow=False)
+        model.mesh(obj.name, w3d.CHASSIS, **mesh_data(obj), texture=w3d.HOUSE_COLOUR_TEXTURE, shadow=False)
     model.mesh("MUZZLEFX01", bones["MUZZLEFX01"], **mesh_data(parts["flash"]), texture="EXTnkMzl01.tga", shadow=False,
                shader=w3d.ADDITIVE_SHADER)
     out = os.path.join(DATA, "Art", "W3D", name + ".w3d")

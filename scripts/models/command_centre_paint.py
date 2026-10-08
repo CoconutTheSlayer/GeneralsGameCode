@@ -1,9 +1,12 @@
-"""Paints the European Command Centre's tiling textures in the style of the game's buildings: painted
-cladding panels with seams, rivets and grime, window bands, ribbed bay walls, a segmented door, a
-concrete pad, roofs and the faction's mark, each also damaged, wrecked and (with lit windows) at night.
-command_centre.py runs it with Python 3 and Pillow:
+"""Paints the European Command Centre's textures, in two steps that command_centre.py runs (Python 3 and
+Pillow):
 
-    python3 scripts/models/command_centre_paint.py OUT_DIR
+    tiles OUT_DIR             small tiling surfaces, painted in the game's style, that Blender projects onto
+                              the model: plaster panels, corrugated metal, roof deck, the blue hangar door,
+                              dome panels, steel trim; and the pad's and the emblem's own textures
+    compose BAKE_DIR OUT_DIR  the building's texture from what Blender baked (colour, ambient occlusion,
+                              where the windows are): grime and weathering on top, and its damaged,
+                              wrecked and night versions (lit windows)
 """
 import math
 import os
@@ -82,111 +85,76 @@ def damage(img, rng, level):
     return out
 
 
-def facade(rng, night=False, level=0):
-    """40 x 20 units: two storeys of cladding with a window band each."""
-    w, h = 512 * UP, 256 * UP
-    img = Image.new("RGB", (w, h), CLADDING[0])
+def panels(colour, rng, size=256, step=64, seam=(92, 90, 84), rivets=True, light=(220, 216, 206)):
+    """Square panels with seams, lit top edges and rivets."""
+    w = size * UP
+    img = Image.new("RGB", (w, w), colour)
     d = ImageDraw.Draw(img)
-    px = w / 40.0  # pixels per unit
-    for storey in range(2):
-        z0 = h - storey * 10 * px          # bottom of the storey (y grows down)
-        # Cladding panels, 5 units wide, alternating shades.
-        for k in range(8):
-            colour = CLADDING[(k + storey) % 3]
-            d.rectangle([k * 5 * px, z0 - 10 * px, (k + 1) * 5 * px, z0], fill=colour)
-        # Window band, 4.2 to 7.4 units up, mullions every 2.5 units.
-        top, bottom = z0 - 7.4 * px, z0 - 4.2 * px
-        d.rectangle([0, top - 0.3 * px, w, bottom + 0.3 * px], fill=FRAME)
-        for k in range(16):
-            x0, x1 = k * 2.5 * px + 0.18 * px, (k + 1) * 2.5 * px - 0.18 * px
-            lit = night and (level == 0 or rng.random() < 0.5) and rng.random() < 0.8
-            pane = GLASS_LIT if lit else GLASS
-            d.rectangle([x0, top, x1, bottom], fill=pane)
-            if not lit:
-                d.polygon([(x0, top), (x0 + 0.9 * px, top), (x0, top + 1.6 * px)], fill=(70, 96, 122))
-            if level == 2 and rng.random() < 0.5:
-                d.rectangle([x0, top, x1, bottom], fill=(10, 10, 10))
-        # Seams: floor line, panel joints, the sill and lintel lit from above.
-        d.line([(0, z0 - 10 * px), (w, z0 - 10 * px)], fill=SEAM, width=3 * UP)
-        d.line([(0, z0 - 10 * px + 3 * UP), (w, z0 - 10 * px + 3 * UP)], fill=LIT, width=UP)
-        for k in range(9):
-            d.line([(k * 5 * px, z0 - 10 * px), (k * 5 * px, top - 0.3 * px)], fill=SEAM, width=2 * UP)
-            d.line([(k * 5 * px, bottom + 0.3 * px), (k * 5 * px, z0)], fill=SEAM, width=2 * UP)
-        d.line([(0, bottom + 0.4 * px), (w, bottom + 0.4 * px)], fill=LIT, width=UP)
-        rivet_row(d, 0.6 * px, w, z0 - 9.4 * px, 1.25 * px)
-        rivet_row(d, 0.6 * px, w, z0 - 0.6 * px, 1.25 * px)
-    # A darker plinth at the foot.
-    d.rectangle([0, h - 1.2 * px, w, h], fill=(86, 92, 98))
-    img = grime(img, rng, streaks=40, streak_colour=(70, 76, 84))
-    if night:
-        img = Image.fromarray((np.asarray(img, float) * 0.85).astype(np.uint8))
-    if level:
-        img = damage(img, rng, level)
-    return img.resize((512, 256), Image.LANCZOS)
+    s = step * UP
+    for k in range(0, w + 1, s):
+        d.line([(0, k), (w, k)], fill=seam, width=2 * UP)
+        d.line([(0, k + 2 * UP), (w, k + 2 * UP)], fill=light, width=UP)
+        d.line([(k, 0), (k, w)], fill=seam, width=2 * UP)
+        if rivets:
+            for j in range(0, w, s // 4):
+                for x, y in ((k + 3 * UP, j + s // 8), (j + s // 8, k + 5 * UP)):
+                    d.ellipse([x - UP, y - UP, x + UP, y + UP], fill=seam)
+    return img
 
 
-def roof(rng, level=0):
-    w = h = 256 * UP
-    img = Image.new("RGB", (w, h), (112, 116, 120))
+def tile_wall(rng):
+    return grime(panels((214, 214, 208), rng, seam=(110, 112, 114), light=(236, 236, 232)), rng, amount=0.24, streaks=30, streak_colour=(160, 160, 156)).resize((256, 256), Image.LANCZOS)
+
+
+def tile_trim(rng):
+    return grime(panels((70, 104, 150), rng, step=128, seam=(36, 52, 76), light=(140, 168, 200)), rng, amount=0.2).resize((256, 256), Image.LANCZOS)
+
+
+def tile_rib(rng):
+    """Corrugated metal: ribs across the image's width."""
+    w = 256 * UP
+    img = Image.new("RGB", (w, w))
+    arr = np.zeros((w, w, 3))
+    x = np.arange(w) / w * 16 * 2 * math.pi
+    shade = 0.78 + 0.22 * np.sin(x)
+    arr[:] = (np.array([158, 168, 178])[None, None, :] * shade[None, :, None])
+    img = Image.fromarray(arr.astype(np.uint8))
     d = ImageDraw.Draw(img)
-    px = w / 24.0
-    for k in range(5):  # membrane strips
-        d.line([(0, k * 6 * px), (w, k * 6 * px)], fill=(84, 88, 92), width=2 * UP)
-        d.line([(k * 6 * px, 0), (k * 6 * px, h)], fill=(96, 100, 104), width=UP)
-    for x, y in ((6, 6), (18, 18)):  # vents
-        cx, cy = x * px, y * px
-        d.rectangle([cx - px, cy - px, cx + px, cy + px], fill=(70, 74, 80), outline=SEAM, width=UP)
-        for i in range(4):
-            d.line([(cx - px + UP * 2, cy - px + (i + 0.5) * px / 2), (cx + px - UP * 2, cy - px + (i + 0.5) * px / 2)],
-                   fill=(130, 136, 140), width=UP)
-    img = grime(img, rng, amount=0.3)
-    if level:
-        img = damage(img, rng, level)
-    return img.resize((256, 256), Image.LANCZOS)
+    for k in range(0, w, 64 * UP):  # overlaps of the sheets
+        d.line([(0, k), (w, k)], fill=(110, 118, 126), width=UP)
+    return grime(img, rng, amount=0.25).resize((256, 256), Image.LANCZOS)
 
 
-def bay(rng, level=0):
-    """Ribbed steel walls of the vehicle bay, 24 x 14.2 units."""
-    w, h = 256 * UP, 256 * UP
-    img = Image.new("RGB", (w, h), CLADDING[1])
+def tile_deck(rng):
+    return grime(panels((104, 106, 108), rng, step=128, seam=(70, 72, 74), rivets=False, light=(124, 126, 128)), rng,
+                 amount=0.35).resize((256, 256), Image.LANCZOS)
+
+
+def tile_door(rng):
+    w = 256 * UP
+    img = Image.new("RGB", (w, w), (66, 96, 136))
     d = ImageDraw.Draw(img)
-    px = w / 24.0
-    for k in range(48):  # ribs every half unit
-        x = k * 0.5 * px
-        d.line([(x, 0), (x, h)], fill=(80, 92, 104), width=UP)
-        d.line([(x + UP, 0), (x + UP, h)], fill=(150, 160, 170), width=UP)
-    for y in (0.06 * h, 0.94 * h):
-        d.rectangle([0, y - 0.4 * px, w, y + 0.4 * px], fill=(88, 96, 104))
-        d.line([(0, y - 0.4 * px), (w, y - 0.4 * px)], fill=LIT, width=UP)
-    d.rectangle([0, 0.94 * h, w, h], fill=(80, 84, 88))
-    img = grime(img, rng, streaks=60)
-    if level:
-        img = damage(img, rng, level)
-    return img.resize((256, 256), Image.LANCZOS)
+    for k in range(0, w, 32 * UP):
+        d.rectangle([0, k, w, k + 32 * UP], fill=(66 + (k // (32 * UP)) % 2 * 10, 96, 136))
+        d.line([(0, k), (w, k)], fill=(30, 44, 62), width=2 * UP)
+        d.line([(0, k + 2 * UP), (w, k + 2 * UP)], fill=(130, 160, 196), width=UP)
+    for x in range(0, w, 64 * UP):
+        d.rectangle([x + 20 * UP, 10 * UP, x + 44 * UP, 20 * UP], fill=(150, 176, 200))  # small windows
+    return grime(img, rng, amount=0.2).resize((256, 256), Image.LANCZOS)
 
 
-def door(rng, level=0):
-    """The bay door: horizontal sections in a frame with warning stripes."""
-    w = h = 256 * UP
-    img = Image.new("RGB", (w, h), (126, 134, 140))
+def tile_dome(rng):
+    return grime(panels((222, 224, 226), rng, step=64, seam=(170, 172, 176), rivets=False, light=(240, 240, 240)), rng,
+                 amount=0.15).resize((256, 256), Image.LANCZOS)
+
+
+def tile_metal(rng):
+    img = Image.new("RGB", (128 * UP, 128 * UP), (120, 126, 134))
     d = ImageDraw.Draw(img)
-    for i in range(12):
-        y = i * h / 12
-        d.rectangle([0, y, w, y + h / 12], fill=(120 + (i % 2) * 10, 128 + (i % 2) * 10, 136 + (i % 2) * 10))
-        d.line([(0, y), (w, y)], fill=SEAM, width=2 * UP)
-        d.line([(0, y + 2 * UP), (w, y + 2 * UP)], fill=LIT, width=UP)
-    s = 14 * UP  # warning stripes round the opening
-    for edge in ((0, 0, w, s), (0, 0, s, h), (w - s, 0, w, h)):
-        d.rectangle(edge, fill=(220, 180, 40))
-    for k in range(-h, w + h, 6 * s // 2):
-        d.line([(k, 0), (k + s * 3, s * 3)], fill=(30, 30, 30), width=s // 2)
-    for k in range(0, h, 3 * s):
-        d.line([(0, k), (s, k + s)], fill=(30, 30, 30), width=s // 2)
-        d.line([(w - s, k), (w, k + s)], fill=(30, 30, 30), width=s // 2)
-    img = grime(img, rng, streaks=40)
-    if level:
-        img = damage(img, rng, level)
-    return img.resize((256, 256), Image.LANCZOS)
+    for _ in range(40):
+        x, y = rng.uniform(0, 128 * UP), rng.uniform(0, 128 * UP)
+        d.line([(x, y), (x + rng.uniform(-8, 8) * UP, y + rng.uniform(-2, 2) * UP)], fill=(168, 174, 180), width=UP)
+    return grime(img, rng, amount=0.25).resize((128, 128), Image.LANCZOS)
 
 
 def pad(rng, level=0):
@@ -206,30 +174,6 @@ def pad(rng, level=0):
     return img.resize((256, 256), Image.LANCZOS)
 
 
-def metal(rng):
-    w = h = 128 * UP
-    img = Image.new("RGB", (w, h), (116, 126, 136))
-    d = ImageDraw.Draw(img)
-    for _ in range(60):
-        x, y = rng.uniform(0, w), rng.uniform(0, h)
-        d.line([(x, y), (x + rng.uniform(-10, 10) * UP, y + rng.uniform(-3, 3) * UP)], fill=(160, 168, 176), width=UP)
-    return grime(img, rng, amount=0.2).resize((128, 128), Image.LANCZOS)
-
-
-def helipad(rng):
-    w = h = 256 * UP
-    img = Image.new("RGB", (w, h), (78, 82, 86))
-    d = ImageDraw.Draw(img)
-    c, r = w / 2, w * 0.46
-    d.ellipse([c - r, c - r, c + r, c + r], outline=(225, 225, 220), width=10 * UP)
-    d.ellipse([c - r * 0.8, c - r * 0.8, c + r * 0.8, c + r * 0.8], outline=(220, 180, 40), width=5 * UP)
-    bar, tall, wide = w * 0.06, w * 0.42, w * 0.3
-    for x in (c - wide / 2, c + wide / 2 - bar):  # the H
-        d.rectangle([x, c - tall / 2, x + bar, c + tall / 2], fill=(230, 230, 225))
-    d.rectangle([c - wide / 2, c - bar / 2, c + wide / 2, c + bar / 2], fill=(230, 230, 225))
-    return grime(img, rng, amount=0.2).resize((256, 256), Image.LANCZOS)
-
-
 def emblem(rng):
     """The faction's mark: a gold chevron on dark blue, as on its vehicles."""
     w = h = 128 * UP
@@ -242,26 +186,42 @@ def emblem(rng):
     return img.resize((128, 128), Image.LANCZOS)
 
 
+def compose(bake_dir, out):
+    """The building's texture from Blender's bakes, and its versions."""
+    rng = np.random.default_rng(7)
+    colour = np.asarray(Image.open(os.path.join(bake_dir, "colour.png")).convert("RGB"), float)
+    ao = np.asarray(Image.open(os.path.join(bake_dir, "occlusion.png")).convert("L"), float)[..., None] / 255.0
+    windows = np.asarray(Image.open(os.path.join(bake_dir, "windows.png")).convert("L"), float)[..., None] / 255.0
+    h, w = ao.shape[:2]
+    stains = (tiling_noise(w, h, 10, rng) * 0.6 + tiling_noise(w, h, 30, rng) * 0.4)[..., None]
+    lit = colour * (0.42 + 0.58 * ao) * (0.86 + 0.24 * stains)
+    # The game's light is warm and dim: paint a little lighter and cooler.
+    lit *= np.array([1.16, 1.2, 1.3])
+    day = Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8))
+    versions = {"": day, "_d": damage(day, rng, 1), "_e": damage(day, rng, 2)}
+    for suffix, img in versions.items():
+        img.save(os.path.join(out, f"eucc_building{suffix}.tga"))
+        # At night the building darkens and its windows light up.
+        arr = np.asarray(img, float) * 0.8
+        glow = windows * (1.0 if suffix != "_e" else 0.35)
+        arr = arr * (1 - glow) + np.array(GLASS_LIT) * glow
+        Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).save(os.path.join(out, f"eucc_building{suffix}n.tga"))
+    print("composed the building's textures")
+
+
 def main():
-    out = sys.argv[1]
     rng = np.random.default_rng(21)
-    images = {
-        "eucc_facade": facade(rng), "eucc_facade_n": facade(rng, night=True),
-        "eucc_facade_d": facade(rng, level=1), "eucc_facade_dn": facade(rng, night=True, level=1),
-        "eucc_facade_e": facade(rng, level=2), "eucc_facade_en": facade(rng, night=True, level=2),
-        "eucc_roof": roof(rng), "eucc_roof_d": roof(rng, 1), "eucc_roof_e": roof(rng, 2),
-        "eucc_bay": bay(rng), "eucc_bay_d": bay(rng, 1), "eucc_bay_e": bay(rng, 2),
-        "eucc_door": door(rng), "eucc_door_d": door(rng, 1), "eucc_door_e": door(rng, 2),
-        "eucc_pad": pad(rng), "eucc_pad_e": pad(rng, 2),
-        "eucc_metal": metal(rng), "eucc_helipad": helipad(rng), "eucc_emblem": emblem(rng),
-    }
-    for name, image in images.items():
-        if name not in ("eucc_emblem", "eucc_helipad"):
-            # The game's sunlight is warm and dim: paint lighter and a little cooler than seems right here.
-            arr = np.asarray(image, float) * np.array([1.26, 1.3, 1.36])
-            image = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
-        image.save(os.path.join(out, name + ".tga"))
-    print(f"painted {len(images)} textures")
+    if sys.argv[1] == "tiles":
+        out = sys.argv[2]
+        images = {"tile_wall": tile_wall(rng), "tile_trim": tile_trim(rng), "tile_rib": tile_rib(rng),
+                  "tile_deck": tile_deck(rng), "tile_door": tile_door(rng), "tile_dome": tile_dome(rng),
+                  "tile_metal": tile_metal(rng), "eucc_pad": pad(rng), "eucc_pad_e": pad(rng, 2),
+                  "eucc_emblem": emblem(rng)}
+        for name, image in images.items():
+            image.save(os.path.join(out, name + (".png" if name.startswith("tile_") else ".tga")))
+        print(f"painted {len(images)} tiles")
+    else:
+        compose(sys.argv[2], sys.argv[3])
 
 
 if __name__ == "__main__":

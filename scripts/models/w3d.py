@@ -22,6 +22,8 @@ HLOD, HLOD_HEADER, HLOD_LOD_ARRAY, HLOD_SUB_OBJECT_ARRAY_HEADER, HLOD_SUB_OBJECT
 MESH_VERSION, HTREE_VERSION, HLOD_VERSION = 0x40002, 0x40001, 0x10000
 CAST_SHADOW = 0x8000
 ROOT, CHASSIS = 0, 1
+# Plain white: the game tints a HOUSECOLOR mesh's material with the player's colour (write_house_colour()).
+HOUSE_COLOUR_TEXTURE = "euhouse.tga"
 
 
 def chunk(cid, body, has_children=False):
@@ -110,3 +112,12 @@ class Model:
         data += self._hlod()
         with open(path, "wb") as f:
             f.write(data)
+
+
+def write_house_colour(directory):
+    """The plain white texture for player-coloured meshes: a small uncompressed TGA."""
+    import os
+    size = 8
+    header = bytes([0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, size, 0, size, 0, 24, 0])
+    with open(os.path.join(directory, HOUSE_COLOUR_TEXTURE), "wb") as f:
+        f.write(header + bytes([255]) * (size * size * 3))
