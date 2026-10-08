@@ -45,6 +45,23 @@ WEAPONS = [
     ("Euro_BastionHowitzer", "FireBaseHowitzerGun", {"AttackRange": 300}),
 ]
 
+def building_draw(model, remove=()):
+    """A building's own model (scripts/models): intact, damaged and wrecked, each also at night, rising
+    out of the ground while it is built. `remove`: the parent's other draw modules (its add-on parts)."""
+    states = [("", ""), ("DAMAGED", "_D"), ("REALLYDAMAGED RUBBLE", "_E")]
+    lines = ["ReplaceModule ModuleTag_01", "  Draw = W3DModelDraw ModuleTag_Euro_01", "    OkToChangeModelColor = Yes"]
+    for building in ("", "AWAITING_CONSTRUCTION PARTIALLY_CONSTRUCTED ACTIVELY_BEING_CONSTRUCTED"):
+        for condition, suffix in states:
+            for night in (False, True):
+                flags = " ".join(f for f in (building, condition, "NIGHT" if night else "") if f) or "NONE"
+                name = model + suffix + ("N" if night and suffix else "_N" if night else "")
+                lines += [f"    ConditionState = {flags}", f"      Model = {name}"]
+                if building:
+                    lines.append("      Flags = ADJUST_HEIGHT_BY_CONSTRUCTION_PERCENT")
+                lines.append("    End")
+    return lines + ["  End", "End"] + [f"RemoveModule {tag}" for tag in remove]
+
+
 # ---------------------------------------------------------------------------------------------------
 # Objects: (new name, parent, display name, description, changes).
 # changes: cost, time (seconds), command set, prerequisites (list of alternatives per line),
@@ -53,7 +70,9 @@ WEAPONS = [
 BUILDINGS = [
     ("Euro_CommandCenter", "AmericaCommandCenter", "Command Centre",
      "The heart of the European base. Builds engineer vehicles and directs the general's powers.",
-     dict(command="Euro_CommandCenterCommandSet")),
+     dict(command="Euro_CommandCenterCommandSet", extra=building_draw("EUCMDHQ", remove=(
+         "ModuleTag_02", "ModuleTag_03", "ModuleTag_04", "ModuleTag_05", "ModuleTag_06", "ModuleTag_07",
+         "ModuleTag_OfficersClub")))),
     ("Euro_PowerPlant", "AmericaPowerPlant", "Fusion Plant", "Powers the base.", dict()),
     ("Euro_Barracks", "AmericaBarracks", "Garrison", "Trains infantry.",
      dict(command="Euro_BarracksCommandSet")),
