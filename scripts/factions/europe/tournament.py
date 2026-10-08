@@ -74,8 +74,10 @@ def main():
     parser.add_argument("--seeds", type=int, default=3)
     parser.add_argument("--jobs", type=int, default=6)
     parser.add_argument("--minutes", type=int, default=30)
+    parser.add_argument("--opponents", default=",".join(OPPONENTS), help="comma separated factions")
     args = parser.parse_args()
-    tasks = [(side, opp, m, seed) for opp in OPPONENTS for side in ("FactionEurope", "FactionAmerica")
+    opponents = args.opponents.split(",")
+    tasks = [(side, opp, m, seed) for opp in opponents for side in ("FactionEurope", "FactionAmerica")
              for m in MAPS for seed in range(1, args.seeds + 1)]
     with tempfile.TemporaryDirectory() as work, ThreadPoolExecutor(args.jobs) as pool:
         results = list(pool.map(lambda t: play(*t, args.minutes, work), tasks))
@@ -85,7 +87,7 @@ def main():
         print(f"{side:16} vs {opp:16} {m:18} seed {seed}: {r}", flush=True)
     print()
     print(f"{'opponent':16} {'Europe wins':>12} {'USA wins':>9}")
-    for opp in OPPONENTS:
+    for opp in opponents:
         e, u = table[("FactionEurope", opp)], table[("FactionAmerica", opp)]
         print(f"{opp:16} {sum(e) / len(e):12.0%} {sum(u) / len(u):9.0%}")
 
