@@ -30,7 +30,7 @@ def tile_roof(rng):
     x = np.arange(w)
     seam = (x % (32 * UP)) < 3 * UP
     lit = ((x % (32 * UP)) >= 3 * UP) & ((x % (32 * UP)) < 5 * UP)
-    base = np.array([116, 130, 146], float)
+    base = np.array([142, 156, 172], float)
     row = np.where(seam[:, None], base * 0.62, np.where(lit[:, None], base * 1.25, base))
     arr = np.repeat(row[None, :, :], w, axis=0)
     img = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
@@ -166,25 +166,28 @@ EXTENT = (-56.0, 56.0, -62.0, 62.0)
 
 
 def markings(p, d):
-    """A lane out of the bay (+X), the repair bay's box under the gantry, parking boxes, the faction's mark."""
-    # Lane edges and dashes from the bay door to the pad's edge.
+    """The apron in front of the gate with a lane and hazard chevrons, the repair bay under the crane, a
+    parking box and the faction's mark in the yard. The ground's outline (armour_works.PAD_OUTLINE) cuts it."""
     for y in (-41.5, -18.5):
-        (ax, ay), (bx, by) = p.px(46, y), p.px(56, y)
-        d.line([(ax, ay), (bx, by)], fill=YELLOW, width=p.width(0.8))
-    for x in range(47, 56, 5):
+        (ax, ay), (bx, by) = p.px(41, y), p.px(56, y)
+        d.line([(ax, ay), (bx, by)], fill=YELLOW, width=p.width(0.6))
+    for x in range(42, 56, 5):
         (ax, ay), (bx, by) = p.px(x, -30), p.px(x + 2.5, -30)
         d.line([(ax, ay), (bx, by)], fill=WHITE, width=p.width(0.9))
-    # The repair bay under the gantry: a hazard-striped frame and a cross.
-    p.rect(d, (34, 4), (54, 28), outline=YELLOW, width=p.width(1.2))
+    for k in range(6):                                   # chevrons on the gate's sill
+        y = -40.0 + k * 4.0
+        d.polygon([p.px(40.5, y), p.px(42.0, y), p.px(43.0, y + 2.0), p.px(41.5, y + 2.0)], fill=(30, 30, 28))
+    # The repair bay under the crane: an outlined box with a hazard edge.
+    p.rect(d, (36, 12), (54, 30), outline=WHITE, width=p.width(0.8))
     for k in range(5):
-        a, b = p.px(34 + k * 4, 4), p.px(36 + k * 4, 2.6)
+        a, b = p.px(36 + k * 4, 12), p.px(38 + k * 4, 10.6)
         d.rectangle([a[0], a[1], b[0], b[1]], fill=(30, 30, 28))
-    (ax, ay), (bx, by) = p.px(40, 16), p.px(52, 16)
-    d.line([(ax, ay), (bx, by)], fill=YELLOW, width=p.width(0.5))
-    # Parking boxes in the yard.
-    for x in (2, 16):
-        p.rect(d, (x, 34), (x + 11, 52), outline=WHITE, width=p.width(0.5))
-    p.emblem(d, 24, 16, 7)
+    p.rect(d, (4, 16), (16, 34), outline=WHITE, width=p.width(0.5))
+    p.emblem(d, 26, 30, 5.5)
+    # Oil and tyre tracks along the lane out of the gate.
+    for y in (-35.0, -25.0):
+        (ax, ay), (bx, by) = p.px(36, y), p.px(56, y)
+        d.line([(ax, ay), (bx, by)], fill=(112, 112, 106), width=p.width(2.2))
 
 
 def main():
