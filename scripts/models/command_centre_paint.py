@@ -103,11 +103,11 @@ def panels(colour, rng, size=256, step=64, seam=(92, 90, 84), rivets=True, light
 
 
 def tile_wall(rng):
-    return grime(panels((214, 214, 208), rng, seam=(110, 112, 114), light=(236, 236, 232)), rng, amount=0.24, streaks=30, streak_colour=(160, 160, 156)).resize((256, 256), Image.LANCZOS)
+    return grime(panels((222, 214, 196), rng, seam=(120, 112, 98), light=(244, 238, 224)), rng, amount=0.24, streaks=30, streak_colour=(170, 160, 140)).resize((256, 256), Image.LANCZOS)
 
 
 def tile_trim(rng):
-    return grime(panels((70, 104, 150), rng, step=128, seam=(36, 52, 76), light=(140, 168, 200)), rng, amount=0.2).resize((256, 256), Image.LANCZOS)
+    return grime(panels((92, 108, 126), rng, step=128, seam=(48, 58, 70), light=(150, 164, 178)), rng, amount=0.2).resize((256, 256), Image.LANCZOS)
 
 
 def tile_rib(rng):
@@ -157,6 +157,54 @@ def tile_metal(rng):
     return grime(img, rng, amount=0.25).resize((128, 128), Image.LANCZOS)
 
 
+def tile_crate(rng):
+    """Olive military crates: planks, a frame, a stencil bar."""
+    w = 128 * UP
+    img = Image.new("RGB", (w, w), (88, 100, 72))
+    d = ImageDraw.Draw(img)
+    for k in range(0, w, 16 * UP):
+        d.line([(0, k), (w, k)], fill=(60, 68, 50), width=UP)
+    d.rectangle([0, 0, w - 1, w - 1], outline=(54, 60, 44), width=6 * UP)
+    d.line([(0, 0), (w, w)], fill=(70, 80, 58), width=5 * UP)
+    d.rectangle([w * 0.3, w * 0.42, w * 0.7, w * 0.52], fill=(200, 196, 170))
+    return grime(img, rng, amount=0.25).resize((128, 128), Image.LANCZOS)
+
+
+def tile_sandbag(rng):
+    """Rows of sandbags."""
+    w = 128 * UP
+    img = Image.new("RGB", (w, w), (150, 132, 98))
+    d = ImageDraw.Draw(img)
+    for row in range(8):
+        y = row * w / 8
+        off = (row % 2) * w / 8
+        for k in range(-1, 5):
+            x = off + k * w / 4
+            d.rounded_rectangle([x + UP, y + UP, x + w / 4 - UP, y + w / 8 - UP], radius=6 * UP,
+                                fill=(160 + int(rng.uniform(-12, 12)), 142, 106), outline=(104, 90, 64), width=UP)
+    return grime(img, rng, amount=0.2).resize((128, 128), Image.LANCZOS)
+
+
+def tile_hazard(rng):
+    """Yellow and black warning stripes."""
+    w = 128 * UP
+    img = Image.new("RGB", (w, w), (226, 184, 40))
+    d = ImageDraw.Draw(img)
+    for k in range(-w, w * 2, 32 * UP):
+        d.polygon([(k, 0), (k + 16 * UP, 0), (k + 16 * UP - w, w), (k - w, w)], fill=(34, 32, 30))
+    return grime(img, rng, amount=0.2).resize((128, 128), Image.LANCZOS)
+
+
+def tile_grille(rng):
+    """Air-conditioning grilles: dark slots in a light frame."""
+    w = 128 * UP
+    img = Image.new("RGB", (w, w), (176, 178, 176))
+    d = ImageDraw.Draw(img)
+    for k in range(10 * UP, w - 8 * UP, 10 * UP):
+        d.rectangle([8 * UP, k, w - 8 * UP, k + 5 * UP], fill=(52, 56, 60))
+    return grime(img, rng, amount=0.2).resize((128, 128), Image.LANCZOS)
+
+
 def pad(rng, level=0):
     w = h = 256 * UP
     img = Image.new("RGB", (w, h), CONCRETE)
@@ -186,6 +234,56 @@ def emblem(rng):
     return img.resize((128, 128), Image.LANCZOS)
 
 
+PAD_SIZE = 1024
+PAD_X, PAD_Y = (-60.0, 60.0), (-70.0, 70.0)   # the footprint the pad's texture covers
+
+
+def pad_pixel(x, y):
+    """Where a point of the footprint lies on the pad's texture (it is seen from above, +X to the right)."""
+    return ((x - PAD_X[0]) / (PAD_X[1] - PAD_X[0]) * PAD_SIZE * UP,
+            (1 - (y - PAD_Y[0]) / (PAD_Y[1] - PAD_Y[0])) * PAD_SIZE * UP)
+
+
+def paint_pad(bake_dir, out, rng):
+    """The pad, painted as one picture: concrete slabs, markings, the faction's mark, darker by the walls."""
+    w = PAD_SIZE * UP
+    tile = pad(rng).resize((256 * UP, 256 * UP))
+    img = Image.new("RGB", (w, w))
+    for x in range(0, w, tile.width):
+        for y in range(0, w, tile.height):
+            img.paste(tile, (x, y))
+    d = ImageDraw.Draw(img)
+    yellow, white = (214, 176, 52), (226, 224, 214)
+    # A dashed lane out of the hangar, the way new units leave, and parking boxes beside it.
+    for x in range(34, 58, 6):
+        a, b = pad_pixel(x, 34.5), pad_pixel(x + 3.5, 34.5)
+        d.line([a, b], fill=yellow, width=int(1.2 * UP * PAD_SIZE / 140))
+    for y0 in (48, 56):
+        a, b = pad_pixel(36, y0 - 3), pad_pixel(54, y0 + 3)
+        d.rectangle([a[0], b[1], b[0], a[1]], outline=white, width=int(0.5 * UP * PAD_SIZE / 140))
+    # A walkway to the hall's door, with the faction's mark beside it.
+    for x in range(34, 56, 4):
+        a, b = pad_pixel(x, -14), pad_pixel(x + 2, -6)
+        d.rectangle([a[0], b[1], b[0], a[1]], fill=white)
+    cx, cy = pad_pixel(46, -34)
+    r = 9 * UP * PAD_SIZE / 140
+    d.rectangle([cx - r, cy - r, cx + r, cy + r], fill=(28, 34, 64), outline=white, width=int(0.6 * UP * PAD_SIZE / 140))
+    # The chevron points to -X on the texture: up the screen from the game's camera.
+    d.polygon([(cx + r * 0.4, cy - r * 0.65), (cx - r * 0.55, cy), (cx + r * 0.4, cy + r * 0.65), (cx + r * 0.4, cy + r * 0.42),
+               (cx - r * 0.15, cy), (cx + r * 0.4, cy - r * 0.42)], fill=(236, 200, 40))
+    # Tyre marks and oil.
+    for _ in range(30):
+        x, y = pad_pixel(rng.uniform(-50, 56), rng.uniform(-62, 62))
+        rr = rng.uniform(1, 4) * UP * PAD_SIZE / 140
+        d.ellipse([x - rr, y - rr * 0.6, x + rr, y + rr * 0.6], fill=(118, 118, 112))
+    arr = np.asarray(img.resize((PAD_SIZE, PAD_SIZE), Image.LANCZOS), float)
+    ao = np.asarray(Image.open(os.path.join(bake_dir, "pad_occlusion.png")).convert("L").resize((PAD_SIZE, PAD_SIZE)), float)
+    arr = arr * (0.5 + 0.5 * ao[..., None] / 255.0) * np.array([1.1, 1.12, 1.16])
+    day = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
+    day.save(os.path.join(out, "eucc_pad.tga"))
+    damage(day, rng, 2).save(os.path.join(out, "eucc_pad_e.tga"))
+
+
 def compose(bake_dir, out):
     """The building's texture from Blender's bakes, and its versions."""
     rng = np.random.default_rng(7)
@@ -194,7 +292,9 @@ def compose(bake_dir, out):
     windows = np.asarray(Image.open(os.path.join(bake_dir, "windows.png")).convert("L"), float)[..., None] / 255.0
     h, w = ao.shape[:2]
     stains = (tiling_noise(w, h, 10, rng) * 0.6 + tiling_noise(w, h, 30, rng) * 0.4)[..., None]
-    lit = colour * (0.42 + 0.58 * ao) * (0.86 + 0.24 * stains)
+    height = np.asarray(Image.open(os.path.join(bake_dir, "height.png")).convert("L"), float)[..., None] / 255.0
+    # Darker towards the ground, as the game's buildings are painted.
+    lit = colour * (0.42 + 0.58 * ao) * (0.86 + 0.24 * stains) * (0.78 + 0.36 * np.sqrt(height))
     # The game's light is warm and dim: paint a little lighter and cooler.
     lit *= np.array([1.16, 1.2, 1.3])
     day = Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8))
@@ -206,6 +306,7 @@ def compose(bake_dir, out):
         glow = windows * (1.0 if suffix != "_e" else 0.35)
         arr = arr * (1 - glow) + np.array(GLASS_LIT) * glow
         Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).save(os.path.join(out, f"eucc_building{suffix}n.tga"))
+    paint_pad(bake_dir, out, rng)
     print("composed the building's textures")
 
 
@@ -215,7 +316,8 @@ def main():
         out = sys.argv[2]
         images = {"tile_wall": tile_wall(rng), "tile_trim": tile_trim(rng), "tile_rib": tile_rib(rng),
                   "tile_deck": tile_deck(rng), "tile_door": tile_door(rng), "tile_dome": tile_dome(rng),
-                  "tile_metal": tile_metal(rng), "eucc_pad": pad(rng), "eucc_pad_e": pad(rng, 2),
+                  "tile_metal": tile_metal(rng), "tile_crate": tile_crate(rng), "tile_sandbag": tile_sandbag(rng),
+                  "tile_hazard": tile_hazard(rng), "tile_grille": tile_grille(rng), "tile_pad": pad(rng),
                   "eucc_emblem": emblem(rng)}
         for name, image in images.items():
             image.save(os.path.join(out, name + (".png" if name.startswith("tile_") else ".tga")))
