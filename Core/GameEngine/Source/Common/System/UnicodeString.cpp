@@ -410,10 +410,63 @@ void UnicodeString::format_va(const UnicodeString& format, va_list args)
 	format_va(format.str(), args);
 }
 
+#if !defined(_WIN32)
+// -----------------------------------------------------
+// The game's wide format strings follow Windows, where %s and %c take wide text and %hs, %hc, %S and
+// %C narrow text. POSIX reads %s and %c as narrow, which cut a name passed as %s to its first letter,
+// so the format is rewritten to the POSIX spelling: %s to %ls, %hs and %S to %s (and the same for c).
+// Returns false when the format does not fit in out, to use it unchanged.
+static Bool windowsToPosixWideFormat(const WideChar* in, WideChar* out, size_t outLen)
+{
+	size_t o = 0;
+	auto put = [&](WideChar c) { if (o + 1 < outLen) out[o] = c; ++o; };
+	while (*in)
+	{
+		if (*in != L'%')
+		{
+			put(*in++);
+			continue;
+		}
+		put(*in++);
+		if (*in == L'%')
+		{
+			put(*in++);
+			continue;
+		}
+		while (*in && wcschr(L"-+ #0123456789.*", *in))
+			put(*in++);
+		if (*in == L'h' && (in[1] == L's' || in[1] == L'c'))
+		{
+			++in;
+			put(*in++);
+		}
+		else if (*in == L'S' || *in == L'C')
+		{
+			put(*in == L'S' ? L's' : L'c');
+			++in;
+		}
+		else if (*in == L's' || *in == L'c')
+		{
+			put(L'l');
+			put(*in++);
+		}
+	}
+	if (o >= outLen)
+		return false;
+	out[o] = 0;
+	return true;
+}
+#endif
+
 // -----------------------------------------------------
 void UnicodeString::format_va(const WideChar* format, va_list args)
 {
 	validate();
+#if !defined(_WIN32)
+	WideChar posixFormat[MAX_FORMAT_BUF_LEN];
+	if (windowsToPosixWideFormat(format, posixFormat, MAX_FORMAT_BUF_LEN))
+		format = posixFormat;
+#endif
 	WideChar buf[MAX_FORMAT_BUF_LEN];
 	const int result = vswprintf(buf, sizeof(buf)/sizeof(WideChar), format, args);
 	if (result >= 0)
