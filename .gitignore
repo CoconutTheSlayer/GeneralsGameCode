@@ -71,3 +71,4 @@ __pycache__/
 resources/macos/GameData/Art/TexturesHD/eu_*.tga
 resources/macos/GameData/Art/TexturesHD/eu_icons.tga
 resources/macos/GameData/Data/INI/Addon/Client/EuropeIcons.ini
+resources/macos/GameData/Data/INI/Addon/Client/EuropeArt.ini
