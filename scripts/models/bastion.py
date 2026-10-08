@@ -1,14 +1,17 @@
-"""The European Artillery Bastion, modelled in Blender and written as W3D models for the game: a square
-concrete bunker with sloped glacis walls, four corner casemates with firing slits where infantry
-garrison it, gate houses front and back, and an armoured howitzer turret on a raised platform (after a
-concept painted in the game's style). Everything is made here, so the models and textures can be shared.
+"""The European Artillery Bastion, modelled in Blender and written as W3D models for the game: a heavy,
+low hexagonal casemate of dark bare concrete with steeply sloped glacis walls, half buried in packed earth
+berms heaped against five of its six sides, firing slits above the earth line, a sloped parapet round a
+gun deck, and an armoured howitzer turret on a raised ring; the bare back wall carries a recessed blast-door
+portal (after a concept painted in the game's style). Everything is made here, so the models and textures
+can be shared.
 
     /Applications/Blender.app/Contents/MacOS/Blender -b -P scripts/models/bastion.py
 
 Painted as the Command Centre and the SAMP/T Battery (the shared code is samp_battery.py's):
 bastion_paint.py paints small tiling surfaces, Blender projects them onto the model and bakes them with
-the ambient occlusion into one texture; the painter makes the damaged, wrecked and night versions. Six
-models: EUBAST (intact), _D, _E (no clutter, antenna or cupola), each with a night version (_N, _DN, _EN).
+the ambient occlusion into one texture; the painter makes the damaged, wrecked and night versions and the
+ground, an earth patch cut out by its alpha. Six models: EUBAST (intact), _D, _E (no clutter, antenna or
+cupola), each with a night version (_N, _DN, _EN).
 
 Bones (as the USA's Fire Base, ABFIREBASE, which the game's INI names):
     TURRET01               the turret, turning about Z
@@ -17,10 +20,10 @@ Bones (as the USA's Fire Base, ABFIREBASE, which the game's INI names):
     MUZZLE0101             where the shell leaves (WeaponLaunchBone MUZZLE01)
     MUZZLEFX01             the muzzle flash, a mesh of that name shown when it fires (WeaponMuzzleFlash,
                            WeaponFireFXBone MuzzleFX)
-    STATION01..STATION04   where the garrison stands, one inside each corner casemate (GarrisonContain
-                           places infantry at STATION bones, named by ExtraPublicBone in the INI)
+    STATION01..STATION04   where the garrison stands, on the gun deck behind the parapet's corners
+                           (GarrisonContain places infantry at STATION bones, named by ExtraPublicBone)
 
-The footprint is the USA's (a box of 52 by 52, 15 high, centred); the pad covers all of it.
+The footprint is the USA's (a box of 52 by 52, 15 high, centred); the berms reach 25.5 along X, 20 along Y.
 """
 import math
 import os
@@ -36,128 +39,165 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from blender_kit import load_image, mesh_data, new_object, textured  # noqa: E402
 import w3d  # noqa: E402
-from samp_battery import (BUILD, DATA, Builder, bake_all, band, decal, house_material, make_objects, moved,  # noqa: E402
-                          ring, square_pad)
+from samp_battery import (BUILD, DATA, Builder, bake_all, band, decal, flat_ground, house_material,  # noqa: E402
+                          make_objects, moved)
 
 NAME = "EUBAST"
 PREFIX = "eufb"
-PAD_Z = 0.6
+PAD_Z = 0.05
 PAD_HALF = 26.0
-HEIGHT_TOP = 20.0
+HEIGHT_TOP = 18.0
 SURFACES = {
-    "wall": ("tile_wall", 10.0), "concrete": ("tile_concrete", 12.0), "trim": ("tile_trim", 8.0),
-    "deck": ("tile_deck", 10.0), "door": ("tile_door", 8.0), "metal": ("tile_metal", 4.0),
+    "concrete": ("tile_concrete", 10.0), "slab": ("tile_slab", 6.0), "earth": ("tile_earth", 9.0),
+    "trim": ("tile_trim", 8.0), "door": ("tile_door", 6.0), "metal": ("tile_metal", 4.0),
     "sandbag": ("tile_sandbag", 3.0), "hazard": ("tile_hazard", 2.5), "grille": ("tile_grille", 2.0),
     "crate": ("tile_crate", 3.0), "steel": ("tile_steel", 8.0), "armour": ("tile_armour", 8.0),
-    "glass": (40, 72, 92), "dark": (30, 32, 36), "yellow": (222, 182, 46), "red": (196, 52, 40),
+    "glass": (40, 72, 92), "dark": (24, 25, 28), "yellow": (222, 182, 46), "red": (196, 52, 40),
 }
 
-BODY = (18.0, 15.5, 9.0)                 # half width at the ground, at the top, the deck's height
-CASEMATE = (17.5, 5.0, 12.5)             # centre (+-), half width, height
-TURRET_AT = (0.0, 0.0, 10.4)             # TURRET01, on the gun platform
-TRUNNION = (6.0, 0.0, 13.4)              # TURRETEL, in the world
+# The casemate's plan at the ground (counter-clockwise), its walls leaning in by SLOPE up to the deck.
+PLAN = [(-13.5, -13.0), (13.5, -13.0), (18.5, 0.0), (13.5, 13.0), (-13.5, 13.0), (-18.5, 0.0)]
+DECK = 8.0
+SLOPE = 3.2
+BERM = [(-0.4, -0.4), (-2.3, 4.6), (0.0, 5.0), (1.6, 4.7), (3.4, 3.4), (5.4, 1.4), (7.4, -0.4)]   # (offset, z), a mound
+PLATFORM = (7.4, 1.2)                    # the gun ring's radius and height on the deck
+TURRET_AT = (0.0, 0.0, DECK + 1.2)       # TURRET01, on the gun ring
+TRUNNION = (6.0, 0.0, DECK + 4.2)        # TURRETEL, in the world
 MUZZLE = 23.8                            # from the trunnion along the barrel
-STATIONS = [(1, 1), (1, -1), (-1, -1), (-1, 1)]   # STATION01..04, in the casemates (as the USA's order)
+STATIONS = [(1, 1), (1, -1), (-1, -1), (-1, 1)]   # STATION01..04, on the deck (as the USA's order)
+STATION_AT = (9.5, 5.6)
 
 
-def frustum(b, surface, half0, half1, z0, z1):
-    """A square block whose sides lean in, from half width half0 at z0 to half1 at z1."""
+def normals(points, closed=True):
+    """Outward normals (x, y) of a counter-clockwise outline's edges."""
+    n = len(points) if closed else len(points) - 1
+    out = []
+    for i in range(n):
+        (ax, ay), (bx, by) = points[i], points[(i + 1) % len(points)]
+        length = math.hypot(bx - ax, by - ay)
+        out.append(((by - ay) / length, -(bx - ax) / length))
+    return out
+
+
+def offset(points, d, closed=True):
+    """The outline moved out by d (mitred corners)."""
+    ns = normals(points, closed)
+    out = []
+    for i, (x, y) in enumerate(points):
+        if closed:
+            a, b = ns[i - 1], ns[i]
+        else:
+            a = ns[max(i - 1, 0)]
+            b = ns[min(i, len(ns) - 1)]
+        mx, my = a[0] + b[0], a[1] + b[1]
+        k = d / (1 + a[0] * b[0] + a[1] * b[1])
+        out.append((x + mx * k, y + my * k))
+    return out
+
+
+def loft(b, surface, path, profile, closed=True):
+    """A closed cross-section (offset out of the path, z) carried along a counter-clockwise path: a berm, a
+    parapet. Closed paths make a ring; open ones are capped at both ends. One closed shape."""
     def make(bm):
-        lo = [bm.verts.new((x * half0, y * half0, z0)) for x, y in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
-        hi = [bm.verts.new((x * half1, y * half1, z1)) for x, y in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+        rows = [offset(path, d, closed) for d, _ in profile]
+        loops = [[bm.verts.new((rows[j][i][0], rows[j][i][1], profile[j][1])) for j in range(len(profile))]
+                 for i in range(len(path))]
+        n = len(profile)
+        steps = len(path) if closed else len(path) - 1
+        for i in range(steps):
+            a, c = loops[i], loops[(i + 1) % len(path)]
+            for j in range(n):
+                k = (j + 1) % n
+                bm.faces.new((a[j], a[k], c[k], c[j]))
+        if not closed:
+            bm.faces.new(loops[0])
+            bm.faces.new(list(reversed(loops[-1])))
+    b.add(surface, make)
+
+
+def solid(b, surface, bottom, top, z0, z1):
+    """A block from one outline at z0 to another (same corners) at z1."""
+    def make(bm):
+        lo = [bm.verts.new((x, y, z0)) for x, y in bottom]
+        hi = [bm.verts.new((x, y, z1)) for x, y in top]
         bm.faces.new(list(reversed(lo)))
         bm.faces.new(hi)
-        for i in range(4):
-            j = (i + 1) % 4
+        for i in range(len(lo)):
+            j = (i + 1) % len(lo)
             bm.faces.new((lo[i], lo[j], hi[j], hi[i]))
     b.add(surface, make)
 
 
-def body(b):
-    """The bunker: sloped concrete glacis, a deck with a parapet, the raised gun platform."""
-    h0, h1, top = BODY
-    b.box("trim", (-h0 - 0.4, -h0 - 0.4, PAD_Z), (h0 + 0.4, h0 + 0.4, PAD_Z + 0.8))
-    frustum(b, "concrete", h0, h1, PAD_Z, top)
-    b.box("deck", (-h1 + 0.2, -h1 + 0.2, top), (h1 - 0.2, h1 - 0.2, top + 0.1))
-    ring(b, "wall", -h1, h1, -h1, h1, top, top + 1.6, 1.2)
-    ring(b, "trim", -h1 - 0.15, h1 + 0.15, -h1 - 0.15, h1 + 0.15, top + 1.6, top + 2.0, 1.5)
-    b.cylinder("trim", (0, 0, top + 0.7), 8.5, 1.4, segments=24)
-    b.cylinder("deck", (0, 0, top + 1.45), 8.0, 0.1, segments=24)
-    for k in range(12):                      # hazard marks round the platform's edge
-        a = k * math.pi / 6
-        b.oriented_box("hazard", (math.cos(a) * 8.52, math.sin(a) * 8.52, top + 0.7), (0.1, 1.6, 0.9),
-                       Matrix.Rotation(a, 4, "Z"))
+def on_wall(edge, along, z, depth=0.0):
+    """A point on the sloped wall over PLAN's edge `edge`, `along` (0..1) its length, at height z, moved
+    `depth` out of the wall; and the turn that lays a box's X axis along the wall's outward normal."""
+    (ax, ay), (bx, by) = PLAN[edge], PLAN[(edge + 1) % len(PLAN)]
+    nx, ny = normals(PLAN)[edge]
+    inset = SLOPE * z / DECK
+    lean = math.atan2(SLOPE, DECK)
+    x = ax + (bx - ax) * along - nx * (inset - depth * math.cos(lean))
+    y = ay + (by - ay) * along - ny * (inset - depth * math.cos(lean))
+    turn = Matrix.Rotation(math.atan2(ny, nx), 4, "Z") @ Matrix.Rotation(-lean, 4, "Y")
+    return (x, y, z + depth * math.sin(lean)), turn
+
+
+def casemate(b):
+    """The concrete casemate, its parapet, the gun ring, firing slits, the blast-door portal at the back."""
+    top = offset(PLAN, -SLOPE)
+    solid(b, "concrete", PLAN, top, -0.4, DECK)
+    loft(b, "concrete", top, [(0.0, DECK - 0.1), (-0.5, DECK + 1.3), (-1.7, DECK + 1.3), (-1.7, DECK - 0.1)])
+    loft(b, "slab", offset(PLAN, -SLOPE - 0.5), [(0.1, DECK + 1.3), (0.1, DECK + 1.55), (-1.3, DECK + 1.55), (-1.3, DECK + 1.3)])
+    b.cylinder("concrete", (0, 0, DECK + PLATFORM[1] / 2), PLATFORM[0], PLATFORM[1], segments=24)
+    b.cylinder("slab", (0, 0, DECK + PLATFORM[1] + 0.05), PLATFORM[0] - 0.4, 0.1, segments=24)
+    for k in range(8):                       # small hazard marks round the gun ring's edge
+        a = k * math.pi / 4 + math.pi / 8
+        b.oriented_box("hazard", (math.cos(a) * (PLATFORM[0] + 0.02), math.sin(a) * (PLATFORM[0] + 0.02), DECK + 0.7),
+                       (0.1, 1.2, 0.6), Matrix.Rotation(a, 4, "Z"))
+    # Firing slits above the earth line: a heavy concrete hood over a dark slot, on every side.
+    for edge, places in ((0, ((0.22, 5.0), (0.5, 5.0), (0.78, 5.0))), (1, ((0.5, 5.5),)), (2, ((0.5, 5.5),)),
+                         (3, ((0.14, 3.4), (0.86, 3.4))), (4, ((0.5, 5.5),)), (5, ((0.5, 5.5),))):
+        for along, w in places:
+            at, turn = on_wall(edge, along, 5.9, 0.05)
+            b.oriented_box("dark", at, (0.3, w, 0.75), turn)
+            at, turn = on_wall(edge, along, 6.75, 0.35)
+            b.oriented_box("slab", at, (0.9, w + 1.0, 0.45), turn)
+    # The portal on the bare back wall (+Y): a projecting concrete frame, a steel blast door, hazard posts.
+    b.box("concrete", (-5.2, 9.0, -0.4), (5.2, 15.4, 7.4))
+    b.box("slab", (-5.6, 9.0, 7.4), (5.6, 15.8, 8.0))
+    b.box("door", (-3.4, 15.4, 0.0), (3.4, 15.6, 4.8))
+    for x in (-4.3, 4.3):
+        b.box("hazard", (x - 0.35, 15.4, 0.0), (x + 0.35, 16.2, 3.4))
+    b.box("trim", (-3.8, 15.6, 4.8), (3.8, 16.6, 5.2))
     # Vents and a ready-ammunition hatch on the deck.
-    for x, y in ((-11.0, -9.0), (-11.0, 9.0)):
-        b.box("grille", (x - 1.6, y - 1.0, top), (x + 1.6, y + 1.0, top + 0.8))
-    b.box("steel", (9.0, -12.0, top), (12.0, -9.0, top + 0.5))
-    b.box("hazard", (8.8, -12.2, top), (12.2, -11.9, top + 0.55))
+    for x, y in ((-10.0, -6.0), (-10.0, 6.0)):
+        b.box("grille", (x - 1.4, y - 0.9, DECK), (x + 1.4, y + 0.9, DECK + 0.7))
+    b.box("steel", (8.5, -7.6, DECK), (11.0, -5.6, DECK + 0.4))
 
 
-def casemates(b):
-    """The four corner casemates: plaster, a plinth, a yellow band, a cap, firing slits facing out."""
-    c, h, top = CASEMATE
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            x, y = sx * c, sy * c
-            b.box("wall", (x - h, y - h, PAD_Z), (x + h, y + h, top))
-            b.box("trim", (x - h - 0.3, y - h - 0.3, PAD_Z), (x + h + 0.3, y + h + 0.3, 2.2))
-            b.box("yellow", (x - h - 0.08, y - h - 0.08, 9.4), (x + h + 0.08, y + h + 0.08, 9.9))
-            b.box("trim", (x - h - 0.35, y - h - 0.35, top), (x + h + 0.35, y + h + 0.35, top + 0.7))
-            b.box("deck", (x - h + 0.6, y - h + 0.6, top + 0.7), (x + h - 0.6, y + h - 0.6, top + 0.8))
-            # Firing slits in the two outer faces: a hood, a dark slot, a sill.
-            fx = x + sx * h
-            b.box("trim", (fx, y - 2.6, 8.0), (fx + sx * 0.6, y + 2.6, 8.5))
-            b.box("dark", (fx, y - 2.2, 6.6), (fx + sx * 0.12, y + 2.2, 7.9))
-            b.box("trim", (fx, y - 2.4, 6.2), (fx + sx * 0.4, y + 2.4, 6.6))
-            fy = y + sy * h
-            b.box("trim", (x - 2.6, fy, 8.0), (x + 2.6, fy + sy * 0.6, 8.5))
-            b.box("dark", (x - 2.2, fy, 6.6), (x + 2.2, fy + sy * 0.12, 7.9))
-            b.box("trim", (x - 2.4, fy, 6.2), (x + 2.4, fy + sy * 0.4, 6.6))
-            # A lit window towards the deck.
-            ix = x - sx * h
-            b.box("glass", (ix - sx * 0.08, y - 1.4, 10.4), (ix, y + 1.4, 11.4))
-
-
-def gates(b):
-    """Gate houses: the front one carries the emblem, the back one the ammunition door."""
-    for side in (1, -1):
-        x0, x1 = sorted((side * 15.0, side * 19.6))
-        b.box("wall", (x0, -5.0, PAD_Z), (x1, 5.0, 8.6))
-        b.box("trim", (x0 - 0.3, -5.3, PAD_Z), (x1 + 0.3, 5.3, 2.0))
-        b.box("yellow", (x0 - 0.08, -5.08, 6.3), (x1 + 0.08, 5.08, 6.8))
-        b.box("trim", (x0 - 0.3, -5.3, 8.6), (x1 + 0.3, 5.3, 9.3))
-    # The ammunition door at the back, framed in hazard stripes, with a ramp.
-    b.box("hazard", (-19.8, -3.4, PAD_Z), (-19.6, 3.4, 6.0))
-    b.box("door", (-19.95, -2.8, PAD_Z), (-19.8, 2.8, 5.5))
-    b.add("trim", lambda bm: bmesh.ops.create_cube(bm, size=1.0, matrix=(
-        Matrix.Translation((-21.2, 0, PAD_Z + 0.2)) @ Matrix.Rotation(0.12, 4, "Y") @ Matrix.Diagonal((3.0, 5.6, 0.5, 1)))))
-    # Front: a lamp over the emblem, a plaque frame for it.
-    b.box("trim", (19.6, -3.2, 2.2), (19.75, 3.2, 6.1))
-
-
-def sandbags(b):
-    """Sandbag walls along the front between the casemates and the gate."""
-    for y0, y1 in ((-12.2, -5.6), (5.6, 12.2)):
-        b.box("sandbag", (19.0, y0, PAD_Z), (21.0, y1, PAD_Z + 1.6))
-        b.box("sandbag", (19.4, y0 + 0.5, PAD_Z + 1.6), (20.6, y1 - 0.5, PAD_Z + 2.6))
+def berms(b):
+    """Earth heaped against five sides, leaving the back wall bare; sandbags along its foot."""
+    loft(b, "earth", [PLAN[4], PLAN[5], PLAN[0], PLAN[1], PLAN[2], PLAN[3]], BERM, closed=False)
+    for x0, x1 in ((-12.5, -6.0), (6.0, 12.5)):
+        b.box("sandbag", (x0, 13.0, -0.2), (x1, 14.6, 1.2))
+        b.box("sandbag", (x0 + 0.5, 13.2, 1.2), (x1 - 0.5, 14.2, 2.1))
 
 
 def clutter(b):
-    """Lost when the bastion is wrecked: crates, an antenna, a floodlight, an observation cupola."""
-    for x, y, z in ((-22.5, 7.0, 0), (-22.5, 9.4, 0), (-20.5, 8.2, 0), (-22.5, 8.2, 1.8)):
-        b.box("crate", (x - 1.0, y - 1.0, PAD_Z + z), (x + 1.0, y + 1.2, PAD_Z + z + 1.8))
-    for x, y in ((-21.0, -7.4), (-22.6, -7.4), (-21.8, -9.0)):
-        b.cylinder("trim", (x, y, PAD_Z + 1.2), 0.75, 2.4, segments=8)
-    c, h, top = CASEMATE
-    b.cylinder("metal", (-c - 2.5, c + 2.5, top + 4.5), 0.12, 8.0, segments=5)
-    b.sphere("red", (-c - 2.5, c + 2.5, top + 8.6), 0.3, 6, 4)
-    b.cylinder("metal", (c - 3.0, -c + 3.0, top + 2.2), 0.15, 3.0, segments=5)
-    b.box("metal", (c - 3.6, -c + 2.6, top + 3.6), (c - 2.4, -c + 3.4, top + 4.4))
-    b.cylinder("armour", (c, c, top + 1.6), 2.0, 1.8, segments=12)
-    b.cylinder("trim", (c, c, top + 2.7), 2.3, 0.4, segments=12)
-    b.cylinder("dark", (c, c, top + 1.7), 2.05, 0.5, segments=12)
-    b.box("metal", (c + 0.6, c - 0.3, top + 2.9), (c + 1.0, c + 0.3, top + 4.0))
+    """Lost when the bastion is wrecked: an observation cupola, an antenna, crates and sandbags."""
+    tx, ty = -10.6, -0.0
+    b.cylinder("armour", (tx, ty, DECK + 0.9), 1.7, 1.8, segments=12)
+    b.cylinder("trim", (tx, ty, DECK + 1.95), 2.0, 0.35, segments=12)
+    b.cylinder("dark", (tx, ty, DECK + 1.3), 1.75, 0.4, segments=12)
+    b.cylinder("metal", (-10.0, 7.0, DECK + 5.0), 0.12, 8.0, segments=5)
+    b.sphere("red", (-10.0, 7.0, DECK + 9.1), 0.3, 6, 4)
+    for x, y, z in ((-8.6, -6.6, 0), (-6.6, -6.6, 0), (-7.6, -6.6, 1.4)):
+        b.box("crate", (x - 0.9, y - 0.7, DECK + z), (x + 0.9, y + 0.7, DECK + z + 1.4))
+    for x, y in ((8.6, 6.6), (10.4, 5.2)):
+        b.box("sandbag", (x - 1.0, y - 0.6, DECK), (x + 1.0, y + 0.6, DECK + 0.9))
+    for x in (-8.0, -10.2):                       # crates and drums by the portal
+        b.box("crate", (x - 1.0, 14.6, -0.2), (x + 1.0, 16.4, 1.6))
+    for x, y in ((8.8, 15.6), (10.4, 15.4)):
+        b.cylinder("trim", (x, y, 1.0), 0.7, 2.2, segments=8)
 
 
 def turret(b):
@@ -205,10 +245,8 @@ def barrel(b):
 
 def build_shapes():
     parts = {k: Builder(SURFACES) for k in ("building", "intact", "turret", "turret_intact", "mantlet", "barrel")}
-    body(parts["building"])
-    casemates(parts["building"])
-    gates(parts["building"])
-    sandbags(parts["building"])
+    casemate(parts["building"])
+    berms(parts["building"])
     clutter(parts["intact"])
     turret(parts["turret"])
     turret_antenna(parts["turret_intact"])
@@ -236,13 +274,14 @@ def muzzle_flash():
 
 
 def emblems():
-    return [decal("EMBLEM", [(19.78, -2.9, 2.4), (19.78, 2.9, 2.4), (19.78, 2.9, 5.9), (19.78, -2.9, 5.9)])]
+    """The faction's mark over the blast door."""
+    y = 15.43
+    return [decal("EMBLEM", [(0.9, y, 5.4), (-0.9, y, 5.4), (-0.9, y, 7.2), (0.9, y, 7.2)])]
 
 
 def house_colours():
     """The player's colour: a band round the gun platform, stripes on the turret's sides."""
-    _, _, top = BODY
-    on_body = [band("HOUSECOLOR01", (0, 0), 8.56, top + 0.15, top + 0.45, segments=24)]
+    on_body = [band("HOUSECOLOR01", (0, 0), PLATFORM[0] + 0.03, DECK + 0.1, DECK + 0.35, segments=24)]
     tx, ty, z = TURRET_AT
     on_turret = []
     for k, side in enumerate((-1, 1)):
@@ -269,7 +308,7 @@ def build():
     shutil.copy(os.path.join(tiles, f"{PREFIX}_emblem.tga"), os.path.join(tex_dir, f"{PREFIX}_emblem.tga"))
 
     objects = make_objects(build_shapes(), SURFACES, tiles)
-    ground = square_pad("PAD", PAD_HALF, PAD_Z)
+    ground = flat_ground("PAD", PAD_HALF, PAD_Z)
     bakes = os.path.join(BUILD, f"{PREFIX}_bakes")
     bake_all(list(objects.values()), ground, bakes, HEIGHT_TOP)
     subprocess.run([python, paint, "compose", bakes, tex_dir], check=True)
@@ -297,9 +336,8 @@ def export(parts, version, night):
     barrel_bone = model.bone("BARREL01", el_bone, (0, 0, 0))
     model.bone("MUZZLE0101", barrel_bone, (MUZZLE + 0.3, 0, 0))
     flash_bone = model.bone("MUZZLEFX01", barrel_bone, (MUZZLE, 0, 0))
-    c = CASEMATE[0]
     for k, (sx, sy) in enumerate(STATIONS):
-        model.bone(f"STATION0{k + 1}", w3d.CHASSIS, (sx * c, sy * c, PAD_Z))
+        model.bone(f"STATION0{k + 1}", w3d.CHASSIS, (sx * STATION_AT[0], sy * STATION_AT[1], DECK))
     texture = f"{PREFIX}_building{lower}{'n' if night else ''}.tga"
     objects = parts["objects"]
     model.mesh("BUILDING", w3d.CHASSIS, **mesh_data(objects["building"]), texture=texture)
