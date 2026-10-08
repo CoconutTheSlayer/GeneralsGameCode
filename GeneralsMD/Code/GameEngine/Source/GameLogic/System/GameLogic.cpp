@@ -4007,6 +4007,18 @@ void GameLogic::update()
 			}
 			fprintf(stderr, "PLAYER_LOG %us player %d %s money %u units %d buildings %d:%s\n", m_frame / LOGICFRAMES_PER_SECOND, i,
 				player->getPlayerTemplate()->getName().str(), player->getMoney()->countMoney(), units, buildings, names.str());
+			// The player's finished researches, on a line of their own.
+			AsciiString upgrades;
+			for (const UpgradeTemplate *u = TheUpgradeCenter->firstUpgradeTemplate(); u; u = u->friend_getNext())
+			{
+				if (u->getUpgradeType() == UPGRADE_TYPE_PLAYER && player->hasUpgradeComplete(u))
+				{
+					upgrades.concat(' ');
+					upgrades.concat(u->getUpgradeName());
+				}
+			}
+			fprintf(stderr, "PLAYER_UPGRADES %us player %d %s:%s\n", m_frame / LOGICFRAMES_PER_SECOND, i,
+				player->getPlayerTemplate()->getName().str(), upgrades.str());
 		}
 		fflush(stderr);
 	}

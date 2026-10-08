@@ -38,6 +38,8 @@
 #include "Common/BuildAssistant.h"
 #include "Common/SpecialPower.h"
 #include "Common/ThingTemplate.h"
+#include "Common/Upgrade.h"
+#include "Common/PlayerTemplate.h"
 #include "Common/WellKnownKeys.h"
 #include "Common/Xfer.h"
 #include "GameLogic/GameLogic.h"
@@ -963,6 +965,30 @@ void AISkirmishPlayer::doTeamBuilding()
 void AISkirmishPlayer::update()
 {
 	AIPlayer::update();
+
+	// TheSuperHackers @feature The research a faction's skirmish AI starts on its own (PlayerTemplate
+	// SkirmishAIUpgrade), every two seconds.
+	const PlayerTemplate *pt = m_player->getPlayerTemplate();
+	if (pt && !pt->getSkirmishAIUpgrades().empty() && TheGameLogic->getFrame() % (2 * LOGICFRAMES_PER_SECOND) == 0)
+	{
+		for (const PlayerTemplate::SkirmishAIUpgrade &entry : pt->getSkirmishAIUpgrades())
+		{
+			const UpgradeTemplate *upgrade = TheUpgradeCenter->findUpgrade(entry.upgrade);
+			if (upgrade == nullptr || m_player->hasUpgradeComplete(upgrade) || m_player->hasUpgradeInProduction(upgrade)
+					|| !TheUpgradeCenter->canAffordUpgrade(m_player, upgrade))
+				continue;
+			if (entry.count > 0)
+			{
+				const ThingTemplate *thing = TheThingFactory->findTemplate(entry.object);
+				Int count = 0;
+				if (thing)
+					m_player->countObjectsByThingTemplate(1, &thing, true, &count);
+				if (count < entry.count)
+					continue;
+			}
+			buildUpgrade(entry.upgrade);
+		}
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------

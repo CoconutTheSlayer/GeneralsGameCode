@@ -89,6 +89,17 @@ public:
 	const AsciiString &getSkirmishAISide() const { return m_skirmishAISide; }
 	const std::vector<std::pair<AsciiString, AsciiString> > &getSkirmishAIReplacements() const { return m_skirmishAIReplace; }
 	static void parseSkirmishAIReplace(INI *ini, void *instance, void *store, const void *userData);
+	// SkirmishAIUpgrade = <upgrade> [<object> <count>]: research that a skirmish AI player of the faction
+	// starts on its own, once a building of its base offers it, it can pay for it and has at least <count>
+	// of <object> (for a research its borrowed scripts know nothing of).
+	struct SkirmishAIUpgrade
+	{
+		AsciiString upgrade;
+		AsciiString object;
+		Int count;
+	};
+	const std::vector<SkirmishAIUpgrade> &getSkirmishAIUpgrades() const { return m_skirmishAIUpgrades; }
+	static void parseSkirmishAIUpgrade(INI *ini, void *instance, void *store, const void *userData);
 
 	/// return the tech tree for the player.
 	const Handicap *getHandicap() const { return &m_handicap; }
@@ -159,6 +170,7 @@ private:
 	AsciiString			m_side, m_baseSide;
 	AsciiString			m_skirmishAISide;
 	std::vector<std::pair<AsciiString, AsciiString> > m_skirmishAIReplace;
+	std::vector<SkirmishAIUpgrade> m_skirmishAIUpgrades;
 	Handicap				m_handicap;						///< initial baseline for Player capabilities
 	Money						m_money;							///< starting credits, if any
 	RGBColor				m_preferredColor;			///< our preferred starting color
