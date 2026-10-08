@@ -2,12 +2,13 @@
 Pillow), the way command_centre_paint.py does for the Command Centre (whose tiles and weathering it reuses):
 
     tiles OUT_DIR             small tiling surfaces that Blender projects onto the model: the Command Centre's
-                              plaster, trim, corrugated metal, deck, hazard stripes and crates, and the
-                              Logistics Centre's own roller doors, containers, tanks and pallets
+                              plaster, trim, deck, hazard stripes and crates, and the Logistics Centre's own
+                              shipping containers in five muted colours, the crane's yellow steel, bare
+                              concrete, the silos' plates, roller doors and pallets
     compose BAKE_DIR OUT_DIR  the building's texture from what Blender baked, with grime, its damaged,
-                              wrecked and night versions, and the pad painted as one picture: a landing
-                              square under the gantry where trucks and helicopters unload, a lane to the
-                              warehouse doors, the faction's mark
+                              wrecked and night versions, and the yard painted as one picture: the crane's
+                              rails, the container bays, the landing square where trucks and helicopters
+                              unload, the faction's mark
 """
 import math
 import os
@@ -73,6 +74,27 @@ def tile_office(rng):
                  amount=0.22, streaks=30, streak_colour=(170, 160, 140)).resize((256, 256), Image.LANCZOS)
 
 
+def tile_crane(rng):
+    """The crane's steel: safety yellow plates with seams and bolts."""
+    return grime(panels((226, 186, 54), rng, step=64, seam=(150, 118, 30), rivets=True, light=(244, 214, 110)), rng,
+                 amount=0.25, streaks=30, streak_colour=(150, 120, 60)).resize((256, 256), Image.LANCZOS)
+
+
+def tile_concrete(rng):
+    """Bare cast concrete: board-marked panels, cooler and greyer than the plaster."""
+    img = panels((176, 176, 170), rng, step=128, seam=(118, 118, 112), rivets=False, light=(198, 198, 192))
+    d = ImageDraw.Draw(img)
+    for k in range(0, img.height, 16 * UP):
+        d.line([(0, k), (img.width, k)], fill=(166, 166, 160), width=UP)
+    return grime(img, rng, amount=0.3, streaks=40, streak_colour=(120, 118, 112)).resize((256, 256), Image.LANCZOS)
+
+
+def tile_roof(rng):
+    """The silos' cones: grey steel plates."""
+    return grime(panels((150, 156, 160), rng, step=64, seam=(100, 106, 112), rivets=True, light=(184, 188, 192)), rng,
+                 amount=0.25).resize((256, 256), Image.LANCZOS)
+
+
 def tiles(out):
     rng = np.random.default_rng(21)
     images = {"tile_wall": tile_wall(rng), "tile_trim": tile_trim(rng), "tile_rib": tile_rib(rng),
@@ -80,6 +102,10 @@ def tiles(out):
               "tile_sandbag": tile_sandbag(rng), "tile_hazard": tile_hazard(rng), "tile_grille": tile_grille(rng),
               "tile_shutter": tile_shutter(rng), "tile_container": tile_container(rng),
               "tile_container2": tile_container(rng, (92, 104, 72)), "tile_tank": tile_tank(rng),
+              "tile_container3": tile_container(rng, (142, 76, 60)),
+              "tile_container4": tile_container(rng, (206, 202, 188)),
+              "tile_container5": tile_container(rng, (122, 126, 130)), "tile_crane": tile_crane(rng),
+              "tile_concrete": tile_concrete(rng), "tile_roof": tile_roof(rng),
               "tile_pallet": tile_pallet(rng), "tile_office": tile_office(rng), "tile_dome": tile_tank(rng),
               "tile_door": tile_shutter(rng), "tile_pad": pad(rng),
               f"{PREFIX}_emblem": emblem(rng), f"{PREFIX}_fence": fence_texture()}
@@ -159,30 +185,40 @@ class PadCanvas:
 
 EXTENT = (-44.0, 44.0, -45.0, 45.0)
 DOCK = (22.0, -20.0)
+RAILS = (-38.0, 2.0)
 
 
 def paint_pad(bake_dir, out, rng):
+    """The yard: the crane's rails along its length, the container bays between them, the landing square
+    where trucks and helicopters unload, a lane from it to the crane, walkway stripes to the office."""
     c = PadCanvas(EXTENT, rng=rng)
-    c.stains(rng)   # under the markings
-    # The landing square where trucks and helicopters unload: a yellow frame, a ring and a cross.
+    c.stains(rng, count=50)   # under the markings
+    steel, dark = (150, 154, 158), (70, 70, 68)
+    for x in RAILS:           # the rails, in their channels
+        c.rect((x - 1.6, -44), (x + 1.6, 44), fill=(104, 104, 100))
+        for dx in (-0.9, 0.9):
+            c.line((x + dx, -44), (x + dx, 44), dark, 0.5)
+            c.line((x + dx - 0.12, -44), (x + dx - 0.12, 44), steel, 0.25)
+    for y in range(-6, 42, 6):   # the container bays
+        for x in (-27.0, -14.0):
+            c.rect((x - 6.4, y - 2.8), (x + 6.4, y + 2.8), outline=WHITE, width=c.width(0.3))
+    # The landing square: a yellow frame with hazard ticks, a ring and a cross.
     dx, dy = DOCK
     c.rect((dx - 11, dy - 11), (dx + 11, dy + 11), outline=YELLOW, width=c.width(1.0))
-    for k in range(-10, 11, 4):   # hazard ticks along the frame
+    for k in range(-10, 11, 4):
         c.line((dx + k, dy - 11.5), (dx + k + 1.5, dy - 10.5), (34, 32, 30), 0.6)
     c.circle(DOCK, 7.5, YELLOW, 0.9)
     c.line((dx - 4, dy), (dx + 4, dy), WHITE, 1.6)
     c.line((dx, dy - 4), (dx, dy + 4), WHITE, 1.6)
-    # A dashed lane from the landing square to the warehouse's doors, and parking boxes for trucks.
-    for x in range(-36, 6, 6):
-        c.line((x, 4), (x + 3.5, 4), YELLOW, 0.8)
-    for x0 in (-32, -12, 6):
-        c.rect((x0 - 4, 6), (x0 + 4, 12.5), outline=WHITE, width=c.width(0.4))
-    # The faction's mark in the middle of the apron, pointing up the screen from the game's camera
-    # (buildings are placed turned by -45 degrees).
-    c.emblem((-4.0, -18.0), 8.0, math.radians(135))
-    # Walkway stripes to the office.
-    for y in range(-2, 12, 3):
-        c.rect((28, y), (36, y + 1.5), fill=WHITE)
+    # A dashed lane from the landing square up the yard under the crane's reach.
+    for y in range(-6, 30, 6):
+        c.line((22, y), (22, y + 3.5), YELLOW, 0.8)
+    for y in (-8.0, 30.0):
+        c.line((5, y), (40, y), WHITE, 0.4)
+    # The faction's mark on the apron, pointing up the screen from the game's camera.
+    c.emblem((-11.0, -22.0), 5.5, math.radians(90))
+    for x in range(-23, -15, 3):   # walkway stripes to the office's door
+        c.rect((x, -30.5), (x + 1.5, -26), fill=WHITE)
     c.save(bake_dir, out, PREFIX, rng)
 
 

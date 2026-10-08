@@ -1,20 +1,25 @@
 """The European Logistics Centre (the supply centre), modelled in Blender and written as W3D models for the
-game: a warehouse with a vaulted steel roof and three roller doors, a two-storey office, a gantry crane over
-the landing square where supply trucks and helicopters unload, two storage tanks, crates, pallets and
-containers, on a concrete pad (after a concept painted in the game's style). It is made the way the
-Command Centre is (command_centre.py), and Airlift Depot (airlift_depot.py) uses its machinery.
+game: an open container yard under one huge yellow-and-steel gantry crane, whose legs ride on rails and
+whose box girders span the stacks of multi-coloured shipping containers and reach out over the lane, with
+a trolley, its cab and a container hanging from the spreader; three tall silos with a catwalk and a
+conveyor at the back; a small flat-roofed dispatch office with a glazed control room at the front; the
+landing square kept clear where supply trucks and helicopters unload (after a concept painted in the game's
+style; no curved roofs, so it reads apart from the Command Centre). It is made the way the Command Centre
+is (command_centre.py), and the Funds Office (funds_office.py) uses its machinery.
 
     /Applications/Blender.app/Contents/MacOS/Blender -b -P scripts/models/logistics_centre.py
 
 How it is painted: logistics_centre_paint.py paints small tiling surfaces; Blender projects them onto the
 model, then bakes them and the ambient occlusion into one texture of the building's own; the painter adds
 grime and makes the damaged, wrecked and night versions. Six models use them: EUSUPC (intact), _D, _E
-(wrecked: no gantry, floodlights, fans or flag), each with a night version (_N, _DN, _EN).
+(wrecked: the crane's bridge fallen across the stacks, no catwalk, floodlights or mast), each with a night
+version (_N, _DN, _EN).
 
 The footprint is the USA's (88 long, 90 wide, centred). Gathering needs the dock's bones
 (SupplyCenterDockUpdate): DOCKSTART, DOCKACTION and DOCKEND on the landing square, where trucks stop and
-helicopters land, and DOCKWAITING01..09 round the outside, where they queue (the USA's places). Buildings
-are placed turned by -45 degrees, so the corner at (+X, -Y), with the landing square, faces the camera.
+helicopters land, and DOCKWAITING01..09 round the outside, where they queue (the USA's places). The game's
+camera looks at it from -Y, +X to the right: the landing square is at the front right, the office at the
+front left, the crane across the middle, the silos at the back right.
 """
 import math
 import os
@@ -44,7 +49,10 @@ SURFACES = {
     "rib": ("tile_rib", 10.0), "deck": ("tile_deck", 16.0), "shutter": ("tile_shutter", 8.0),
     "metal": ("tile_metal", 6.0), "crate": ("tile_crate", 4.0), "sandbag": ("tile_sandbag", 4.0),
     "hazard": ("tile_hazard", 3.0), "grille": ("tile_grille", 3.0), "container": ("tile_container", 8.0),
-    "container2": ("tile_container2", 8.0), "tank": ("tile_tank", 10.0), "pallet": ("tile_pallet", 3.0),
+    "container2": ("tile_container2", 8.0), "container3": ("tile_container3", 8.0),
+    "container4": ("tile_container4", 8.0), "container5": ("tile_container5", 8.0),
+    "craneyellow": ("tile_crane", 8.0), "concrete": ("tile_concrete", 14.0), "roof": ("tile_roof", 6.0),
+    "tank": ("tile_tank", 10.0), "pallet": ("tile_pallet", 3.0),
     "glass": (40, 72, 92), "dark": (38, 40, 44), "yellow": (222, 182, 46), "red": (196, 52, 40),
     "white": (226, 226, 222), "lamp": (240, 236, 210),
 }
@@ -102,6 +110,37 @@ class Builder:
         self.add(surface, lambda bm: bmesh.ops.create_uvsphere(
             bm, u_segments=segments[0], v_segments=segments[1], radius=radius,
             matrix=Matrix.Translation(centre) @ Matrix.Diagonal((*scale, 1.0))))
+
+    def lathe(self, surface, centre, profile, segments=16, surfaces=None):
+        """A closed solid of revolution about Z: profile [(r, z)] from bottom to top, r = 0 ends in a point;
+        surfaces: one surface per profile band (overrides `surface`)."""
+        cx, cy, z0 = centre
+
+        def make(bm):
+            rings = []
+            for r, z in profile:
+                if r < 1e-6:
+                    rings.append([bm.verts.new((cx, cy, z0 + z))])
+                else:
+                    rings.append([bm.verts.new((cx + math.cos(2 * math.pi * k / segments) * r,
+                                                cy + math.sin(2 * math.pi * k / segments) * r, z0 + z))
+                                  for k in range(segments)])
+            for i in range(len(rings) - 1):
+                a, b = rings[i], rings[i + 1]
+                band = SURFACE[surfaces[i] if surfaces else surface]
+                for k in range(segments):
+                    j = (k + 1) % segments
+                    if len(a) == 1:
+                        f = bm.faces.new((a[0], b[k], b[j]))
+                    elif len(b) == 1:
+                        f = bm.faces.new((a[k], a[j], b[0]))
+                    else:
+                        f = bm.faces.new((a[k], a[j], b[j], b[k]))
+                    f.material_index = band
+            for ring_, flip in ((rings[0], True), (rings[-1], False)):
+                if len(ring_) > 1:
+                    bm.faces.new(list(reversed(ring_)) if flip else ring_).material_index = SURFACE[surface]
+        make(self.bm)
 
     def extrude_profile(self, surface, profile, x0, x1, cap_surface=None, axis="X"):
         """A closed profile (y, z) pushed along x from x0 to x1 (or a profile (x, z) along y)."""
@@ -171,182 +210,171 @@ def floodlight(b, x, y, height=16.0, facing=0.0):
 
 # --- the Logistics Centre --------------------------------------------------------------------------
 
-WAREHOUSE = (-42.0, 18.0, 14.0, 42.0, 10.0)     # x0, x1, y0, y1, wall top
-OFFICE = (22.0, 42.0, 18.0, 42.0)               # x0, x1, y0, y1
 DOCK = (22.0, -20.0)
 DOCK_Z = PAD_Z
 # Where trucks and helicopters queue to unload: the USA's places, round the outside of the footprint.
 WAITING = [(67.61, -16.58), (67.61, 10.85), (67.61, 44.93), (46.04, 72.27), (5.27, 72.27), (-41.12, 72.27),
            (-79.49, 35.27), (-79.49, -7.79), (-79.49, -53.23)]
+RAILS = (-38.0, 2.0)                          # the crane's rails, along y
+CRANE_Y = (4.0, 22.0)                         # its legs' y
+GIRDER_Z = 36.0                               # the girders' underside
+GIRDER_X = (-44.0, 15.0)
+SILOS = [(17.0, 36.0), (28.0, 36.0), (37.5, 23.0)]
+SILO_R, SILO_TOP = 4.4, 30.0
+OFFICE = (-42.0, -24.0, -43.0, -31.0)         # x0, x1, y0, y1
+OFFICE_TOP = PAD_Z + 10.4
 # Where the burning building smokes (ParticleSysBone in build_europe.py).
-SMOKE = [(-30.0, 24.0, 18.0), (-6.0, 34.0, 17.0), (10.0, 22.0, 16.0), (32.0, 30.0, 14.0)]
+SMOKE = [(-33.0, -37.0, OFFICE_TOP + 1.0), (-16.0, 12.0, 12.0), (28.0, 36.0, SILO_TOP + 1.0), (-38.0, 13.0, 26.0)]
+# The containers under the crane: (x, y, levels, surface), each 12 long along x.
+STACKS = [(-27.0, -4.0, 2, "container"), (-14.0, -4.0, 1, "container3"),
+          (-27.0, 2.0, 3, "container2"), (-14.0, 2.0, 2, "container4"),
+          (-27.0, 8.0, 1, "container5"), (-14.0, 8.0, 3, "container"),
+          (-27.0, 14.0, 2, "container3"), (-14.0, 14.0, 0, ""),
+          (-27.0, 20.0, 3, "container4"), (-14.0, 20.0, 2, "container2"),
+          (-27.0, 26.0, 2, "container"), (-14.0, 26.0, 3, "container5"),
+          (-27.0, 32.0, 1, "container2"), (-14.0, 32.0, 2, "container3"),
+          (-27.0, 38.0, 2, "container5"), (-14.0, 38.0, 1, "container4")]
+LEVEL_COLOURS = ["container", "container3", "container2", "container4", "container5"]
 
 
-def warehouse(b):
-    """The warehouse: plaster walls on a plinth, a yellow band, a vaulted roof of corrugated steel with ribs,
-    three roller doors with hazard frames facing the apron, small windows, roof fans."""
-    x0, x1, y0, y1, top = WAREHOUSE
-    b.box("wall", (x0, y0, PAD_Z), (x1, y1, top))
-    b.box("trim", (x0 - 0.5, y0 - 0.5, PAD_Z), (x1 + 0.5, y1 + 0.5, 2.4))
-    b.box("yellow", (x0 - 0.15, y0 - 0.15, top - 1.4), (x1 + 0.15, y1 + 0.15, top - 0.7))
-    for x in (x0, -22.0, -2.0, x1):
-        for y in (y0, y1):
-            b.box("trim", (x - 1.2, y - 1.2, PAD_Z), (x + 1.2, y + 1.2, top + 0.6))
-    # The vaulted roof: a segment of a circle across the hall, ribs over it.
-    half, sag = (y1 - y0) / 2 + 0.8, 7.0
-    radius = (half ** 2 + sag ** 2) / (2 * sag)
-    cy, cz = (y0 + y1) / 2, top + sag - radius
-    span = math.asin(half / radius)
-    curve = arc(cy, cz, radius, math.pi / 2 + span, math.pi / 2 - span, 10)
-    b.extrude_profile("rib", curve, x0 - 0.8, x1 + 0.8, cap_surface="trim")
-    for x in (x0 - 0.8, -32.0, -22.0, -12.0, -2.0, 8.0, x1 - 0.2):
-        outer = arc(cy, cz, radius + 0.35, math.pi / 2 + span, math.pi / 2 - span, 10)
-        b.extrude_profile("trim", outer, x, x + 1.0)
-    # The gable ends: plaster up to the curve.
-    for x, face in ((x0, -1), (x1, 1)):
-        gable = [(y0, top)] + arc(cy, cz, radius - 0.1, math.pi / 2 + span * 0.97, math.pi / 2 - span * 0.97, 10)[1:-1] + [(y1, top)]
-        b.extrude_profile("wall", gable, x + face * 0.3 - 0.3, x + face * 0.3 + 0.3)
-    # Roller doors with hazard frames, facing the apron (-Y).
-    for x in (-32.0, -12.0, 6.0):
-        b.box("hazard", (x - 5.4, y0 - 0.5, PAD_Z), (x + 5.4, y0, 8.6))
-        b.box("shutter", (x - 4.4, y0 - 0.7, PAD_Z), (x + 4.4, y0 - 0.4, 7.6))
-        b.box("dark", (x - 4.6, y0 - 1.5, 7.6), (x + 4.6, y0 - 0.2, 8.3))   # the roll box
-        b.box("trim", (x - 4.0, y0 - 3.2, PAD_Z), (x + 4.0, y0 - 0.5, PAD_Z + 0.6))   # the ramp
-    # Small windows high on the back and the ends.
-    for x in range(int(x0) + 6, int(x1) - 2, 10):
-        b.box("trim", (x - 0.3, y1, 6.0), (x + 3.3, y1 + 0.4, 8.4))
-        b.box("glass", (x, y1 + 0.4, 6.3), (x + 3.0, y1 + 0.5, 8.1))
-    b.box("trim", (x0 - 0.4, 24, 5.0), (x0, 30, 8.6))
-    b.box("glass", (x0 - 0.5, 24.4, 5.4), (x0 - 0.4, 29.6, 8.2))
-    # A side door at the west end.
-    b.box("shutter", (x0 - 0.3, 33, PAD_Z), (x0, 37, 7.0))
-    b.box("trim", (x0 - 1.5, 32.4, 7.0), (x0, 37.6, 7.6))
-    # Drainpipes.
-    for x in (-27.0, -7.0):
-        b.box("metal", (x - 0.25, y0 - 0.5, PAD_Z), (x + 0.25, y0, top))
+def containers(b):
+    """Stacks of shipping containers in muted colours, each level a different one, between the rails."""
+    for i, (x, y, levels, surface) in enumerate(STACKS):
+        for k in range(levels):
+            s = surface if k == 0 else LEVEL_COLOURS[(LEVEL_COLOURS.index(surface) + 2 * k + i) % len(LEVEL_COLOURS)]
+            container(b, x + (0.3 if k % 2 else 0.0), y, 12.0, along="X", surface=s, z=PAD_Z + k * 5.2)
+    # A few by the lane, waiting for the trucks.
+    container(b, 9.0, 4.0, 12.0, along="Y", surface="container3")
+    container(b, 9.0, 4.0, 12.0, along="Y", surface="container4", z=PAD_Z + 5.2)
+    container(b, 15.0, 14.0, 12.0, along="Y", surface="container2")
 
 
-def roof_fans(b):
-    x0, x1, y0, y1, top = WAREHOUSE
-    peak = top + 7.0
-    for x in (-34.0, -14.0, 6.0):
-        b.box("metal", (x - 2.2, 26.0, peak - 0.4), (x + 2.2, 30.0, peak + 1.4))
-        b.cylinder("grille", (x, 28.0, peak + 1.6), 1.6, 0.4, segments=8)
-
-
-def office(b):
-    """The two-storey office: plaster, steel blue-grey bands and cornice, rows of square windows, a door
-    with a canopy towards the apron, roof machinery and a parapet."""
-    x0, x1, y0, y1 = OFFICE
-    top = 14.0
-    b.box("office", (x0, y0, PAD_Z), (x1, y1, top))
-    b.box("trim", (x0 - 0.5, y0 - 0.5, PAD_Z), (x1 + 0.5, y1 + 0.5, 2.2))
-    b.box("trim", (x0 - 0.3, y0 - 0.3, 7.4), (x1 + 0.3, y1 + 0.3, 8.2))            # band between floors
-    ring(b, "trim", x0 - 0.6, x1 + 0.6, y0 - 0.6, y1 + 0.6, top - 0.8, top + 1.0, 1.2)  # parapet
-    b.box("deck", (x0 + 0.6, y0 + 0.6, top), (x1 - 0.6, y1 - 0.6, top + 0.2))
-    # Windows on the front (-Y) and the side (+X), both floors.
-    for z in (3.6, 9.4):
-        for x in (x0 + 3.0, x0 + 14.0):   # the door and the faction's mark between them
-            b.box("trim", (x - 0.3, y0 - 0.4, z - 0.3), (x + 3.3, y0, z + 2.9))
-            b.box("glass", (x, y0 - 0.5, z), (x + 3.0, y0 - 0.4, z + 2.6))
-        for y in (y0 + 3.0, y0 + 9.0, y0 + 15.0, y0 + 20.0):
-            b.box("trim", (x1, y - 0.3, z - 0.3), (x1 + 0.4, y + 3.3, z + 2.9))
-            b.box("glass", (x1 + 0.4, y, z), (x1 + 0.5, y + 3.0, z + 2.6))
-    # The door and its canopy.
-    b.box("dark", (x0 + 8.3, y0 - 0.3, PAD_Z), (x0 + 12.2, y0, 6.4))
-    b.box("shutter", (x0 + 8.6, y0 - 0.4, PAD_Z), (x0 + 11.9, y0 - 0.3, 6.0))
-    b.box("trim", (x0 + 7.4, y0 - 3.0, 6.6), (x0 + 13.1, y0, 7.2))
-    for k in range(2):
-        b.box("trim", (x0 + 8.0, y0 - 1.2 - k * 1.0, PAD_Z), (x0 + 12.5, y0, PAD_Z + 0.9 - k * 0.4))
-    # Roof machinery.
-    b.box("metal", (x0 + 3, y0 + 12, top), (x0 + 10, y0 + 19, top + 3.0))
-    b.box("grille", (x0 + 3.2, y0 + 11.9, top + 0.5), (x0 + 9.8, y0 + 12.0, top + 2.6))
-    b.cylinder("metal", (x1 - 5, y1 - 5, top + 1.0), 2.4, 2.0, segments=10)
-    b.cylinder("dark", (x1 - 5, y1 - 5, top + 2.05), 2.0, 0.1, segments=10)
-
-
-def office_mast(b):
-    x0, x1, y0, y1 = OFFICE
-    b.cylinder("metal", (x1 - 3, y0 + 4, 14.0 + 5.0), 0.2, 10.0, segments=6)
-    b.cylinder("metal", (x1 - 6, y0 + 4, 14.0 + 3.5), 0.2, 7.0, segments=6)
-    b.sphere("red", (x1 - 3, y0 + 4, 24.2), 0.4, segments=(6, 4))
-
-
-def gantry(b):
-    """A gantry crane straddling the landing square: four legs, two girders along X, a bridge with a
-    trolley and a hoist hook. High and wide enough for a helicopter to land beneath."""
-    dx, dy = DOCK
-    xa, xb, ya, yb, top = dx - 15.0, dx + 15.0, dy - 14.0, dy + 14.0, 16.0
-    for x in (xa, xb):
+def crane_legs(b):
+    """The crane's legs: on each rail a sill beam on wheeled bogies, two legs rising from it, braced."""
+    top = GIRDER_Z
+    for x in RAILS:
+        ya, yb = CRANE_Y
+        b.box("craneyellow", (x - 1.2, ya - 3.0, PAD_Z + 1.2), (x + 1.2, yb + 3.0, PAD_Z + 3.4))   # sill beam
+        for y in (ya - 1.8, yb + 1.8):
+            b.box("dark", (x - 1.4, y - 1.6, PAD_Z), (x + 1.4, y + 1.6, PAD_Z + 1.4))           # bogies
         for y in (ya, yb):
-            b.box("trim", (x - 1.4, y - 1.4, PAD_Z), (x + 1.4, y + 1.4, PAD_Z + 1.2))   # footing
-            b.box("yellow", (x - 0.7, y - 0.7, PAD_Z + 1.2), (x + 0.7, y + 0.7, top))
-        b.beam("yellow", (x, ya + 0.6, PAD_Z + 1.4), (x, ya + 4.5, 6.0), 0.4)          # braces
-        b.beam("yellow", (x, yb - 0.6, PAD_Z + 1.4), (x, yb - 4.5, 6.0), 0.4)
-        b.box("trim", (x - 0.9, ya - 0.9, top), (x + 0.9, yb + 0.9, top + 2.0))           # end girders
-    for y in (ya, yb):
-        b.box("hazard", (xa - 0.9, y - 0.8, top + 2.0), (xb + 0.9, y + 0.8, top + 3.2))   # running girders
-    # The bridge along Y with the trolley and hook, parked over the landing square's edge.
-    bx = dx + 12.0
-    b.box("trim", (bx - 1.0, ya - 0.8, top + 3.2), (bx + 1.0, yb + 0.8, top + 4.4))
-    b.box("metal", (bx - 1.6, dy - 2.0, top + 0.8), (bx + 1.6, dy + 2.0, top + 3.2))
-    b.box("dark", (bx - 0.8, dy - 2.4, top + 3.2), (bx + 0.8, dy - 0.8, top + 4.8))   # the cab on top
-    b.cylinder("dark", (bx, dy, top - 2.5), 0.12, 6.0, segments=4)
-    b.box("yellow", (bx - 0.6, dy - 0.6, top - 6.2), (bx + 0.6, dy + 0.6, top - 5.4))
-    # A container hanging from it, clear of a landing helicopter's rotor.
-    container(b, bx, dy, 9.0, along="Y", surface="container", z=top - 11.8)
+            b.box("craneyellow", (x - 1.3, y - 1.3, PAD_Z + 3.4), (x + 1.3, y + 1.3, top))
+        b.box("craneyellow", (x - 1.1, ya, 18.0), (x + 1.1, yb, 19.6))                        # tie beam
+        b.beam("craneyellow", (x, ya + 1.0, PAD_Z + 3.6), (x, yb - 1.0, 17.8), 0.8)
+        b.beam("craneyellow", (x, yb - 1.0, 19.8), (x, ya + 1.0, top - 0.4), 0.8)
+        b.box("hazard", (x - 1.25, ya - 3.05, PAD_Z + 1.4), (x + 1.25, ya - 2.4, PAD_Z + 3.2))
 
 
-def tanks(b):
-    """Two horizontal storage tanks on concrete saddles, with yellow bands and a ladder to a walkway."""
-    for x in (-36.0, -24.0):
-        y0, y1, r = -40.0, -16.0, 4.6
-        for y in (y0 + 4, (y0 + y1) / 2, y1 - 4):
-            b.box("trim", (x - 3.6, y - 1.0, PAD_Z), (x + 3.6, y + 1.0, PAD_Z + 3.6))
-        b.cylinder("tank", (x, (y0 + y1) / 2, PAD_Z + 2.2 + r), r, y1 - y0, axis="Y", segments=14)
-        for y in (y0, y1):
-            b.sphere("tank", (x, y, PAD_Z + 2.2 + r), r, scale=(1, 0.35, 1), segments=(14, 6))
-        for y in (y0 + 6, y1 - 6):
-            b.cylinder("yellow", (x, y, PAD_Z + 2.2 + r), r + 0.12, 1.0, axis="Y", segments=14)
-        b.cylinder("metal", (x, y1 - 3, PAD_Z + 2.2 + 2 * r + 0.4), 0.8, 1.0, segments=8)   # hatch
-    # A walkway between the tanks with a ladder.
-    b.box("metal", (-31.4, -36.0, PAD_Z + 11.0), (-28.6, -20.0, PAD_Z + 11.4))
-    for y in (-36.0, -20.0):
-        b.box("metal", (-31.4, y - 0.2, PAD_Z), (-31.0, y + 0.2, PAD_Z + 12.6))
-        b.box("metal", (-29.0, y - 0.2, PAD_Z), (-28.6, y + 0.2, PAD_Z + 12.6))
-    for z in range(2, 12, 2):
-        b.box("metal", (-31.0, -36.1, PAD_Z + z), (-29.0, -35.9, PAD_Z + z + 0.25))
-    # A pipe from the tanks to the warehouse.
-    b.cylinder("metal", (-30.0, -2.0, PAD_Z + 1.4), 0.6, 28.0, axis="Y", segments=8)
-    b.cylinder("metal", (-30.0, 12.0, PAD_Z + 4.4), 0.6, 6.0, segments=8)
+def crane_top(b):
+    """The bridge: two box girders spanning the yard and beyond, end carriages, a trolley with its cab and a
+    container hanging from the spreader, a walkway, the machinery house."""
+    top = GIRDER_Z
+    x0, x1 = GIRDER_X
+    ya, yb = CRANE_Y
+    for y in (ya + 1.0, yb - 1.0):
+        b.box("craneyellow", (x0, y - 1.5, top), (x1, y + 1.5, top + 4.2))
+        b.box("trim", (x0, y - 1.6, top + 4.2), (x1, y + 1.6, top + 4.6))
+    for x in RAILS:
+        b.box("craneyellow", (x - 1.4, ya - 1.2, top - 0.2), (x + 1.4, yb + 1.2, top + 4.8))
+    b.box("metal", (x0 + 0.5, ya - 1.6, top + 0.2), (x1 - 0.5, ya - 0.3, top + 0.4))         # walkway
+    # The machinery house at the far end, behind the left leg.
+    b.box("wall", (x0, ya + 2.0, top + 4.6), (x0 + 9.0, yb - 2.0, top + 9.0))
+    b.box("trim", (x0 - 0.3, ya + 1.7, top + 8.8), (x0 + 9.3, yb - 1.7, top + 9.4))
+    b.box("grille", (x0 - 0.1, ya + 4.0, top + 5.6), (x0, yb - 4.0, top + 7.8))
+    # The trolley over the stacks, its cab hanging beneath on the camera's side.
+    tx = -18.0
+    b.box("metal", (tx - 3.5, ya + 0.4, top + 4.6), (tx + 3.5, yb - 0.4, top + 6.4))
+    b.box("trim", (tx - 2.0, ya - 3.4, top - 4.2), (tx + 2.0, ya - 0.2, top + 0.4))
+    b.box("glass", (tx - 1.8, ya - 3.5, top - 3.6), (tx + 1.8, ya - 3.4, top - 1.0))
+    for dx in (-2.4, 2.4):
+        for y in (12.0, 14.0):
+            b.cylinder("dark", (tx + dx, y, top - 5.0), 0.12, 10.0, segments=4)
+    b.box("craneyellow", (tx - 6.2, 10.6, top - 10.6), (tx + 6.2, 15.4, top - 10.0))         # spreader
+    container(b, tx, 13.0, 12.0, along="X", surface="container4", z=top - 15.8)
+
+
+def silos(b, intact):
+    """Three tall silos of light steel on concrete rings, with ladders, a catwalk over their tops (in
+    `intact`), and a conveyor down to the yard."""
+    for x, y in SILOS:
+        profile = [(SILO_R + 0.8, 0.0), (SILO_R + 0.8, 2.6), (SILO_R, 2.6), (SILO_R, 9.0), (SILO_R + 0.2, 9.0),
+                   (SILO_R + 0.2, 10.0), (SILO_R, 10.0), (SILO_R, SILO_TOP - 3.0), (1.4, SILO_TOP), (0.0, SILO_TOP + 0.2)]
+        b.lathe("tank", (x, y, PAD_Z), profile, segments=14,
+                surfaces=["concrete", "concrete", "tank", "trim", "trim", "trim", "tank", "roof", "roof"])
+        b.box("metal", (x - 0.7, y - SILO_R - 0.9, PAD_Z + 2.6), (x + 0.7, y - SILO_R + 0.1, SILO_TOP - 2.6))   # ladder
+        b.box("dark", (x - 0.5, y - SILO_R - 1.0, PAD_Z + 3.0), (x + 0.5, y - SILO_R - 0.85, SILO_TOP - 3.0))
+        b.box("yellow", (x - 1.2, y - SILO_R - 0.3, SILO_TOP - 2.2), (x + 1.2, y - SILO_R + 0.3, SILO_TOP - 1.8))
+    (ax, ay), (bx, by), (cx, cy) = SILOS
+    z = SILO_TOP - 0.6
+    intact.box("metal", (ax, ay - 0.9, z), (bx, by + 0.9, z + 0.4))
+    intact.beam("metal", (bx, by, z + 0.2), (cx, cy, z + 0.2), 1.6)
+    intact.box("yellow", (ax, ay - 1.0, z + 1.5), (bx, ay - 0.8, z + 1.7))
+    intact.box("metal", (bx - 2.0, by - 2.0, SILO_TOP + 0.2), (bx + 2.0, by + 2.0, SILO_TOP + 2.0))   # head house
+    # The conveyor from the first silo's foot down to a hopper by the lane.
+    b.beam("trim", (ax - SILO_R + 1.0, ay - 2.0, 14.0), (8.0, 24.0, PAD_Z + 4.0), 1.6)
+    b.box("metal", (5.0, 21.5, PAD_Z), (10.0, 26.5, PAD_Z + 4.4))
+    for t in (0.35, 0.7):
+        x, y, zz = (ax - SILO_R + 1.0) + (8.0 - ax + SILO_R - 1.0) * t, (ay - 2.0) + (24.0 - ay + 2.0) * t, 14.0 + (PAD_Z + 4.0 - 14.0) * t
+        b.box("trim", (x - 0.3, y - 0.3, PAD_Z), (x + 0.3, y + 0.3, zz))
+
+
+def office(b, intact):
+    """The dispatch office: two storeys of plaster on a plinth, steel-blue window rows, a parapet, and a
+    glazed control room on the roof looking over the yard."""
+    x0, x1, y0, y1 = OFFICE
+    top = OFFICE_TOP
+    b.box("office", (x0, y0, PAD_Z), (x1, y1, top))
+    b.box("trim", (x0 - 0.5, y0 - 0.5, PAD_Z), (x1 + 0.5, y1 + 0.5, 2.0))
+    ring(b, "trim", x0 - 0.5, x1 + 0.5, y0 - 0.5, y1 + 0.5, top - 0.6, top + 0.9, 1.0)
+    b.box("deck", (x0 + 0.5, y0 + 0.5, top - 0.2), (x1 - 0.5, y1 - 0.5, top + 0.2))
+    for z in (3.4, 7.8):
+        for x in (x0 + 2.0, x0 + 5.6, x1 - 4.0):
+            b.box("trim", (x - 0.3, y0 - 0.4, z - 0.3), (x + 2.9, y0, z + 2.2))
+            b.box("glass", (x, y0 - 0.5, z), (x + 2.6, y0 - 0.4, z + 1.9))
+        for y in (y0 + 2.0, y1 - 4.6):
+            b.box("trim", (x1, y - 0.3, z - 0.3), (x1 + 0.4, y + 2.9, z + 2.2))
+            b.box("glass", (x1 + 0.4, y, z), (x1 + 0.5, y + 2.6, z + 1.9))
+    b.box("dark", (x1 - 9.6, y0 - 0.3, PAD_Z), (x1 - 6.4, y0, 6.0))
+    b.box("shutter", (x1 - 9.3, y0 - 0.4, PAD_Z), (x1 - 6.7, y0 - 0.3, 5.6))
+    b.box("trim", (x1 - 10.4, y0 - 2.6, 6.2), (x1 - 5.6, y0, 6.8))
+    # The control room: a glazed box leaning out over the yard's side.
+    cx0, cx1, cy0, cy1 = x1 - 9.0, x1 + 1.0, y0 + 2.0, y1 - 1.0
+    b.box("trim", (cx0, cy0, top), (cx1, cy1, top + 0.8))
+    b.box("glass", (cx0 + 0.3, cy0 + 0.3, top + 0.8), (cx1 - 0.3, cy1 - 0.3, top + 3.4))
+    b.box("trim", (cx0 - 0.5, cy0 - 0.5, top + 3.4), (cx1 + 0.5, cy1 + 0.5, top + 4.2))
+    intact.box("metal", (x0 + 2.0, y1 - 5.0, top), (x0 + 7.0, y1 - 1.5, top + 2.0))
+    intact.box("grille", (x0 + 2.2, y1 - 5.1, top + 0.4), (x0 + 6.8, y1 - 5.0, top + 1.6))
+    intact.cylinder("metal", (cx0 + 1.0, cy1 - 1.0, top + 8.2), 0.15, 8.0, segments=4)
+    intact.sphere("red", (cx0 + 1.0, cy1 - 1.0, top + 12.3), 0.35, segments=(6, 4))
 
 
 def clutter(b):
-    """Crates, pallets, containers, barriers and floodlights round the apron."""
-    crate_stack(b, -12.0, -38.0, [(0, 0, 2), (1, 0, 1), (0, 1, 1), (1, 1, 2), (2, 0, 1)])
-    crate_stack(b, 13.0, 6.0, [(0, 0, 1), (1, 0, 2)], size=3.6)
-    crate_stack(b, -40.0, -6.0, [(0, 0, 2), (0, 1, 1), (1, 0, 1)])
-    for x, y, n in ((2.0, -40.0, 3), (8.0, -40.0, 2), (-22.0, 5.0, 2)):
+    """Pallets and crates by the lane, barriers along the front, the rails' buffer stops."""
+    crate_stack(b, 34.0, 6.0, [(0, 0, 2), (1, 0, 1), (0, 1, 1)], size=3.6)
+    for x, y, n in ((-8.0, -36.0, 3), (-2.0, -36.0, 2), (38.0, -2.0, 2)):
         for k in range(n):
             b.box("pallet", (x - 2.4, y - 2.4, PAD_Z + k * 0.7), (x + 2.4, y + 2.4, PAD_Z + (k + 1) * 0.7 - 0.08))
-    container(b, -37.0, 6.0, 10.0, along="X", surface="container2")
-    container(b, -37.0, 6.0, 10.0, along="X", surface="container", z=PAD_Z + 5.2)
-    container(b, 40.0, 8.0, 10.0, along="Y", surface="container2")
-    for x in range(-8, 8, 4):   # barriers along the front edge
-        b.box("trim", (x - 1.6, -43.6, PAD_Z), (x + 1.6, -42.6, PAD_Z + 1.8))
-    # A flagpole between the warehouse and the office.
-    b.box("trim", (18.6, 8.6, PAD_Z), (21.4, 11.4, PAD_Z + 1.4))
+    for x in RAILS:
+        for y in (-40.0, 42.0):
+            b.box("hazard", (x - 1.6, y - 0.8, PAD_Z), (x + 1.6, y + 0.8, PAD_Z + 1.8))
+    for y in range(-40, -26, 4):   # barriers along the landing square's outer side
+        b.box("trim", (42.4, y - 1.6, PAD_Z), (43.4, y + 1.6, PAD_Z + 1.8))
 
 
-def lights_and_flag(b):
-    floodlight(b, 41.0, -42.0, facing=math.radians(135))
-    floodlight(b, -41.0, -42.0, facing=math.radians(45))
-    floodlight(b, -22.0, 10.5, height=12.0, facing=math.radians(-90))
-    b.cylinder("metal", (20.0, 10.0, PAD_Z + 11.0), 0.25, 22.0, segments=6)
-    b.sphere("yellow", (20.0, 10.0, PAD_Z + 22.2), 0.4, segments=(6, 4))
+def lights(b):
+    floodlight(b, 40.0, -42.0, height=18.0, facing=math.radians(135))
+    floodlight(b, -42.0, 42.0, height=18.0, facing=math.radians(-45))
 
 
-FENCE = [((-43.0, -44.0), (-43.0, 12.0)), ((-43.0, -44.0), (-16.0, -44.0))]
+def wreckage(b):
+    """The crane's bridge fallen across the stacks, its trolley in the yard."""
+    b.turned_box("craneyellow", (-18.0, 9.0, PAD_Z + 12.0), (44.0, 2.6, 3.4), 0.12)
+    b.turned_box("craneyellow", (-12.0, 18.0, PAD_Z + 1.7), (30.0, 2.6, 3.4), -0.25)
+    b.turned_box("metal", (-6.0, -8.0, PAD_Z + 0.8), (7.0, 5.0, 1.6), 0.6)
+    b.turned_box("tank", (24.0, 26.0, PAD_Z + 1.0), (6.0, 4.0, 2.0), 1.1)
+
+
+FENCE = [((-43.0, -28.0), (-43.0, 38.0)), ((24.0, 44.0), (-36.0, 44.0))]
 FENCE_HEIGHT = 6.0
 
 
@@ -377,17 +405,17 @@ def fence_mesh(fence=FENCE, height=FENCE_HEIGHT, name="FENCE"):
 
 
 def build_shapes():
-    main, intact = Builder(), Builder()
-    warehouse(main)
-    office(main)
-    tanks(main)
+    main, intact, wreck = Builder(), Builder(), Builder()
+    containers(main)
+    crane_legs(main)
+    crane_top(intact)
+    silos(main, intact)
+    office(main, intact)
     clutter(main)
     fence_posts(main)
-    gantry(intact)
-    roof_fans(intact)
-    office_mast(intact)
-    lights_and_flag(intact)
-    return main, intact
+    lights(intact)
+    wreckage(wreck)
+    return main, intact, wreck
 
 
 def pad_mesh(outline, extent, z=PAD_Z, inset=0.995):
@@ -424,13 +452,16 @@ def decal(name, corners):
 
 
 def emblems():
-    """The faction's mark on the warehouse's west gable, and over the office door."""
-    x0, x1, y0, y1, top = WAREHOUSE
-    marks = [decal("EMBLEM", [(x0 - 0.65, 32.0, 10.6), (x0 - 0.65, 24.0, 10.6), (x0 - 0.65, 24.0, 16.0),
-                              (x0 - 0.65, 32.0, 16.0)])]
-    ox0, ox1, oy0, oy1 = OFFICE
-    marks.append(decal("EMBLEM2", [(ox0 + 8.2, oy0 - 0.45, 8.5), (ox0 + 12.0, oy0 - 0.45, 8.5),
-                                   (ox0 + 12.0, oy0 - 0.45, 12.3), (ox0 + 8.2, oy0 - 0.45, 12.3)]))
+    """The faction's mark over the office's door, and on the machinery house on the crane."""
+    x0, x1, y0, y1 = OFFICE
+    ex0, ex1, y = x1 - 9.8, x1 - 6.2, y0 - 0.06
+    marks = [decal("EMBLEM", [(ex0, y, 6.9), (ex1, y, 6.9), (ex1, y, 10.5), (ex0, y, 10.5)])]
+    gx0 = GIRDER_X[0]
+    ya, yb = CRANE_Y
+    z = GIRDER_Z
+    y = ya + 2.0 - 0.06
+    marks.append(decal("EMBLEM2", [(gx0 + 2.6, y, z + 5.0), (gx0 + 6.4, y, z + 5.0), (gx0 + 6.4, y, z + 8.6),
+                                   (gx0 + 2.6, y, z + 8.6)]))
     return marks
 
 
@@ -443,22 +474,22 @@ def double_sided(name, quads):
 
 
 def house_colours():
-    """The player's colour: a band under the office's parapet, stripes on the gantry's girders, the flag."""
+    """The player's colour: a band under the office's parapet, stripes along the crane's girders."""
     x0, x1, y0, y1 = OFFICE
     objects = []
     bm = bmesh.new()
-    z0, z1 = 12.5, 13.1
+    z0, z1 = OFFICE_TOP - 1.9, OFFICE_TOP - 1.2
     pts = [(x0 - 0.12, y0 - 0.12), (x1 + 0.12, y0 - 0.12), (x1 + 0.12, y1 + 0.12), (x0 - 0.12, y1 + 0.12)]
     for (ax, ay), (bx, by) in zip(pts, pts[1:] + pts[:1]):
         bm.faces.new([bm.verts.new(v) for v in ((ax, ay, z0), (bx, by, z0), (bx, by, z1), (ax, ay, z1))])
     objects.append(new_object("HOUSECOLOR01", bm))
-    dx, dy = DOCK
+    ya, yb = CRANE_Y
+    gx0, gx1 = GIRDER_X
     quads = []
-    for y, face in ((dy - 14.0 - 0.85, -1), (dy + 14.0 + 0.85, 1)):
-        quads.append([(dx - 10, y, 16.0 + 2.2), (dx + 10, y, 16.0 + 2.2), (dx + 10, y, 16.0 + 3.0), (dx - 10, y, 16.0 + 3.0)])
+    for y in (ya + 1.0 - 1.36, yb - 1.0 + 1.36):
+        quads.append([(gx0 + 10, y, GIRDER_Z + 1.2), (gx1 - 4, y, GIRDER_Z + 1.2), (gx1 - 4, y, GIRDER_Z + 2.2),
+                      (gx0 + 10, y, GIRDER_Z + 2.2)])
     objects.append(double_sided("HOUSECOLOR02", quads))
-    objects.append(double_sided("HOUSECOLOR03", [[(20.2, 10.3, 21.5), (20.2, 17.0, 21.5), (20.2, 17.0, 17.5),
-                                                  (20.2, 10.3, 17.5)]]))
     for obj in objects:
         obj.data.uv_layers.new(name="UVMap")
     return objects
@@ -627,7 +658,9 @@ def house_material(objects):
         obj.data.materials.append(colour)
 
 
-PAD_OUTLINE = [(-44, -45), (44, -45), (44, 45), (-44, 45)]
+# The ground: the yard's concrete with its corners cut back on the far side, where the silos and the
+# crane's machinery end, so it is not one more square pad.
+PAD_OUTLINE = [(-44, -45), (44, -45), (44, 24), (34, 45), (-44, 45)]
 EXTENT = (-44.0, 44.0, -45.0, 45.0)
 
 
@@ -635,9 +668,10 @@ def build():
     tex_dir = os.path.join(DATA, "Art", "TexturesHD")
     paint = os.path.join(HERE, "logistics_centre_paint.py")
     paint_tiles(PREFIX, paint)
-    main, intact = build_shapes()
+    main, intact, wreck = build_shapes()
     ground = pad_mesh(PAD_OUTLINE, EXTENT)
-    objects = bake_building((("BUILDING", main), ("INTACT", intact)), PREFIX, paint, ground, top=24.0)
+    objects = bake_building((("BUILDING", main), ("INTACT", intact), ("WRECK", wreck)), PREFIX, paint, ground,
+                            top=44.0)
     marks = emblems()
     for obj in marks:
         textured(obj, load_image(os.path.join(tex_dir, f"{PREFIX}_emblem.tga")))
@@ -645,7 +679,8 @@ def build():
     house_material(banners)
     wire = fence_mesh()
     textured(wire, load_image(os.path.join(tex_dir, f"{PREFIX}_fence.tga")))
-    return dict(building=objects[0], intact=objects[1], pad=ground, emblems=marks, banners=banners, fence=wire)
+    return dict(building=objects[0], intact=objects[1], wreck=objects[2], pad=ground, emblems=marks, banners=banners,
+                fence=wire)
 
 
 # --- writing the models ----------------------------------------------------------------------------
@@ -669,6 +704,8 @@ def export(parts, version, night, name=NAME, prefix=PREFIX, bones=dock_bones):
     model.mesh("BUILDING", w3d.CHASSIS, **mesh_data(parts["building"]), texture=texture)
     if version != "_E":
         model.mesh("INTACT", w3d.CHASSIS, **mesh_data(parts["intact"]), texture=texture)
+    elif parts.get("wreck") is not None:
+        model.mesh("WRECK", w3d.CHASSIS, **mesh_data(parts["wreck"]), texture=texture)
     flat = dict(shadow=False, shader=w3d.ALPHA_TEST_SHADER)
     model.mesh("PAD", w3d.CHASSIS, **mesh_data(parts["pad"]),
                texture=f"{prefix}_pad_e.tga" if version == "_E" else f"{prefix}_pad.tga", **flat)
@@ -688,8 +725,8 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     os.makedirs(BUILD, exist_ok=True)
     parts = build()
-    # The gantry's stripes and the flag go with the gantry and the flagpole.
-    parts["intact_banners"] = ("HOUSECOLOR02", "HOUSECOLOR03")
+    # The crane's stripes fall with its bridge.
+    parts["intact_banners"] = ("HOUSECOLOR02",)
     for version in ("", "_D", "_E"):
         for night in (False, True):
             export(parts, version, night)
