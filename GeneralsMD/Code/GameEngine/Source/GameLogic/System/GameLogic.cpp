@@ -3826,6 +3826,9 @@ void GameLogic::update()
 				}
 				fprintf(stderr, "SPAWN_TEST %d %s\n", count, g.name);
 			}
+			// GENERALS_SPAWN_TEST_ZOOM=z brings the camera that much closer (1 as it is, smaller is closer).
+			if (const char *zoom = getenv("GENERALS_SPAWN_TEST_ZOOM"))
+				TheTacticalView->setHeightAboveGround(TheTacticalView->getHeightAboveGround() * (Real)atof(zoom));
 		}
 	}
 #endif

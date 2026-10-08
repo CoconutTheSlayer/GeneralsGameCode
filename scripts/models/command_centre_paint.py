@@ -284,6 +284,18 @@ def paint_pad(bake_dir, out, rng):
     damage(day, rng, 2).save(os.path.join(out, "eucc_pad_e.tga"))
 
 
+def fence_texture():
+    """Chain-link: diagonal wires on a see-through ground (alpha), a rail along the top."""
+    w = 64 * UP
+    img = Image.new("RGBA", (w, w), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for k in range(-w, 2 * w, 8 * UP):
+        d.line([(k, 0), (k + w, w)], fill=(150, 156, 160, 255), width=UP)
+        d.line([(k, w), (k + w, 0)], fill=(150, 156, 160, 255), width=UP)
+    d.rectangle([0, 0, w, 3 * UP], fill=(120, 126, 132, 255))
+    return img.resize((64, 64), Image.LANCZOS)
+
+
 def compose(bake_dir, out):
     """The building's texture from Blender's bakes, and its versions."""
     rng = np.random.default_rng(7)
@@ -318,7 +330,7 @@ def main():
                   "tile_deck": tile_deck(rng), "tile_door": tile_door(rng), "tile_dome": tile_dome(rng),
                   "tile_metal": tile_metal(rng), "tile_crate": tile_crate(rng), "tile_sandbag": tile_sandbag(rng),
                   "tile_hazard": tile_hazard(rng), "tile_grille": tile_grille(rng), "tile_pad": pad(rng),
-                  "eucc_emblem": emblem(rng)}
+                  "eucc_emblem": emblem(rng), "eucc_fence": fence_texture()}
         for name, image in images.items():
             image.save(os.path.join(out, name + (".png" if name.startswith("tile_") else ".tga")))
         print(f"painted {len(images)} tiles")

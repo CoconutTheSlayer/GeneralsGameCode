@@ -42,6 +42,10 @@ def cstring(text):
 # Opaque, textured and lit: depth compare less-equal, depth write, src one dst zero, texture modulated by
 # lighting (the game's default solid shader).
 OPAQUE_SHADER = bytes([3, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0])
+# Opaque where the texture's alpha is high, cut away where it is low (fences). The game also counts such
+# meshes as see-through, so they cast no shadow volume: use it for flat decals and thin panels too, whose
+# open surfaces would make broken, flickering shadows.
+ALPHA_TEST_SHADER = bytes([3, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0])
 # Additive, for muzzle flashes: no depth write, src one dst one.
 ADDITIVE_SHADER = bytes([3, 0, 0, 1, 2, 1, 0, 1, 1, 0, 0, 2, 0, 0, 0, 2])
 # White ambient, diffuse and specular, no emission, shininess 0.1, opacity 1.

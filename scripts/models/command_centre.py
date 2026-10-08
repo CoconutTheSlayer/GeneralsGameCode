@@ -42,7 +42,7 @@ SURFACES = {
     "door": ("tile_door", 12.0), "dome": ("tile_dome", 8.0), "metal": ("tile_metal", 6.0),
     "crate": ("tile_crate", 4.0), "sandbag": ("tile_sandbag", 4.0), "hazard": ("tile_hazard", 3.0),
     "grille": ("tile_grille", 3.0),
-    "glass": (40, 72, 92), "dark": (38, 40, 44), "yellow": (222, 182, 46),
+    "glass": (40, 72, 92), "dark": (38, 40, 44), "yellow": (222, 182, 46), "red": (196, 52, 40),
 }
 SURFACE = {name: i for i, name in enumerate(SURFACES)}
 
@@ -109,6 +109,14 @@ HALL = (-44.0, 30.0, -38.0, 14.0, 16.0)          # x0, x1, y0, y1, wall top
 HANGAR = (-18.0, 34.0, 41.0, 16.0)               # x0, x1, centre y, radius
 
 
+def ring(b, surface, x0, x1, y0, y1, z0, z1, width):
+    """A frame of four boxes round a rectangle (a cornice or parapet), leaving the middle open."""
+    b.box(surface, (x0, y0, z0), (x1, y0 + width, z1))
+    b.box(surface, (x0, y1 - width, z0), (x1, y1, z1))
+    b.box(surface, (x0, y0 + width, z0), (x0 + width, y1 - width, z1))
+    b.box(surface, (x1 - width, y0 + width, z0), (x1, y1 - width, z1))
+
+
 def hall(b):
     """The command hall: walls with piers and a yellow band, an inset entrance, a curved ribbed roof over
     the front, a machinery deck behind it."""
@@ -116,7 +124,7 @@ def hall(b):
     b.box("wall", (x0, y0, PAD_Z), (x1, y1, top))
     b.box("trim", (x0 - 0.5, y0 - 0.5, PAD_Z), (x1 + 0.5, y1 + 0.5, 2.6))             # plinth
     b.box("yellow", (x0 - 0.15, y0 - 0.15, 11.4), (x1 + 0.15, y1 + 0.15, 12.2))         # the band
-    b.box("trim", (x0 - 0.6, y0 - 0.6, top - 1.6), (x1 + 0.6, y1 + 0.6, top))           # cornice
+    ring(b, "trim", x0 - 0.6, x1 + 0.6, y0 - 0.6, y1 + 0.6, top - 1.6, top + 0.5, 1.4)  # cornice
     for x in (x0, (x0 + x1) / 2, x1):
         for y in (y0, y1):
             b.box("wall", (x - 2.6, y - 2.6, PAD_Z), (x + 2.6, y + 2.6, top + 1.8))
@@ -194,8 +202,8 @@ def annex(b):
     x0, x1, y0, y1, top = -50.0, -24.0, 16.0, 60.0, 12.0
     b.box("wall", (x0, y0, PAD_Z), (x1, y1, top))
     b.box("trim", (x0 - 0.4, y0 - 0.4, PAD_Z), (x1 + 0.4, y1 + 0.4, 2.2))
-    b.box("trim", (x0 - 0.5, y0 - 0.5, top - 1.2), (x1 + 0.5, y1 + 0.5, top + 0.6))
-    b.box("deck", (x0 + 0.5, y0 + 0.5, top), (x1 - 0.5, y1 - 0.5, top + 0.4))
+    ring(b, "trim", x0 - 0.5, x1 + 0.5, y0 - 0.5, y1 + 0.5, top - 1.2, top + 0.8, 1.2)
+    b.box("deck", (x0 + 0.5, y0 + 0.5, top), (x1 - 0.5, y1 - 0.5, top + 0.3))
     for y in range(int(y0) + 5, int(y1) - 3, 7):
         b.box("trim", (x1, y - 0.4, 6.0), (x1 + 0.5, y + 3.4, 9.0))
         b.box("glass", (x1 + 0.5, y, 6.4), (x1 + 0.6, y + 3.0, 8.6))
@@ -219,6 +227,9 @@ def mast(b, x=-52.0, y=-12.0, z0=PAD_Z, z1=48.0):
             b.box("metal", (x + min(ax, bx) - 0.12, y + min(ay, by) - 0.12, z - 0.12),
                   (x + max(ax, bx) + 0.12, y + max(ay, by) + 0.12, z + 0.12))
         z += 5.0
+    for k, zz in enumerate(range(int(z1) - 9, int(z1), 3)):   # red and white bands at the top
+        b.box("red" if k % 2 == 0 else "dome", (x - 2.05, y - 2.05, zz), (x + 2.05, y + 2.05, zz + 1.5))
+    b.sphere("red", (x, y, z1 + 0.6), 0.6)
     for zz, radius, facing in ((38.0, 3.8, 0.4), (30.0, 2.8, -1.2)):
         def make(bm, zz=zz, radius=radius, facing=facing):
             m = (Matrix.Translation((x + math.cos(facing) * 2.6, y + math.sin(facing) * 2.6, zz))
@@ -275,6 +286,37 @@ def clutter(b):
     b.box("trim", (36.6, 22.6, PAD_Z), (39.4, 25.4, PAD_Z + 1.6))
 
 
+FENCE = [((-57.0, -60.0), (-57.0, 64.0)), ((-57.0, 66.0), (36.0, 66.0))]
+FENCE_HEIGHT = 6.0
+
+
+def fence_posts(b):
+    for (ax, ay), (bx, by) in FENCE:
+        length = math.hypot(bx - ax, by - ay)
+        steps = max(1, int(length / 8))
+        for i in range(steps + 1):
+            t = i / steps
+            b.cylinder("metal", (ax + (bx - ax) * t, ay + (by - ay) * t, PAD_Z + FENCE_HEIGHT / 2), 0.2, FENCE_HEIGHT, segments=6)
+
+
+def fence():
+    """Chain-link panels between the posts, both ways round (cut away by the texture's alpha)."""
+    bm = bmesh.new()
+    for (ax, ay), (bx, by) in FENCE:
+        quad = [(ax, ay, PAD_Z), (bx, by, PAD_Z), (bx, by, PAD_Z + FENCE_HEIGHT), (ax, ay, PAD_Z + FENCE_HEIGHT)]
+        front = [bm.verts.new(v) for v in quad]
+        bm.faces.new(front)
+        bm.faces.new([bm.verts.new(v) for v in reversed(quad)])
+    obj = new_object("FENCE", bm)
+    me = obj.data
+    uv = me.uv_layers.new(name="UVMap")
+    for poly in me.polygons:
+        for li in poly.loop_indices:
+            x, y, z = me.vertices[me.loops[li].vertex_index].co
+            uv.data[li].uv = ((x + y) / 6.0, (z - PAD_Z) / FENCE_HEIGHT)
+    return obj
+
+
 def build_shapes():
     main, intact = Builder(), Builder()
     hall(main)
@@ -282,6 +324,7 @@ def build_shapes():
     hangar(main)
     annex(main)
     clutter(main)
+    fence_posts(main)
     dome(intact)
     mast(intact)
     return main, intact
@@ -494,12 +537,14 @@ def build():
     paint = os.path.join(HERE, "command_centre_paint.py")
     subprocess.run([python, paint, "tiles", tiles], check=True)
     w3d.write_house_colour(tex_dir)
-    shutil.copy(os.path.join(tiles, "eucc_emblem.tga"), os.path.join(tex_dir, "eucc_emblem.tga"))
+    for name in ("eucc_emblem.tga", "eucc_fence.tga"):
+        shutil.copy(os.path.join(tiles, name), os.path.join(tex_dir, name))
 
     main, intact = build_shapes()
     objects = []
     for name, builder in (("BUILDING", main), ("INTACT", intact)):
-        bmesh.ops.remove_doubles(builder.bm, verts=builder.bm.verts, dist=0.001)
+        # Each part stays a closed shape of its own (no merging of touching corners): the game builds
+        # shadow volumes from these meshes, and they need closed shapes.
         bmesh.ops.recalc_face_normals(builder.bm, faces=builder.bm.faces)
         obj = new_object(name, builder.bm)
         for surface in SURFACES:
@@ -544,7 +589,9 @@ def build():
     colour.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.08, 0.2, 0.75, 1)
     for obj in banners:
         obj.data.materials.append(colour)
-    return dict(building=objects[0], intact=objects[1], pad=ground, emblems=marks, banners=banners)
+    wire = fence()
+    textured(wire, load_image(os.path.join(tex_dir, "eucc_fence.tga")))
+    return dict(building=objects[0], intact=objects[1], pad=ground, emblems=marks, banners=banners, fence=wire)
 
 
 # --- writing the models ----------------------------------------------------------------------------
@@ -559,12 +606,16 @@ def export(parts, version, night):
     model.mesh("BUILDING", w3d.CHASSIS, **mesh_data(parts["building"]), texture=texture)
     if version != "_E":
         model.mesh("INTACT", w3d.CHASSIS, **mesh_data(parts["intact"]), texture=texture)
+    # Flat and thin parts cast no shadow (ALPHA_TEST_SHADER).
+    flat = dict(shadow=False, shader=w3d.ALPHA_TEST_SHADER)
     model.mesh("PAD", w3d.CHASSIS, **mesh_data(parts["pad"]),
-               texture="eucc_pad_e.tga" if version == "_E" else "eucc_pad.tga", shadow=False)
+               texture="eucc_pad_e.tga" if version == "_E" else "eucc_pad.tga", **flat)
+    if version != "_E":
+        model.mesh("FENCE", w3d.CHASSIS, **mesh_data(parts["fence"]), texture="eucc_fence.tga", **flat)
     for obj in parts["emblems"]:
-        model.mesh(obj.name, w3d.CHASSIS, **mesh_data(obj), texture="eucc_emblem.tga", shadow=False)
+        model.mesh(obj.name, w3d.CHASSIS, **mesh_data(obj), texture="eucc_emblem.tga", **flat)
     for obj in parts["banners"]:
-        model.mesh(obj.name, w3d.CHASSIS, **mesh_data(obj), texture=w3d.HOUSE_COLOUR_TEXTURE, shadow=False)
+        model.mesh(obj.name, w3d.CHASSIS, **mesh_data(obj), texture=w3d.HOUSE_COLOUR_TEXTURE, **flat)
     model.save(os.path.join(DATA, "Art", "W3D", model.name + ".w3d"))
     print(f"{model.name}: {len(model.meshes)} meshes, {sum(len(m[5]) for m in model.meshes)} triangles")
 

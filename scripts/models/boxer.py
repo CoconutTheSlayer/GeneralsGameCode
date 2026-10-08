@@ -356,7 +356,8 @@ def export(parts, name, hull_texture):
     for obj in parts["wheels"]:
         model.mesh(obj.name, bones[obj.name], **mesh_data(obj), texture=TIRE_TEXTURE)
     for obj in parts["stripes"]:
-        model.mesh(obj.name, w3d.CHASSIS, **mesh_data(obj), texture=w3d.HOUSE_COLOUR_TEXTURE, shadow=False)
+        model.mesh(obj.name, w3d.CHASSIS, **mesh_data(obj), texture=w3d.HOUSE_COLOUR_TEXTURE, shadow=False,
+                   shader=w3d.ALPHA_TEST_SHADER)
     model.mesh("MUZZLEFX01", bones["MUZZLEFX01"], **mesh_data(parts["flash"]), texture="EXTnkMzl01.tga", shadow=False,
                shader=w3d.ADDITIVE_SHADER)
     out = os.path.join(DATA, "Art", "W3D", name + ".w3d")
