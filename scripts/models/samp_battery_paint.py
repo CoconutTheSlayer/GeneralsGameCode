@@ -1,14 +1,15 @@
 """Paints the European SAMP/T Battery's textures, in two steps that samp_battery.py runs (Python 3 and
-Pillow); the surfaces are the Command Centre's (command_centre_paint.py), so the base looks like one army:
+Pillow); trim, sandbags, crates and hazard stripes are the Command Centre's (command_centre_paint.py), so
+the base looks like one army:
 
-    tiles OUT_DIR             small tiling surfaces that Blender projects onto the model: the Command
-                              Centre's plaster, trim, deck, door, sandbags, hazard stripes and grilles, and
-                              the launcher's own canisters and turntable; the emblem
+    tiles OUT_DIR             small tiling surfaces that Blender projects onto the model: packed earth for
+                              the berm, poured concrete, the launcher's canisters, steel and turntable, the
+                              radar's array face, the generator's olive paint, cable drums; the emblem
     compose BAKE_DIR OUT_DIR  the battery's texture from what Blender baked (colour, ambient occlusion,
-                              windows, height): grime on top, its damaged, wrecked and night versions, and
-                              the pad, painted as one picture
+                              windows, height): grime on top, its damaged, wrecked and night versions; and
+                              the ground: an earth patch with a ragged edge cut out by its alpha
 
-compose() and paint_square_pad() are shared with the Artillery Bastion (bastion_paint.py).
+compose() and paint_ground() are shared with the Artillery Bastion and the Funds Office.
 """
 import os
 import sys
@@ -54,13 +55,71 @@ def tile_turntable(rng):
     return grime(img, rng, amount=0.3).resize((128, 128), Image.LANCZOS)
 
 
+EARTH = (192, 160, 118)
+
+
+def tile_earth(rng, colour=EARTH):
+    """Packed sandy earth: blotches, pebbles, a few rain runnels down the slope."""
+    w = 128 * UP
+    arr = np.ones((w, w, 3)) * np.array(colour, float)
+    arr *= (0.82 + 0.3 * tiling_noise(w, w, 8, rng))[..., None]
+    arr *= (0.9 + 0.12 * tiling_noise(w, w, 24, rng))[..., None]
+    img = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
+    d = ImageDraw.Draw(img)
+    for _ in range(260):
+        x, y, r = rng.uniform(0, w), rng.uniform(0, w), rng.uniform(0.6, 2.2) * UP
+        tone = rng.uniform(0.6, 1.15)
+        d.ellipse([x - r, y - r * 0.8, x + r, y + r * 0.8], fill=tuple(int(c * tone) for c in colour))
+    return grime(img, rng, amount=0.15, streaks=14, streak_colour=tuple(int(c * 0.78) for c in colour)
+                 ).resize((128, 128), Image.LANCZOS)
+
+
+def tile_concrete(rng):
+    """Light poured concrete with formwork lines."""
+    return grime(panels((186, 184, 176), rng, step=64, seam=(132, 130, 124), rivets=False, light=(206, 204, 198)),
+                 rng, amount=0.3).resize((128, 128), Image.LANCZOS)
+
+
+def tile_array(rng):
+    """The radar's face: a grid of dark square elements in a lighter frame (the whole tile is one face)."""
+    w = 128 * UP
+    img = Image.new("RGB", (w, w), (70, 78, 88))
+    d = ImageDraw.Draw(img)
+    n = 10
+    cell = (w - 8 * UP) / n
+    for i in range(n):
+        for j in range(n):
+            x, y = 4 * UP + i * cell, 4 * UP + j * cell
+            tone = int(rng.uniform(-6, 6))
+            d.rectangle([x + UP, y + UP, x + cell - UP, y + cell - UP], fill=(46 + tone, 54 + tone, 64 + tone))
+            d.line([(x + UP, y + UP), (x + cell - UP, y + UP)], fill=(104, 114, 126), width=UP)
+    d.rectangle([0, 0, w - 1, w - 1], outline=(120, 130, 140), width=4 * UP)
+    return grime(img, rng, amount=0.12).resize((128, 128), Image.LANCZOS)
+
+
+def tile_olive(rng):
+    """Olive-drab painted steel with panel seams (the generator)."""
+    return grime(panels((112, 122, 88), rng, step=64, seam=(70, 78, 56), light=(146, 156, 118)), rng,
+                 amount=0.25).resize((128, 128), Image.LANCZOS)
+
+
+def tile_drum(rng):
+    """Black cable wound on a drum."""
+    w = 64 * UP
+    img = Image.new("RGB", (w, w), (40, 40, 42))
+    d = ImageDraw.Draw(img)
+    for k in range(0, w, 3 * UP):
+        d.line([(0, k), (w, k + UP)], fill=(64, 64, 66), width=UP)
+    return grime(img, rng, amount=0.2).resize((64, 64), Image.LANCZOS)
+
+
 def tiles(out):
     rng = np.random.default_rng(31)
-    images = {"tile_wall": cc.tile_wall(rng), "tile_trim": cc.tile_trim(rng), "tile_deck": cc.tile_deck(rng),
-              "tile_door": cc.tile_door(rng), "tile_metal": cc.tile_metal(rng), "tile_sandbag": cc.tile_sandbag(rng),
+    images = {"tile_trim": cc.tile_trim(rng), "tile_metal": cc.tile_metal(rng), "tile_sandbag": cc.tile_sandbag(rng),
               "tile_hazard": cc.tile_hazard(rng), "tile_grille": cc.tile_grille(rng), "tile_crate": cc.tile_crate(rng),
               "tile_steel": tile_steel(rng), "tile_canister": tile_canister(rng), "tile_turntable": tile_turntable(rng),
-              f"{PREFIX}_emblem": cc.emblem(rng)}
+              "tile_earth": tile_earth(rng), "tile_concrete": tile_concrete(rng), "tile_array": tile_array(rng),
+              "tile_olive": tile_olive(rng), "tile_drum": tile_drum(rng), f"{PREFIX}_emblem": cc.emblem(rng)}
     for name, image in images.items():
         image.save(os.path.join(out, name + (".png" if name.startswith("tile_") else ".tga")))
     print(f"painted {len(images)} tiles")
@@ -88,45 +147,60 @@ def compose(bake_dir, out, prefix):
     print("composed the building's textures")
 
 
-def paint_square_pad(bake_dir, out, prefix, half, rng, marks):
-    """A square pad of +-half units, painted as one picture: concrete slabs, then marks(draw, pixel, scale),
-    darkened where the building's shadow lies (its baked occlusion). Writes <prefix>_pad.tga and _pad_e.tga."""
-    size = 512
-    w = size * UP
-    tile = cc.pad(rng).resize((256 * UP, 256 * UP))
-    img = Image.new("RGB", (w, w))
-    for x in range(0, w, tile.width):
-        for y in range(0, w, tile.height):
-            img.paste(tile, (x, y))
-    scale = w / (2 * half)   # pixels per unit
+def paint_ground(bake_dir, out, prefix, half, rng, inside, marks, base=None, size=1024, ragged=1.0):
+    """Ground of +-half units painted as one picture with an alpha: the earth (or `base`, an image of
+    `size`), then marks(draw, pixel, scale); kept where inside(x, y) (arrays of units, +Y up) is above 0 plus
+    a ragged noise (times `ragged`), so the outline is irregular and speckled like scattered gravel. Darkened where the
+    building's shadow lies (its baked occlusion). Writes <prefix>_pad.tga and _pad_e.tga (RGBA)."""
+    w = size
+    if base is None:
+        tile = tile_earth(rng, (204, 168, 122)).resize((w // 4, w // 4))
+        base = Image.new("RGB", (w, w))
+        for x in range(0, w, tile.width):
+            for y in range(0, w, tile.height):
+                base.paste(tile, (x, y))
+    img = base.copy()
+    scale = w / (2 * half)
 
     def pixel(x, y):
-        """Seen from above, +X to the right, +Y up."""
         return (x + half) * scale, (half - y) * scale
     marks(ImageDraw.Draw(img), pixel, scale)
-    arr = np.asarray(img.resize((size, size), Image.LANCZOS), float)
-    ao = np.asarray(Image.open(os.path.join(bake_dir, "pad_occlusion.png")).convert("L").resize((size, size)), float)
-    arr = arr * (0.5 + 0.5 * ao[..., None] / 255.0) * np.array([1.1, 1.12, 1.16])
+    arr = np.asarray(img, float)
+    ao = np.asarray(Image.open(os.path.join(bake_dir, "pad_occlusion.png")).convert("L").resize((w, w)), float)
+    arr = arr * (0.5 + 0.5 * ao[..., None] / 255.0) * np.array([1.14, 1.12, 1.1])
+    ys, xs = np.mgrid[0:w, 0:w]
+    ux, uy = xs / scale - half, half - ys / scale
+    edge = inside(ux, uy) + ((tiling_noise(w, w, 9, rng) - 0.5) * 2.4 + (rng.random((w, w)) - 0.5) * 1.6) * ragged
+    alpha = np.where(edge > 0, 255, 0).astype(np.uint8)
     day = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
-    day.save(os.path.join(out, f"{prefix}_pad.tga"))
-    damage(day, rng, 2).save(os.path.join(out, f"{prefix}_pad_e.tga"))
+    for suffix, img in (("", day), ("_e", damage(day, rng, 2))):
+        rgba = img.convert("RGBA")
+        rgba.putalpha(Image.fromarray(alpha))
+        rgba.save(os.path.join(out, f"{prefix}_pad{suffix}.tga"))
 
 
-PAD_HALF = 13.0
+PAD_HALF = 14.0
+
+
+def battery_inside(x, y):
+    """A rounded square of ground: the berm's circle and the clutter in the corners."""
+    return 13.4 - (np.abs(x) ** 4 + np.abs(y) ** 4) ** 0.25
 
 
 def battery_marks(d, pixel, scale):
-    """Yellow hazard corners, a walkway to the cabin and dashes round the plinth."""
-    yellow, white = (214, 176, 52), (226, 224, 214)
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            a, b = pixel(sx * 11.6, sy * 11.6), pixel(sx * 9.4, sy * 11.6)
-            d.line([a, b], fill=yellow, width=int(0.6 * scale))
-            a, b = pixel(sx * 11.6, sy * 11.6), pixel(sx * 11.6, sy * 9.4)
-            d.line([a, b], fill=yellow, width=int(0.6 * scale))
-    for y in range(-7, 2, 2):
-        a, b = pixel(9.6, y), pixel(11.4, y + 0.9)
-        d.rectangle([a[0], b[1], b[0], a[1]], fill=white)
+    """The floor inside the berm, tyre tracks through the opening, cables from the generator."""
+    floor, track, cable = (178, 156, 120), (156, 136, 104), (36, 36, 38)
+    a, b = pixel(-8.8, 8.8), pixel(8.8, -8.8)
+    d.ellipse([a[0], a[1], b[0], b[1]], fill=floor)
+    for x in (-1.9, 1.9):                                    # tyre tracks out through the opening
+        for k in range(3):
+            p, q = pixel(x - 0.5 + k * 0.4, -7.0), pixel(x - 0.1 + k * 0.4, -14.5)
+            d.rectangle([p[0], p[1], q[0], q[1]], fill=track)
+    def wire(points, width=0.18):
+        d.line([pixel(*p) for p in points], fill=cable, width=max(2, int(width * scale)), joint="curve")
+    wire([(7.4, -10.2), (5.0, -10.6), (2.2, -9.4), (0.4, -11.6), (0.0, -7.0), (0.6, -5.4)])
+    wire([(8.0, -9.0), (9.4, -6.0), (11.6, -2.0), (12.4, 3.0), (11.6, 6.4), (10.2, 8.4)])
+    wire([(-8.6, 9.6), (-6.0, 11.6), (-1.0, 12.6), (4.0, 11.6), (6.0, 10.0)], 0.14)
 
 
 def main():
@@ -134,7 +208,8 @@ def main():
         tiles(sys.argv[2])
     else:
         compose(sys.argv[2], sys.argv[3], PREFIX)
-        paint_square_pad(sys.argv[2], sys.argv[3], PREFIX, PAD_HALF, np.random.default_rng(5), battery_marks)
+        paint_ground(sys.argv[2], sys.argv[3], PREFIX, PAD_HALF, np.random.default_rng(5), battery_inside,
+                     battery_marks)
 
 
 if __name__ == "__main__":

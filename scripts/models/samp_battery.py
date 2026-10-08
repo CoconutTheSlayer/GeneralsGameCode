@@ -1,14 +1,16 @@
-"""The European SAMP/T Battery, modelled in Blender and written as W3D models for the game: a square
-plaster plinth with a yellow band and a crew cabin, carrying a steel turntable with a radar dish and a
-launcher of eight missile canisters that turns and raises to fire (after a concept painted in the game's
-style). Everything is made here, so the models and textures can be shared.
+"""The European SAMP/T Battery, modelled in Blender and written as W3D models for the game: no building,
+a launcher of eight missile canisters on a low steel turntable dug in behind a horseshoe revetment of
+packed earth with a sandbag crest, a square phased-array radar panel on a short lattice mast set into the
+berm's back, and a generator trailer, cable drums and crates at the opening (after a concept painted in
+the game's style). Everything is made here, so the models and textures can be shared.
 
     /Applications/Blender.app/Contents/MacOS/Blender -b -P scripts/models/samp_battery.py
 
 Painted as the Command Centre (command_centre.py): samp_battery_paint.py paints small tiling surfaces,
 Blender projects them onto the model and bakes them with the ambient occlusion into one texture; the
-painter adds grime and makes the damaged, wrecked and night versions. Six models: EUSAMP (intact), _D,
-_E (no dish or roof clutter), each with a night version (_N, _DN, _EN) with lit windows.
+painter adds grime and makes the damaged, wrecked and night versions, and paints the ground (an earth
+patch cut out by its alpha, not a square pad). Six models: EUSAMP (intact), _D, _E (no radar, generator
+or clutter), each with a night version (_N, _DN, _EN).
 
 Bones (as the USA's Patriot, ABPATRIOT, which the game's INI names):
     TURRET01               the turntable, turning about Z
@@ -16,7 +18,8 @@ Bones (as the USA's Patriot, ABPATRIOT, which the game's INI names):
                            modelled level, pointing +X, and the game raises it (NaturalTurretPitch 45)
     WEAPONA01..WEAPONA04   where the missiles leave the canisters (WeaponLaunchBone/WeaponFireFXBone WeaponA)
 
-The footprint is the USA's (a cylinder of radius 12, 14 high); the pad is 26 square.
+The footprint is the USA's (a cylinder of radius 12, 14 high); the berm reaches 12.9, the ground 14.
+The shared machinery below (Builder, baking, writing) is also the Artillery Bastion's and the Funds Office's.
 """
 import math
 import os
@@ -26,7 +29,7 @@ import sys
 
 import bmesh
 import bpy
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
@@ -38,21 +41,22 @@ import w3d  # noqa: E402
 
 NAME = "EUSAMP"
 PREFIX = "eusa"
-PAD_Z = 0.6
-PAD_HALF = 13.0
+PAD_Z = 0.05                             # the ground patch, just over the terrain
+PAD_HALF = 14.0
 TEXTURE_SIZE = 1024
-HEIGHT_TOP = 18.0
+HEIGHT_TOP = 14.0
 # Surfaces: (tile painted by samp_battery_paint.py, units per tile) or a plain colour.
 SURFACES = {
-    "wall": ("tile_wall", 8.0), "trim": ("tile_trim", 8.0), "deck": ("tile_deck", 8.0), "door": ("tile_door", 6.0),
+    "earth": ("tile_earth", 8.0), "concrete": ("tile_concrete", 6.0), "trim": ("tile_trim", 8.0),
     "metal": ("tile_metal", 4.0), "sandbag": ("tile_sandbag", 3.0), "hazard": ("tile_hazard", 2.0),
     "grille": ("tile_grille", 2.0), "crate": ("tile_crate", 3.0), "steel": ("tile_steel", 8.0),
-    "canister": ("tile_canister", 3.4), "turntable": ("tile_turntable", 4.0),
+    "canister": ("tile_canister", 3.4), "turntable": ("tile_turntable", 4.0), "array": ("tile_array", 4.9),
+    "olive": ("tile_olive", 4.0), "drum": ("tile_drum", 2.0), "wood": (120, 92, 60),
     "glass": (40, 72, 92), "dark": (38, 40, 44), "yellow": (222, 182, 46), "red": (196, 52, 40), "white": (226, 228, 230),
 }
 
-TURRET_AT = (0.0, 0.0, 6.0)              # TURRET01, on the plinth's deck
-HINGE = (-4.5, 0.0, 9.8)                 # TURRETEL, in the world
+TURRET_AT = (0.0, 0.0, 0.6)              # TURRET01, on the turntable's concrete footing
+HINGE = (-4.0, 0.0, 5.0)                 # TURRETEL, in the world
 LAUNCHER = (-5.2, 5.6, 3.4, 1.7)         # x0, x1 (from the hinge), half width, row height (2 rows above the hinge)
 
 
@@ -115,83 +119,138 @@ class Builder:
                 face.material_index = self.index[surface]
 
 
-def ring(b, surface, x0, x1, y0, y1, z0, z1, width):
-    """A frame of four boxes round a rectangle (a cornice or parapet), leaving the middle open."""
-    b.box(surface, (x0, y0, z0), (x1, y0 + width, z1))
-    b.box(surface, (x0, y1 - width, z0), (x1, y1, z1))
-    b.box(surface, (x0, y0 + width, z0), (x0 + width, y1 - width, z1))
-    b.box(surface, (x1 - width, y0 + width, z0), (x1, y1 - width, z1))
-
-
-def dish(b, surface, centre, radius, facing, tilt=0.5):
-    """A radar dish facing `facing` (radians about Z), tilted up by `tilt`."""
-    def make(bm):
-        m = (Matrix.Translation(centre) @ Matrix.Rotation(facing, 4, "Z")
-             @ Matrix.Rotation(-math.pi / 2 + tilt, 4, "Y"))
-        bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=radius, radius2=radius * 0.3,
-                              depth=radius * 0.4, matrix=m)
-    b.add(surface, make)
-
-
 # --- the battery -----------------------------------------------------------------------------------
 
-def plinth(b):
-    """The plaster plinth: a plinth course, a yellow band, a cornice, corner piers, a cabin and pipes."""
-    h = 8.0
-    top = TURRET_AT[2]
-    b.box("wall", (-h, -h, PAD_Z), (h, h, top))
-    b.box("trim", (-h - 0.4, -h - 0.4, PAD_Z), (h + 0.4, h + 0.4, 1.6))
-    b.box("yellow", (-h - 0.1, -h - 0.1, 4.3), (h + 0.1, h + 0.1, 4.75))
-    ring(b, "trim", -h - 0.5, h + 0.5, -h - 0.5, h + 0.5, top - 0.6, top + 0.5, 1.0)
-    b.box("deck", (-h + 0.5, -h + 0.5, top), (h - 0.5, h - 0.5, top + 0.1))
-    for sx in (-1, 1):
+def sweep(b, surface, profile, centre, a0, a1, steps, cap_surface=None):
+    """A closed side profile (r, z) swept round `centre` from angle a0 to a1 (radians), capped at both ends:
+    a berm, a ring wall. One closed shape, so its shadow volume holds."""
+    def make(bm):
+        rings = []
+        for k in range(steps + 1):
+            a = a0 + (a1 - a0) * k / steps
+            c, s = math.cos(a), math.sin(a)
+            rings.append([bm.verts.new((centre[0] + r * c, centre[1] + r * s, z)) for r, z in profile])
+        n = len(profile)
+        for k in range(steps):
+            for i in range(n):
+                j = (i + 1) % n
+                bm.faces.new((rings[k][i], rings[k][j], rings[k + 1][j], rings[k + 1][i]))
+        make.ends = (bm.faces.new(list(reversed(rings[0]))), bm.faces.new(rings[-1]))
+    before = set(b.bm.faces)
+    make(b.bm)
+    for face in set(b.bm.faces) - before:
+        face.material_index = b.index[cap_surface if face in make.ends and cap_surface else surface]
+
+
+def sandbag_row(b, centre, radius, a0, a1, z, size=(1.7, 1.0, 0.55), offset=0.0):
+    """Sandbags laid end to end along an arc (one closed box each)."""
+    length = size[0]
+    count = max(1, int(abs(a1 - a0) * radius / (length * 0.98)))
+    for k in range(count):
+        a = a0 + (a1 - a0) * (k + 0.5 + offset) / count
+        if not min(a0, a1) <= a <= max(a0, a1):
+            continue
+        at = (centre[0] + radius * math.cos(a), centre[1] + radius * math.sin(a), z + size[2] / 2)
+        b.oriented_box("sandbag", at, (size[1], length * 0.94, size[2]), Matrix.Rotation(a, 4, "Z"))
+
+
+# The revetment: a horseshoe of packed earth round the turntable, open towards -Y (the cables come in).
+BERM = [(8.5, -0.3), (9.1, 2.7), (10.4, 2.9), (12.9, -0.3)]     # (r, z) inside foot, inner top, crest, outside foot
+BERM_GAP = (-math.pi / 2, math.radians(34))                       # the opening's direction and half width
+RADAR = (7.6, 7.6)                                                # the radar's mast, on the berm's back
+GENERATOR = (9.6, -10.0)
+
+
+def revetment(b):
+    """The earth berm with a sandbag crest and sandbag cheeks at the opening, and the turntable's footing."""
+    gap, half = BERM_GAP
+    a0, a1 = gap + half, gap + 2 * math.pi - half
+    sweep(b, "earth", BERM, (0, 0), a0, a1, 40)
+    crest = (BERM[1][0] + BERM[2][0]) / 2
+    sandbag_row(b, (0, 0), crest, a0 + 0.04, a1 - 0.04, BERM[2][1] - 0.15)
+    sandbag_row(b, (0, 0), crest, a0 + 0.1, a1 - 0.1, BERM[2][1] + 0.38, size=(1.6, 0.9, 0.5), offset=0.5)
+    # Sandbag cheeks holding the berm's two ends, stepping down.
+    for a, side in ((a0, -1), (a1, 1)):
+        c, s = math.cos(a), math.sin(a)
+        for k, (r0, r1, h) in enumerate(((8.4, 13.0, 1.2), (8.6, 12.0, 2.2), (8.8, 10.8, 3.1))):
+            r = (r0 + r1) / 2
+            ta = a + side * 0.035
+            b.oriented_box("sandbag", (r * math.cos(ta), r * math.sin(ta), h / 2 - 0.3 + 0.0),
+                           (r1 - r0, 1.1, h + 0.6 - k * 0.0), Matrix.Rotation(a, 4, "Z"))
+    # The concrete footing of the turntable, a cable trench cover across the floor.
+    b.cylinder("concrete", (0, 0, 0.15), 7.0, 0.9, segments=24)
+    b.oriented_box("metal", (0.0, -9.0, 0.05), (1.2, 5.0, 0.4), Matrix.Identity(4))
+
+
+def radar(b):
+    """The square phased-array panel on a short lattice mast, set into the berm's back, facing the camera
+    side (-X, -Y), tilted back, with an equipment cabinet at its foot."""
+    x, y = RADAR
+    base = 2.6
+    b.box("concrete", (x - 1.9, y - 1.9, -0.3), (x + 1.9, y + 1.9, base))
+    b.box("trim", (x - 2.0, y - 2.0, base), (x + 2.0, y + 2.0, base + 0.3))
+    top = base + 4.6
+    for sx in (-1, 1):                                          # four legs leaning in, and cross braces
         for sy in (-1, 1):
-            x, y = sx * h, sy * h
-            b.box("wall", (x - 1.0, y - 1.0, PAD_Z), (x + 1.0, y + 1.0, top + 0.8))
-            b.box("trim", (x - 1.2, y - 1.2, top + 0.7), (x + 1.2, y + 1.2, top + 1.1))
-    # A maintenance hatch and a vent in the plinth's sides.
-    b.box("trim", (-3.0, -h - 0.3, PAD_Z), (1.0, -h, 3.6))
-    b.box("door", (-2.6, -h - 0.45, PAD_Z + 0.4), (0.6, -h - 0.3, 3.3))
-    b.box("grille", (-h - 0.15, -3.0, 2.2), (-h, 3.0, 3.6))
-    # Windows: a lit slit on each side under the band.
-    for y0, face in ((h, 1), (-h, -1)):
-        for x in (-5.5, 3.0):
-            b.box("trim", (x - 0.3, y0, 2.4), (x + 2.8, y0 + face * 0.25, 3.8))
-            b.box("glass", (x, y0 + face * 0.25, 2.7), (x + 2.5, y0 + face * 0.32, 3.5))
+            lo = (x + sx * 1.5, y + sy * 1.5, base + 0.3)
+            hi = (x + sx * 0.7, y + sy * 0.7, top)
+            mid = tuple((p + q) / 2 for p, q in zip(lo, hi))
+            length = math.dist(lo, hi)
+            lean = math.atan2(math.hypot(hi[0] - lo[0], hi[1] - lo[1]), hi[2] - lo[2])
+            heading = math.atan2(hi[1] - lo[1], hi[0] - lo[0])
+            b.oriented_box("steel", mid, (0.3, 0.3, length),
+                           Matrix.Rotation(heading, 4, "Z") @ Matrix.Rotation(-lean, 4, "Y"))
+    for z, w in ((base + 1.8, 1.25), (base + 3.6, 0.95)):
+        for sx in (-1, 1):
+            b.box("steel", (x + sx * w - 0.1, y - w, z), (x + sx * w + 0.1, y + w, z + 0.2))
+            b.box("steel", (x - w, y + sx * w - 0.1, z), (x + w, y + sx * w + 0.1, z + 0.2))
+    b.box("steel", (x - 1.0, y - 1.0, top), (x + 1.0, y + 1.0, top + 0.5))   # the slewing head
+    b.cylinder("trim", (x, y, top + 0.75), 0.7, 0.5, segments=10)
+    # The panel: a frame round the array face, a back box; turned to face (-X, -Y), tilted back.
+    face = math.radians(-135)
+    turn = Matrix.Rotation(face, 4, "Z") @ Matrix.Rotation(math.radians(-18), 4, "Y")
+    centre = (x, y, top + 3.4)
+    def at(u, v, w):        # u out of the face, v across, w up, in the panel's own frame
+        p = turn @ Vector((u, v, w, 1.0))
+        return (centre[0] + p[0], centre[1] + p[1], centre[2] + p[2])
+    b.oriented_box("steel", at(-0.35, 0, 0), (0.7, 5.4, 5.4), turn)
+    b.oriented_box("array", at(0.08, 0, 0), (0.2, 4.9, 4.9), turn)
+    b.oriented_box("trim", at(-0.9, 0, -0.6), (0.6, 3.0, 2.6), turn)       # electronics behind
+    b.oriented_box("steel", at(-0.6, 0, -2.6), (1.0, 1.0, 1.4), turn)      # the yoke down to the head
+    b.sphere("red", (x, y, top + 6.55), 0.22, 6, 4)
+    # A cabinet and a ladder at the mast's foot.
+    b.box("steel", (x + 2.1, y - 1.2, -0.2), (x + 3.5, y + 1.2, 2.4))
+    b.box("grille", (x + 3.5, y - 0.9, 0.8), (x + 3.6, y + 0.9, 2.0))
 
 
-def cabin(b):
-    """The crew cabin at the front corner, with a door, a window and an air conditioner."""
-    x0, x1, y0, y1, top = 6.5, 10.6, 2.6, 7.4, 4.8
-    b.box("steel", (x0, y0, PAD_Z), (x1, y1, top))
-    b.box("trim", (x0 - 0.2, y0 - 0.2, top), (x1 + 0.2, y1 + 0.2, top + 0.4))
-    b.box("trim", (x0 - 0.15, y0 - 0.15, PAD_Z), (x1 + 0.15, y1 + 0.15, PAD_Z + 0.5))
-    b.box("door", (x1, 3.4, PAD_Z + 0.5), (x1 + 0.15, 5.4, 4.0))
-    b.box("trim", (x1, 3.1, 4.0), (x1 + 0.6, 5.7, 4.3))            # a little canopy
-    b.box("trim", (x1 - 0.1, 5.9, 2.4), (x1 + 0.1, 7.0, 3.8))
-    b.box("glass", (x1 + 0.1, 6.0, 2.5), (x1 + 0.18, 6.9, 3.7))
-    b.box("trim", (7.4, y1, 2.3), (9.8, y1 + 0.15, 3.7))
-    b.box("glass", (7.5, y1 + 0.15, 2.4), (9.7, y1 + 0.22, 3.6))
-    for k in range(2):                                              # steps
-        b.box("trim", (x1 + 0.15 + k * 0.6, 3.2, PAD_Z), (x1 + 0.75 + k * 0.6, 5.6, PAD_Z + 0.5 - k * 0.2))
-    # A cable duct from the cabin up to the deck.
-    b.box("metal", (6.0, 7.6, PAD_Z), (6.8, 8.4, 5.4))
-    b.cylinder("metal", (3.0, 8.75, 5.0), 0.35, 7.0, axis="X", segments=6)
-    b.cylinder("metal", (-0.5, 8.75, 3.0), 0.35, 4.0, segments=6)
+def generator(b):
+    """A generator trailer at the opening: body, louvres, a towbar and wheels; cable drums and crates."""
+    x, y = GENERATOR
+    b.box("olive", (x - 2.4, y - 1.3, 0.9), (x + 2.4, y + 1.3, 3.2))
+    b.box("trim", (x - 2.5, y - 1.4, 3.2), (x + 2.5, y + 1.4, 3.45))
+    b.box("grille", (x + 2.4, y - 0.9, 1.3), (x + 2.5, y + 0.9, 2.8))
+    b.box("grille", (x - 1.8, y - 1.4, 1.5), (x - 0.2, y - 1.3, 2.7))
+    b.box("dark", (x - 2.2, y - 1.0, 0.6), (x + 2.2, y + 1.0, 0.9))
+    b.cylinder("metal", (x + 1.4, y + 0.5, 3.9), 0.18, 1.0, segments=6)     # the exhaust
+    b.box("steel", (x - 4.2, y - 0.15, 0.6), (x - 2.4, y + 0.15, 0.85))      # the towbar
+    for sy in (-1, 1):
+        b.cylinder("dark", (x + 0.4, y + sy * 1.15, 0.6), 0.6, 0.35, axis="Y", segments=10)
+    for i, (cx, cy) in enumerate(((-10.6, 9.0), (-8.6, 10.6))):              # cable drums
+        b.cylinder("drum", (cx, cy, 0.95), 1.0, 1.0, axis="Y" if i else "X", segments=12)
+        b.cylinder("wood", (cx, cy, 0.95), 1.25, 0.2, axis="Y" if i else "X", segments=12)
+    for cx, cy, h in ((-10.4, -9.6, 1.4), (-8.5, -10.6, 1.4), (-9.6, -10.0, 2.8)):
+        b.box("crate", (cx - 0.9, cy - 0.7, h - 1.4), (cx + 0.9, cy + 0.7, h))
+    b.box("crate", (11.0, 7.2, 0.0), (12.4, 9.2, 1.3))
 
 
-def cabin_roof(b):
-    """What is lost when the battery is wrecked: the air conditioner, an antenna, a light, sandbags."""
-    b.box("metal", (7.2, 3.2, 5.2), (9.4, 5.6, 6.4))
-    b.box("grille", (9.4, 3.4, 5.4), (9.5, 5.4, 6.2))
-    b.cylinder("metal", (10.0, 7.0, 7.7), 0.08, 5.0, segments=5)
-    b.sphere("red", (10.0, 7.0, 10.3), 0.25, 6, 4)
-    for x, y in ((-7.0, -10.4), (-4.8, -10.4), (-9.4, -8.6), (-10.4, -6.4)):
-        b.box("sandbag", (x - 1.0, y - 0.6, PAD_Z), (x + 1.0, y + 0.6, PAD_Z + 1.0))
-    for x, y in ((-6.0, -10.4), (-9.6, -7.5)):
-        b.box("sandbag", (x - 1.0, y - 0.6, PAD_Z + 1.0), (x + 1.0, y + 0.6, PAD_Z + 1.9))
-    b.box("crate", (-11.2, 9.0, PAD_Z), (-8.8, 11.2, PAD_Z + 1.8))
-    b.box("crate", (-11.0, 6.6, PAD_Z), (-9.4, 8.6, PAD_Z + 1.4))
+def build_shapes():
+    parts = {k: Builder(SURFACES) for k in ("building", "intact", "turret", "launcher")}
+    revetment(parts["building"])
+    radar(parts["intact"])
+    generator(parts["intact"])
+    turret(parts["turret"])
+    launcher(parts["launcher"])
+    return parts
 
 
 def turret(b):
@@ -217,14 +276,6 @@ def turret(b):
                        Matrix.Rotation(a, 4, "Z"))
 
 
-def turret_dish(b):
-    """The radar on its mast at the turntable's rear (lost when wrecked)."""
-    _, _, z = TURRET_AT
-    b.cylinder("metal", (-2.0, -4.6, z + 3.1), 0.22, 4.0, segments=6)
-    b.box("steel", (-2.6, -5.2, z + 1.1), (-1.4, -4.0, z + 1.9))
-    dish(b, "white", (-1.7, -4.6, z + 5.4), 1.7, -0.3, 0.45)
-
-
 def launcher(b):
     """Eight canisters, four across and two high, in a frame (TURRETEL), level and pointing +X."""
     hx, _, hz = HINGE
@@ -248,38 +299,6 @@ def launcher(b):
         b.box("steel", (hx + 1.4, side * 1.5 - 0.3, hz - 1.2), (hx + 2.4, side * 1.5 + 0.3, hz - 0.4))
 
 
-def build_shapes():
-    parts = {k: Builder(SURFACES) for k in ("building", "intact", "turret", "turret_intact", "launcher")}
-    plinth(parts["building"])
-    cabin(parts["building"])
-    cabin_roof(parts["intact"])
-    turret(parts["turret"])
-    turret_dish(parts["turret_intact"])
-    launcher(parts["launcher"])
-    return parts
-
-
-def square_pad(name, half, height, uv_half=None):
-    """A square concrete pad with a chamfered edge, its texture covering it from above."""
-    uv_half = uv_half or half
-    bm = bmesh.new()
-    outline = [(-half, -half), (half, -half), (half, half), (-half, half)]
-    bottom = [bm.verts.new((x, y, 0.0)) for x, y in outline]
-    top = [bm.verts.new((x * 0.97, y * 0.97, height)) for x, y in outline]
-    bm.faces.new(top)
-    for i in range(4):
-        j = (i + 1) % 4
-        bm.faces.new((bottom[i], bottom[j], top[j], top[i]))
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    obj = new_object(name, bm)
-    uv = obj.data.uv_layers.new(name="UVMap")
-    for poly in obj.data.polygons:
-        for li in poly.loop_indices:
-            x, y, _ = obj.data.vertices[obj.data.loops[li].vertex_index].co
-            uv.data[li].uv = ((x + uv_half) / (2 * uv_half), (y + uv_half) / (2 * uv_half))
-    return obj
-
-
 def decal(name, corners):
     bm = bmesh.new()
     bm.faces.new([bm.verts.new(c) for c in corners])
@@ -290,10 +309,25 @@ def decal(name, corners):
     return obj
 
 
+def flat_ground(name, half, z):
+    """A flat square of ground, its texture covering it from above; the painter cuts its outline with the
+    alpha (the shader tests it), so the ground can be any shape: an earth patch, an apron."""
+    bm = bmesh.new()
+    bm.faces.new([bm.verts.new((x, y, z)) for x, y in ((-half, -half), (half, -half), (half, half), (-half, half))])
+    obj = new_object(name, bm)
+    uv = obj.data.uv_layers.new(name="UVMap")
+    for poly in obj.data.polygons:
+        for li in poly.loop_indices:
+            x, y, _ = obj.data.vertices[obj.data.loops[li].vertex_index].co
+            uv.data[li].uv = ((x + half) / (2 * half), (y + half) / (2 * half))
+    return obj
+
+
 def emblems():
-    """The faction's mark on the plinth's front, beside the cabin."""
-    x = 8.0 + 0.03
-    return [decal("EMBLEM", [(x, -5.0, 1.8), (x, -1.4, 1.8), (x, -1.4, 4.0), (x, -5.0, 4.0)])]
+    """The faction's mark on the generator's side towards the opening."""
+    x, y = GENERATOR
+    f = y - 1.33
+    return [decal("EMBLEM", [(x + 0.2, f, 1.3), (x + 2.1, f, 1.3), (x + 2.1, f, 3.0), (x + 0.2, f, 3.0)])]
 
 
 def band(name, centre, radius, z0, z1, segments=20):
@@ -480,7 +514,7 @@ def build():
     shutil.copy(os.path.join(tiles, f"{PREFIX}_emblem.tga"), os.path.join(tex_dir, f"{PREFIX}_emblem.tga"))
 
     objects = make_objects(build_shapes(), SURFACES, tiles)
-    ground = square_pad("PAD", PAD_HALF, PAD_Z)
+    ground = flat_ground("PAD", PAD_HALF, PAD_Z)
     bakes = os.path.join(BUILD, f"{PREFIX}_bakes")
     bake_all(list(objects.values()), ground, bakes, HEIGHT_TOP)
     subprocess.run([python, paint, "compose", bakes, tex_dir], check=True)
@@ -525,7 +559,6 @@ def export(parts, version, night):
     model.mesh("BUILDING", w3d.CHASSIS, **mesh_data(objects["building"]), texture=texture)
     if version != "_E":
         model.mesh("INTACT", w3d.CHASSIS, **mesh_data(objects["intact"]), texture=texture)
-        model.mesh("DISH", turret_bone, **moved(mesh_data(objects["turret_intact"]), TURRET_AT), texture=texture)
     model.mesh("TURRET", turret_bone, **moved(mesh_data(objects["turret"]), TURRET_AT), texture=texture)
     model.mesh("LAUNCHER", el_bone, **moved(mesh_data(objects["launcher"]), HINGE), texture=texture)
     flat = dict(shadow=False, shader=w3d.ALPHA_TEST_SHADER)
