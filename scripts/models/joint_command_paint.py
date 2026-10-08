@@ -146,19 +146,12 @@ class Pad:
 
 
 def paint_pad(bake_dir, out, rng):
-    """The Joint Command's pad: a walkway to the entrance, lanes to the hall's door, markings by the gun."""
+    """The Joint Command's apron: slabs, a white walkway to the portal, tyre marks; no corner markings."""
     pad = Pad(FOOTPRINT, rng)
-    pad.rect(-5.5, -43, 5.5, -23, fill=(168, 168, 164))         # the walkway to the entrance
-    pad.line(-5.5, -43, -5.5, -23, YELLOW, 0.6)
-    pad.line(5.5, -43, 5.5, -23, YELLOW, 0.6)
-    pad.line(-49, -43, -49, -36, YELLOW, 0.8)                   # the lane out of the hall
-    pad.line(-28, -43, -28, -36, YELLOW, 0.8)
-    pad.hazard(-50, -38, -27, -36.6)
-    pad.rect(14, -42, 56, -38.5, outline=WHITE, width=0.4)      # parking boxes in front of the gun
-    for x in range(22, 56, 8):
-        pad.line(x, -42, x, -38.5, WHITE, 0.4)
-    pad.emblem(48, 30, 7)                                       # beside the dome tower
-    pad.wear(rng)
+    pad.rect(-6.0, -44.0, 6.0, -36.0, fill=(170, 170, 166))
+    for y in range(-43, -37, 2):
+        pad.line(-5.0, y, 5.0, y, WHITE, 0.4)
+    pad.wear(rng, 60)
     pad.save(bake_dir, out, PREFIX, rng)
 
 
