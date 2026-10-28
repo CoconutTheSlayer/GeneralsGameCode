@@ -1,7 +1,7 @@
 // Run with: npx tsx src/conquest/campaign.test.ts
 import assert from "node:assert/strict";
 import { GENERALS, TERRITORIES } from "./data";
-import { applyBattle, battleFile, endTurn, income, newCampaign, planBattle, targetsFrom, territoriesOf } from "./campaign";
+import { MERCENARY_COST, applyBattle, battleFile, cancelInvalidDefense, endTurn, income, newCampaign, planBattle, targetsFrom, territoriesOf } from "./campaign";
 
 // Starting positions.
 const c = newCampaign("usa", "medium", 42);
@@ -52,5 +52,53 @@ for (let i = 0; i < 10; i++) {
   endTurn(a2); a2.defense = null;
 }
 assert.deepEqual(a1.owners, a2.owners);
+
+// A queued attack must still have a territory to attack from after the other AIs have moved.
+// With this seed the Superweapon General attacks on turn 13, then loses its last territories.
+const queued = newCampaign("usa", "hard", 1);
+for (let turn = 0; turn < 12; turn++) {
+  if (queued.defense) {
+    const d = queued.defense;
+    applyBattle(queued, planBattle(queued, d.attacker, d.from, d.target), true);
+  }
+  endTurn(queued);
+  if (queued.defense) {
+    assert.equal(queued.owners[queued.defense.from], queued.defense.attacker, "a queued attacker must still own its starting territory");
+  }
+}
+assert.equal(queued.turn, 13);
+assert.equal(territoriesOf(queued, "superweapon").length, 0);
+assert.equal(queued.defense, null, "an eliminated general must not have a pending attack");
+
+// Loading old saves also clears stale attacks, even if the attacker still owns other territories.
+const saved = newCampaign("usa", "medium", 42);
+saved.defense = { attacker: "superweapon", from: "greatlakes", target: "plains" };
+assert.equal(cancelInvalidDefense(saved), false, "valid defenses remain playable");
+saved.owners.greatlakes = "toxin";
+assert.ok(territoriesOf(saved, "superweapon").length > 0);
+assert.equal(cancelInvalidDefense(saved), true);
+assert.equal(saved.defense, null);
+const logLength = saved.log.length;
+assert.equal(cancelInvalidDefense(saved), false);
+assert.equal(saved.log.length, logLength, "loading again must not add another cancellation");
+
+// Planning and previewing a mercenary attack costs nothing; applying either result charges once.
+for (const won of [true, false]) {
+  const hired = newCampaign("usa", "medium", 42);
+  hired.funds.usa = 12;
+  hired.owners.texas = "superweapon"; // Remove the free allies for an attack on the Gulf Coast.
+  const battle = planBattle(hired, "usa", "plains", "gulf", true);
+  assert.ok(battle.slots.some((s) => s.role === "Mercenaries"));
+  assert.equal(hired.funds.usa, 12);
+  applyBattle(hired, battle, won);
+  assert.equal(hired.funds.usa, 12 - MERCENARY_COST);
+  assert.equal(hired.owners.gulf, won ? "usa" : "superweapon");
+}
+
+// Free neighbouring allies are not charged as mercenaries, even when hiring was requested.
+const supported = newCampaign("usa", "medium", 42);
+supported.funds.usa = 12;
+applyBattle(supported, planBattle(supported, "usa", "plains", "gulf", true), true);
+assert.equal(supported.funds.usa, 12);
 
 console.log("campaign tests passed");

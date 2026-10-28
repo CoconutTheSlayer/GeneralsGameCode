@@ -3,7 +3,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { GENERALS, NEIGHBOURS, SEA_LANES, SITES, TERRITORIES, type Territory } from "./data";
 import {
-  MERCENARY_COST, WORLD_VERSION, applyBattle, autoResolve, battleFile, endTurn, getGeneral, getTerritory, income,
+  MERCENARY_COST, WORLD_VERSION, applyBattle, autoResolve, battleFile, cancelInvalidDefense, endTurn, getGeneral, getTerritory, income,
   newCampaign, planBattle, targetsFrom, territoriesOf, type Battle, type Campaign, type Difficulty,
 } from "./campaign";
 import { LAND_PATH } from "./world";
@@ -316,7 +316,6 @@ async function attack() {
   const c = campaign!;
   if (!selected || !target) return;
   const b = planBattle(c, c.player, selected, target, mercenary);
-  if (b.slots.some((s) => s.role === "Mercenaries")) c.funds[c.player] -= MERCENARY_COST;
   let won: boolean;
   try {
     won = await fight(b);
@@ -411,6 +410,7 @@ export async function initConquest(toast: (message: string, kind?: "info" | "err
       toast("The world map has changed since your last campaign; start a new one.");
     }
   }
+  if (campaign && cancelInvalidDefense(campaign)) await save();
   if (campaign) showCampaign();
   else showSetup();
 }

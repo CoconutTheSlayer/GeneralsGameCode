@@ -180,10 +180,22 @@ function capture(c: Campaign, target: string, winner: string) {
   if (territoriesOf(c, loser).length === 0) c.log.push(`${getGeneral(loser).name} has been defeated.`);
 }
 
+// TheSuperHackers @bugfix Cancel queued attacks whose starting territory was captured later in the
+// AI turn. Also used when loading an older save that still contains such an attack.
+export function cancelInvalidDefense(c: Campaign): boolean {
+  const d = c.defense;
+  if (!d || (c.owners[d.from] === d.attacker && c.owners[d.target] === c.player)) return false;
+  c.log.push(`${getGeneral(d.attacker).name}'s attack on ${getTerritory(d.target).name} was called off.`);
+  c.defense = null;
+  return true;
+}
+
 /** Applies the result of a battle the player fought: true when the player's side won. */
 export function applyBattle(c: Campaign, b: Battle, playerWon: boolean) {
   const t = getTerritory(b.target).name;
   if (b.attacker === c.player) {
+    // TheSuperHackers @bugfix Charge mercenaries with the battle result, so a failed launch costs nothing.
+    if (b.slots.some((s) => s.role === "Mercenaries")) c.funds[c.player] -= MERCENARY_COST;
     if (playerWon) {
       capture(c, b.target, c.player);
       c.log.push(`You took ${t} from ${getGeneral(b.defender).name}.`);
@@ -254,6 +266,7 @@ export function endTurn(c: Campaign) {
       c.log.push(`${getGeneral(g).name} took ${getTerritory(best.target).name} from ${getGeneral(defender).name}.`);
     }
   }
+  cancelInvalidDefense(c);
   c.turn += 1;
   checkOutcome(c);
 }
