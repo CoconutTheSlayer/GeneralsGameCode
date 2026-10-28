@@ -1,3 +1,4 @@
+#include "rts/benchmark.h"
 /*
 **	Command & Conquer Generals Zero Hour(tm)
 **	Copyright 2025 Electronic Arts Inc.
@@ -521,6 +522,7 @@ DECLARE_PERF_TIMER(GameClient_update)
 DECLARE_PERF_TIMER(GameClient_draw)
 void GameClient::update()
 {
+	RTS_BENCH_SCOPE("client.update");
 	USE_PERF_TIMER(GameClient_update)
 	PROFILER_FRAME_MARK;
 	PROFILER_SECTION_COLOR(0x2196F3);
@@ -600,7 +602,7 @@ void GameClient::update()
 
 	// update the window system itself
 	{
-		TheWindowManager->UPDATE();
+		{ RTS_BENCH_SCOPE("ui.windows"); TheWindowManager->UPDATE(); }
 	}
 
 	// update the video player
@@ -701,6 +703,7 @@ void GameClient::update()
 	}
 #endif
 
+	RTS_BENCH_COUNTER("particles", TheParticleSystemManager ? TheParticleSystemManager->getParticleCount() : 0);
 	const Int localPlayerIndex = rts::getObservedOrLocalPlayer()->getPlayerIndex();
 
 	if (!freezeTime)
@@ -734,6 +737,7 @@ void GameClient::update()
 		}
 
 
+		RTS_BENCH_SCOPE("client.drawables");
 		// call the update for all client drawables
 		const Real timeScale = TheFramePacer->getActualLogicTimeScaleOverFpsRatio();
 		Drawable* draw = firstDrawable();
@@ -799,7 +803,7 @@ void GameClient::update()
 
 	// update the terrain visuals
 	{
-		TheTerrainVisual->UPDATE();
+		{ RTS_BENCH_SCOPE("terrain.update"); TheTerrainVisual->UPDATE(); }
 	}
 
 	// update display
@@ -813,7 +817,7 @@ void GameClient::update()
 	if( !freezeTime && TheGameLogic->hasUpdated() )
 	{
 		TheParticleSystemManager->setLocalPlayerIndex(localPlayerIndex);
-		TheParticleSystemManager->UPDATE();
+		{ RTS_BENCH_SCOPE("particles.update"); TheParticleSystemManager->UPDATE(); }
 	}
 
 	{
@@ -827,7 +831,7 @@ void GameClient::update()
 
 	{
 		// let display string factory handle its update
-		TheDisplayStringManager->update();
+		{ RTS_BENCH_SCOPE("ui.strings"); TheDisplayStringManager->update(); }
 	}
 
 	{
@@ -837,7 +841,7 @@ void GameClient::update()
 
 	{
 		// update the in game UI
-		TheInGameUI->UPDATE();
+		{ RTS_BENCH_SCOPE("ui.update"); TheInGameUI->UPDATE(); }
 	}
 }
 

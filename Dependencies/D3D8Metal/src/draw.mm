@@ -228,6 +228,7 @@ void EncoderState::reset()
 		samplers[i] = nil;
 	}
 	vertexUniformsValid = false;
+	vertexTransformsValid = false;
 	fragmentUniformsValid = false;
 	vsConstantsVersion = 0;
 	psConstantsVersion = 0;
@@ -303,11 +304,12 @@ bool Device::captureSoftDepth(id<MTLTexture> depth)
 		pass.stencilAttachment.texture = depth;
 		pass.stencilAttachment.loadAction = MTLLoadActionLoad;
 		pass.stencilAttachment.storeAction = MTLStoreActionStore;
+		profileRenderPass(pass, "soft particle depth resolve");
 		[[commandBuffer() renderCommandEncoderWithDescriptor:pass] endEncoding];
 	}
 	else
 	{
-		id<MTLBlitCommandEncoder> blit = [commandBuffer() blitCommandEncoder];
+		id<MTLBlitCommandEncoder> blit = profileBlitEncoder(commandBuffer(), "soft particle depth copy");
 		[blit copyFromTexture:depth toTexture:m_softDepth];
 		[blit endEncoding];
 	}
@@ -368,6 +370,7 @@ id<MTLRenderCommandEncoder> Device::renderEncoder()
 	}
 	m_pendingClearFlags = 0;
 
+	profileRenderPass(pass, m_profilePhase);
 	m_encoder = [commandBuffer() renderCommandEncoderWithDescriptor:pass];
 	m_encoderState.reset();
 	return m_encoder;
@@ -706,11 +709,16 @@ id<MTLRenderPipelineState> Device::pipelineFor(const PipelineKey& key)
 		if (fit == m_functions.end())
 		{
 			id<MTLFunction> vfn = nil, ffn = nil;
+			RTS_BENCH_SCOPE("renderer.shader_compile");
+			RTS_BENCH_COUNTER("shader_compiles", 1);
 			compileShader(key.shader, vfn, ffn);
 			fit = m_functions.emplace(key.shader, std::make_pair(vfn, ffn)).first;
 		}
-		if (fit->second.first != nil)
+		if (fit->second.first != nil) {
+			RTS_BENCH_SCOPE("renderer.pipeline_build");
+			RTS_BENCH_COUNTER("pipeline_builds", 1);
 			pipeline = buildPipeline(key, fit->second.first, fit->second.second);
+		}
 		m_pipelines[key] = pipeline;
 		if (pipeline != nil)
 			recordPipeline(key);
@@ -906,8 +914,9 @@ void Device::traceDraw(const ShaderKey& key, D3DPRIMITIVETYPE type) const
 	}
 }
 
-void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
+void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok, bool instanced)
 {
+	RTS_BENCH_DETAIL("renderer.draw_state");
 	ok = false;
 	const VertexShaderObject* vso = nullptr;
 	if (m_state.vertexShader & 1)
@@ -932,6 +941,10 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 	memset(&ctx, 0, sizeof(ctx));
 	{
 		ShaderKey& key = ctx.shader;
+		static const char* splitSetting = getenv("D3D8METAL_SPLIT_UNIFORMS");
+		static const bool splitUniforms = splitSetting && atoi(splitSetting) != 0;
+		key.splitUniforms = splitUniforms;
+		key.instanced = instanced;
 		key.fvf = fvf & ~D3DFVF_LASTBETA_UBYTE4;
 		bool rhw = (fvf & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW;
 		key.lighting = (!rhw && !vsMode && rs[D3DRS_LIGHTING]) ? 1 : 0;
@@ -1169,101 +1182,185 @@ void Device::beginDraw(D3DPRIMITIVETYPE type, bool& ok)
 	}
 
 	// Uniforms
-	VertexUniforms vu;
-	memset(&vu, 0, sizeof(vu));
+	VertexUniforms uncachedUniforms;
+	SharedVertexUniformCache& sharedCache = m_sharedVertexUniforms;
+	VertexUniforms& vu = ctx.shader.splitUniforms ? sharedCache.value : uncachedUniforms;
+	const bool rebuildShared = !ctx.shader.splitUniforms || sharedCache.dirty ||
+		sharedCache.numStages != ctx.shader.numStages || sharedCache.lighting != ctx.shader.lighting ||
+		sharedCache.clipPlaneMask != ctx.shader.clipPlaneMask;
+	static const char* verifySetting = getenv("GENERALS_VERIFY_SPLIT_UNIFORMS");
+	static const bool verifyShared = verifySetting && atoi(verifySetting) != 0;
+	memset(&vu, 0, ctx.shader.splitUniforms ? VERTEX_TRANSFORM_BYTES : sizeof(vu));
 	const D3DMATRIX& world = m_state.transforms[D3DTS_WORLDMATRIX(0)];
 	const D3DMATRIX& view = m_state.transforms[D3DTS_VIEW];
 	const D3DMATRIX& proj = m_state.transforms[D3DTS_PROJECTION];
-	D3DMATRIX wv, wvp, inv, nrm;
-	multiply(world, view, wv);
-	multiply(wv, proj, wvp);
-	invert(wv, inv);
-	transpose(inv, nrm);
-	memcpy(vu.worldViewProj, &wvp, 64);
-	memcpy(vu.worldView, &wv, 64);
-	memcpy(vu.normalMatrix, &nrm, 64);
+	DerivedUniforms& derived = m_derivedUniforms;
+	if (derived.transformsDirty)
+	{
+		multiply(world, view, derived.worldView);
+		multiply(derived.worldView, proj, derived.worldViewProj);
+		derived.transformsDirty = false;
+	}
+	memcpy(vu.worldViewProj, &derived.worldViewProj, 64);
+	memcpy(vu.worldView, &derived.worldView, 64);
+	// Unlit environment mapping still needs transformed normals. Screen-space and
+	// programmable vertices do not use this fixed-function normal matrix at all.
+	bool needsNormal = ctx.shader.lighting;
 	for (unsigned i = 0; i < ctx.shader.numStages; ++i)
-		memcpy(vu.texMatrix[i], &m_state.transforms[D3DTS_TEXTURE0 + i], 64);
-	vu.viewport[0] = (float)vp.X;
-	vu.viewport[1] = (float)vp.Y;
-	vu.viewport[2] = (float)std::max<DWORD>(vp.Width, 1);
-	vu.viewport[3] = (float)std::max<DWORD>(vp.Height, 1);
-	vu.depthRange[0] = vp.MinZ;
-	vu.depthRange[1] = vp.MaxZ;
-	vu.depthRange[2] = (float)rtW;
-	vu.depthRange[3] = (float)rtH;
-	valueToFloat4(m_state.material.Diffuse, vu.materialDiffuse);
-	valueToFloat4(m_state.material.Ambient, vu.materialAmbient);
-	valueToFloat4(m_state.material.Specular, vu.materialSpecular);
-	valueToFloat4(m_state.material.Emissive, vu.materialEmissive);
-	vu.materialPower[0] = m_state.material.Power;
-	colorToFloat4(rs[D3DRS_AMBIENT], vu.globalAmbient);
-	vu.fogParams[0] = bitsFloat(rs[D3DRS_FOGSTART]);
-	vu.fogParams[1] = bitsFloat(rs[D3DRS_FOGEND]);
-	vu.fogParams[2] = bitsFloat(rs[D3DRS_FOGDENSITY]);
-	if (ctx.shader.clipPlaneMask)
+		needsNormal |= ctx.shader.stages[i].texGen == 1 || ctx.shader.stages[i].texGen == 3;
+	needsNormal &= !vsMode && (fvf & D3DFVF_NORMAL) && (fvf & D3DFVF_POSITION_MASK) != D3DFVF_XYZRHW;
+	if (needsNormal)
 	{
-		D3DMATRIX viewInv;
-		invert(view, viewInv);
-		for (int i = 0; i < MAX_CLIP_PLANES; ++i)
+		if (derived.normalDirty)
 		{
-			const float* p = m_state.clipPlanes[i];
-			for (int j = 0; j < 4; ++j)
-				vu.clipPlanes[i][j] = p[0] * viewInv.m[j][0] + p[1] * viewInv.m[j][1] + p[2] * viewInv.m[j][2] + p[3] * viewInv.m[j][3];
+			D3DMATRIX inverse;
+			invert(derived.worldView, inverse);
+			transpose(inverse, derived.normalMatrix);
+			derived.normalDirty = false;
 		}
+		memcpy(vu.normalMatrix, &derived.normalMatrix, 64);
 	}
-	vu.pointParams[0] = bitsFloat(rs[D3DRS_POINTSIZE]);
-	vu.pointParams[1] = bitsFloat(rs[D3DRS_POINTSIZE_MIN]);
-	vu.pointParams[2] = bitsFloat(rs[D3DRS_POINTSIZE_MAX]);
-	vu.pointScale[0] = bitsFloat(rs[D3DRS_POINTSCALE_A]);
-	vu.pointScale[1] = bitsFloat(rs[D3DRS_POINTSCALE_B]);
-	vu.pointScale[2] = bitsFloat(rs[D3DRS_POINTSCALE_C]);
-	vu.pointScale[3] = (float)std::max<DWORD>(vp.Height, 1);
-	if (ctx.shader.lighting)
+	const bool checkSharedReuse = ctx.shader.splitUniforms && verifyShared && !rebuildShared;
+	if (checkSharedReuse) uncachedUniforms = vu;
+	if (rebuildShared || checkSharedReuse)
 	{
-		for (int i = 0; i < MAX_LIGHTS; ++i)
+		if (ctx.shader.splitUniforms)
+			memset(reinterpret_cast<uint8_t*>(&vu) + VERTEX_TRANSFORM_BYTES, 0, sizeof(vu) - VERTEX_TRANSFORM_BYTES);
+		for (unsigned i = 0; i < ctx.shader.numStages; ++i)
+			memcpy(vu.texMatrix[i], &m_state.transforms[D3DTS_TEXTURE0 + i], 64);
+		vu.viewport[0] = (float)vp.X;
+		vu.viewport[1] = (float)vp.Y;
+		vu.viewport[2] = (float)std::max<DWORD>(vp.Width, 1);
+		vu.viewport[3] = (float)std::max<DWORD>(vp.Height, 1);
+		vu.depthRange[0] = vp.MinZ;
+		vu.depthRange[1] = vp.MaxZ;
+		vu.depthRange[2] = (float)rtW;
+		vu.depthRange[3] = (float)rtH;
+		valueToFloat4(m_state.material.Diffuse, vu.materialDiffuse);
+		valueToFloat4(m_state.material.Ambient, vu.materialAmbient);
+		valueToFloat4(m_state.material.Specular, vu.materialSpecular);
+		valueToFloat4(m_state.material.Emissive, vu.materialEmissive);
+		vu.materialPower[0] = m_state.material.Power;
+		colorToFloat4(rs[D3DRS_AMBIENT], vu.globalAmbient);
+		vu.fogParams[0] = bitsFloat(rs[D3DRS_FOGSTART]);
+		vu.fogParams[1] = bitsFloat(rs[D3DRS_FOGEND]);
+		vu.fogParams[2] = bitsFloat(rs[D3DRS_FOGDENSITY]);
+		if (ctx.shader.clipPlaneMask)
 		{
-			if (!m_state.lightEnabled[i])
-				continue;
-			const D3DLIGHT8& l = m_state.lights[i];
-			LightUniform& lu = vu.lights[i];
-			valueToFloat4(l.Diffuse, lu.diffuse);
-			valueToFloat4(l.Specular, lu.specular);
-			valueToFloat4(l.Ambient, lu.ambient);
-			const float* v = &view._11;
-			float px = l.Position.x, py = l.Position.y, pz = l.Position.z;
-			lu.position[0] = px * v[0] + py * v[4] + pz * v[8] + v[12];
-			lu.position[1] = px * v[1] + py * v[5] + pz * v[9] + v[13];
-			lu.position[2] = px * v[2] + py * v[6] + pz * v[10] + v[14];
-			lu.position[3] = 1.0f;
-			float dx = l.Direction.x, dy = l.Direction.y, dz = l.Direction.z;
-			float vx = dx * v[0] + dy * v[4] + dz * v[8];
-			float vy = dx * v[1] + dy * v[5] + dz * v[9];
-			float vz = dx * v[2] + dy * v[6] + dz * v[10];
-			float len = sqrtf(vx * vx + vy * vy + vz * vz);
-			if (len > 0.0f)
+			if (derived.viewInverseDirty)
 			{
-				vx /= len;
-				vy /= len;
-				vz /= len;
+				invert(view, derived.viewInverse);
+				derived.viewInverseDirty = false;
 			}
-			lu.direction[0] = vx;
-			lu.direction[1] = vy;
-			lu.direction[2] = vz;
-			lu.attenuation[0] = l.Range > 0.0f ? l.Range : 1e30f;
-			lu.attenuation[1] = l.Attenuation0;
-			lu.attenuation[2] = l.Attenuation1;
-			lu.attenuation[3] = l.Attenuation2;
-			lu.spot[0] = l.Falloff;
-			lu.spot[1] = cosf(l.Theta * 0.5f);
-			lu.spot[2] = cosf(l.Phi * 0.5f);
+			const D3DMATRIX& viewInv = derived.viewInverse;
+			for (int i = 0; i < MAX_CLIP_PLANES; ++i)
+			{
+				const float* p = m_state.clipPlanes[i];
+				for (int j = 0; j < 4; ++j)
+					vu.clipPlanes[i][j] = p[0] * viewInv.m[j][0] + p[1] * viewInv.m[j][1] + p[2] * viewInv.m[j][2] + p[3] * viewInv.m[j][3];
+			}
+		}
+		vu.pointParams[0] = bitsFloat(rs[D3DRS_POINTSIZE]);
+		vu.pointParams[1] = bitsFloat(rs[D3DRS_POINTSIZE_MIN]);
+		vu.pointParams[2] = bitsFloat(rs[D3DRS_POINTSIZE_MAX]);
+		vu.pointScale[0] = bitsFloat(rs[D3DRS_POINTSCALE_A]);
+		vu.pointScale[1] = bitsFloat(rs[D3DRS_POINTSCALE_B]);
+		vu.pointScale[2] = bitsFloat(rs[D3DRS_POINTSCALE_C]);
+		vu.pointScale[3] = (float)std::max<DWORD>(vp.Height, 1);
+		if (ctx.shader.lighting)
+		{
+			if (derived.lightsDirty)
+			{
+				memset(derived.lights, 0, sizeof(derived.lights));
+				for (int i = 0; i < MAX_LIGHTS; ++i)
+				{
+					if (!m_state.lightEnabled[i])
+						continue;
+					const D3DLIGHT8& l = m_state.lights[i];
+					LightUniform& lu = derived.lights[i];
+					valueToFloat4(l.Diffuse, lu.diffuse);
+					valueToFloat4(l.Specular, lu.specular);
+					valueToFloat4(l.Ambient, lu.ambient);
+					const float* v = &view._11;
+					float px = l.Position.x, py = l.Position.y, pz = l.Position.z;
+					lu.position[0] = px * v[0] + py * v[4] + pz * v[8] + v[12];
+					lu.position[1] = px * v[1] + py * v[5] + pz * v[9] + v[13];
+					lu.position[2] = px * v[2] + py * v[6] + pz * v[10] + v[14];
+					lu.position[3] = 1.0f;
+					float dx = l.Direction.x, dy = l.Direction.y, dz = l.Direction.z;
+					float vx = dx * v[0] + dy * v[4] + dz * v[8];
+					float vy = dx * v[1] + dy * v[5] + dz * v[9];
+					float vz = dx * v[2] + dy * v[6] + dz * v[10];
+					float len = sqrtf(vx * vx + vy * vy + vz * vz);
+					if (len > 0.0f)
+					{
+						vx /= len;
+						vy /= len;
+						vz /= len;
+					}
+					lu.direction[0] = vx;
+					lu.direction[1] = vy;
+					lu.direction[2] = vz;
+					lu.attenuation[0] = l.Range > 0.0f ? l.Range : 1e30f;
+					lu.attenuation[1] = l.Attenuation0;
+					lu.attenuation[2] = l.Attenuation1;
+					lu.attenuation[3] = l.Attenuation2;
+					lu.spot[0] = l.Falloff;
+					lu.spot[1] = cosf(l.Theta * 0.5f);
+					lu.spot[2] = cosf(l.Phi * 0.5f);
+				}
+				derived.lightsDirty = false;
+			}
+			memcpy(vu.lights, derived.lights, sizeof(vu.lights));
+		}
+		sharedCache.dirty = false;
+		sharedCache.numStages = ctx.shader.numStages;
+		sharedCache.lighting = ctx.shader.lighting;
+		sharedCache.clipPlaneMask = ctx.shader.clipPlaneMask;
+		RTS_BENCH_COUNTER("vertex_shared_rebuilds", 1);
+	}
+	if (checkSharedReuse)
+	{
+		// Rebuild from the current device state using the original calculations.
+		// A missed invalidation must fail before a stale value reaches the GPU.
+		if (memcmp(&uncachedUniforms, &vu, sizeof(vu)) != 0)
+		{ fprintf(stderr, "SPLIT_UNIFORMS_VERIFY stale shared constants\n"); abort(); }
+		RTS_BENCH_COUNTER("verify.vertex_shared_reuses", 1);
+	}
+
+	if (ctx.shader.splitUniforms)
+	{
+		// Most object draws change only these 192 bytes. Keep lighting, materials,
+		// texture matrices and camera data bound until their values actually change.
+		if (!es.vertexTransformsValid || memcmp(&es.vertexUniforms, &vu, VERTEX_TRANSFORM_BYTES) != 0)
+		{
+			[enc setVertexBytes:&vu length:VERTEX_TRANSFORM_BYTES atIndex:BUFFER_VERTEX_TRANSFORMS];
+			memcpy(&es.vertexUniforms, &vu, VERTEX_TRANSFORM_BYTES);
+			es.vertexTransformsValid = true;
+			RTS_BENCH_COUNTER("vertex_uniform_bytes", VERTEX_TRANSFORM_BYTES);
+			RTS_BENCH_COUNTER("vertex_transform_updates", 1);
+		}
+		constexpr size_t sharedBytes = sizeof(vu) - VERTEX_TRANSFORM_BYTES;
+		auto* cachedShared = reinterpret_cast<uint8_t*>(&es.vertexUniforms) + VERTEX_TRANSFORM_BYTES;
+		const auto* shared = reinterpret_cast<const uint8_t*>(&vu) + VERTEX_TRANSFORM_BYTES;
+		if (!es.vertexUniformsValid || (rebuildShared && memcmp(cachedShared, shared, sharedBytes) != 0))
+		{
+			// Keep the original shared-block offsets. Its transform prefix is unused
+			// by split shaders, so it does not invalidate this cached binding.
+			[enc setVertexBytes:&vu length:sizeof(vu) atIndex:BUFFER_UNIFORMS];
+			memcpy(cachedShared, shared, sharedBytes);
+			es.vertexUniformsValid = true;
+			RTS_BENCH_COUNTER("vertex_uniform_bytes", sizeof(vu));
+			RTS_BENCH_COUNTER("vertex_shared_updates", 1);
 		}
 	}
-	if (!es.vertexUniformsValid || memcmp(&es.vertexUniforms, &vu, sizeof(vu)) != 0)
+	else if (!es.vertexUniformsValid || memcmp(&es.vertexUniforms, &vu, sizeof(vu)) != 0)
 	{
 		[enc setVertexBytes:&vu length:sizeof(vu) atIndex:BUFFER_UNIFORMS];
 		es.vertexUniforms = vu;
 		es.vertexUniformsValid = true;
+		RTS_BENCH_COUNTER("vertex_uniform_bytes", sizeof(vu));
+		RTS_BENCH_COUNTER("vertex_shared_updates", 1);
 	}
 
 	FragmentUniforms fu;
@@ -1362,20 +1459,153 @@ void Device::bindVertexBuffer(id<MTLBuffer> buffer, NSUInteger offset)
 // draws and generated indices into transient memory), so later locks and renames of the buffers
 // do not affect it; the render thread encodes it.
 //-----------------------------------------------------------------------------
+bool Device::canBatchModel(const DrawCommand& c) const
+{
+	const DWORD* rs = m_front.renderStates;
+	return m_modelBatching && rs[RS_MODEL_BATCH] && c.indexBuffer && c.type == D3DPT_TRIANGLELIST &&
+		!(m_front.vertexShader & 1) && m_front.pixelShader == 0 &&
+		(m_front.vertexShader & D3DFVF_POSITION_MASK) == D3DFVF_XYZ &&
+		!rs[D3DRS_ALPHABLENDENABLE] && !rs[D3DRS_STENCILENABLE] &&
+		rs[D3DRS_ZENABLE] == D3DZB_TRUE && rs[D3DRS_ZWRITEENABLE] &&
+		m_front.indices && !(m_front.indices->m_storage.usage & D3DUSAGE_DYNAMIC) &&
+		m_front.streams[0].buffer && !(m_front.streams[0].buffer->m_storage.usage & D3DUSAGE_DYNAMIC);
+}
+
+bool Device::modelBatchStateCompatible() const
+{
+	return m_dirtyRenderStates.empty() && m_dirtyStageStates.empty() && m_dirtyMisc == 0 &&
+		m_vsDirtyLo >= m_vsDirtyHi && m_psDirtyLo >= m_psDirtyHi &&
+		(m_dirtyTransforms.empty() || (m_dirtyTransforms.size() == 1 && m_dirtyTransforms[0] == D3DTS_WORLDMATRIX(0)));
+}
+
+void Device::flushModelBatch()
+{
+	const unsigned count = m_batchCount;
+	if (!count) return;
+	m_batchCount = 0; // submit/commit may execute immediately in single-thread mode.
+	if (count == 1)
+	{
+		const DrawCommand draw = m_batchDraw;
+		submit([this, draw] { execDraw(draw); });
+		return;
+	}
+	++m_batchStats.batches;
+	m_batchStats.instances += count;
+	m_batchStats.saved += count - 1;
+	if (m_verifyModelBatching)
+	{
+		static bool reported = false;
+		if (!reported) { fprintf(stderr, "MODEL_BATCH_VERIFY instanced draw active (%u instances)\n", count); reported = true; }
+	}
+	struct Header { DrawCommand draw; unsigned count; };
+	uint8_t* payload = static_cast<uint8_t*>(reserveRecord(sizeof(Header) + count * sizeof(D3DMATRIX)));
+	Header header { m_batchDraw, count };
+	memcpy(payload, &header, sizeof(header));
+	memcpy(payload + sizeof(header), m_batchWorlds, count * sizeof(D3DMATRIX));
+	commitRecord([](Device* device, void* p) {
+		Header header;
+		memcpy(&header, p, sizeof(header));
+		device->execModelBatch(header.draw, reinterpret_cast<const D3DMATRIX*>(static_cast<uint8_t*>(p) + sizeof(header)), header.count);
+	});
+}
+
 void Device::issueDraw(const DrawCommand& c)
 {
+	const bool eligible = canBatchModel(c);
+	if (eligible) ++m_batchStats.candidates;
+	const DrawCommand& b = m_batchDraw;
+	if (eligible && m_batchCount && m_batchCount < MAX_MODEL_INSTANCES && modelBatchStateCompatible() &&
+		c.vertexBuffer == b.vertexBuffer && c.vertexOffset == b.vertexOffset && c.stride == b.stride &&
+		c.indexBuffer == b.indexBuffer && c.indexOffset == b.indexOffset && c.indexType == b.indexType &&
+		c.count == b.count && c.baseVertex == b.baseVertex && c.mtlType == b.mtlType)
+	{
+		if (m_verifyModelBatching)
+		{
+			DeviceState expected = *m_batchReference;
+			expected.transforms[D3DTS_WORLDMATRIX(0)] = m_front.transforms[D3DTS_WORLDMATRIX(0)];
+			// Stream 0 and the resolved index/vertex ranges are checked above. Other
+			// streams are unused by this fixed-function XYZ path.
+			memcpy(expected.streams, m_front.streams, sizeof(expected.streams));
+			expected.indices = m_front.indices; expected.baseVertexIndex = m_front.baseVertexIndex;
+			if (memcmp(&expected, &m_front, sizeof(expected)))
+			{ fprintf(stderr, "MODEL_BATCH_VERIFY incompatible state\n"); abort(); }
+			++m_batchStats.verified;
+		}
+		m_batchWorlds[m_batchCount++] = m_front.transforms[D3DTS_WORLDMATRIX(0)];
+		m_transformDirty[D3DTS_WORLDMATRIX(0)] = false;
+		m_dirtyTransforms.clear();
+		return;
+	}
+	flushModelBatch();
 	markDrawResources();
 	syncState();
-	submit([this, c] { execDraw(c); });
+	if (m_verifyModelSubmission)
+	{
+		struct ExpectedLights { D3DLIGHT8 lights[MAX_LIGHTS]; bool enabled[MAX_LIGHTS]; } expected;
+		memcpy(expected.lights, m_front.lights, sizeof(expected.lights));
+		memcpy(expected.enabled, m_front.lightEnabled, sizeof(expected.enabled));
+		// Queued after state synchronization and before the draw, on the consumer.
+		submit([this, expected] {
+			if (memcmp(expected.lights, m_state.lights, sizeof(expected.lights)) ||
+				memcmp(expected.enabled, m_state.lightEnabled, sizeof(expected.enabled)))
+			{ fprintf(stderr, "MODEL_SUBMISSION_VERIFY lighting mismatch\n"); abort(); }
+		});
+		++m_modelSubmissionStats.verifiedLights;
+	}
+	if (eligible)
+	{
+		m_batchDraw = c;
+		m_batchWorlds[0] = m_front.transforms[D3DTS_WORLDMATRIX(0)];
+		if (m_verifyModelBatching) *m_batchReference = m_front;
+		m_batchCount = 1;
+	}
+	else submit([this, c] { execDraw(c); });
+}
+
+void Device::execModelBatch(const DrawCommand& c, const D3DMATRIX* worlds, unsigned count)
+{
+	RTS_BENCH_DETAIL("renderer.model_batch");
+	m_state.streams[0].stride = c.stride;
+	bool ok;
+	beginDraw(c.type, ok, true);
+	if (ok)
+	{
+		struct Transforms { D3DMATRIX worldViewProj, worldView, normal; } transforms[MAX_MODEL_INSTANCES] {};
+		static_assert(sizeof(Transforms) == VERTEX_TRANSFORM_BYTES);
+		for (unsigned i = 0; i < count; ++i)
+		{
+			multiply(worlds[i], m_state.transforms[D3DTS_VIEW], transforms[i].worldView);
+			multiply(transforms[i].worldView, m_state.transforms[D3DTS_PROJECTION], transforms[i].worldViewProj);
+			if (m_state.vertexShader & D3DFVF_NORMAL)
+			{
+				D3DMATRIX inverse;
+				invert(transforms[i].worldView, inverse);
+				transpose(inverse, transforms[i].normal);
+			}
+		}
+		[m_encoder setVertexBytes:transforms length:sizeof(Transforms) * count atIndex:BUFFER_MODEL_INSTANCES];
+		RTS_BENCH_COUNTER("vertex_uniform_bytes", sizeof(Transforms) * count);
+		RTS_BENCH_COUNTER("draw_calls", 1);
+		RTS_BENCH_COUNTER("submitted_vertices_or_indices", c.count * count);
+		bindVertexBuffer(c.vertexBuffer, c.vertexOffset);
+		[m_encoder drawIndexedPrimitives:c.mtlType indexCount:c.count indexType:c.indexType indexBuffer:c.indexBuffer
+			indexBufferOffset:c.indexOffset instanceCount:count baseVertex:c.baseVertex baseInstance:0];
+	}
+	// Later draws inherit the final world matrix even when no setter follows.
+	m_state.transforms[D3DTS_WORLDMATRIX(0)] = worlds[count - 1];
+	m_derivedUniforms.transformsDirty = m_derivedUniforms.normalDirty = true;
 }
 
 void Device::execDraw(const DrawCommand& c)
 {
+	RTS_BENCH_DETAIL("renderer.draw");
 	m_state.streams[0].stride = c.stride;
 	bool ok;
 	beginDraw(c.type, ok);
 	if (!ok)
 		return;
+	RTS_BENCH_COUNTER("draw_calls", 1);
+	RTS_BENCH_COUNTER("submitted_vertices_or_indices", c.count);
 	bindVertexBuffer(c.vertexBuffer, c.vertexOffset);
 	if (c.indexBuffer == nil)
 		[m_encoder drawPrimitives:c.mtlType vertexStart:c.start vertexCount:c.count];
@@ -1464,10 +1694,41 @@ HRESULT Device::DrawIndexedPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT, UINT,
 	}
 
 	unsigned count = vertexCountFor(PrimitiveType, primCount);
+	if (offset % 4 != 0 && m_modelSubmission && !(ib->m_storage.usage & D3DUSAGE_DYNAMIC) &&
+		ib->m_storage.length <= UINT32_MAX - 2)
+	{
+		// Static geometry is reused by many models. A shifted copy serves every
+		// odd 16-bit offset until the next writing lock; dynamic buffers keep the
+		// original per-draw copy to avoid copying their full capacity every frame.
+		if (!ib->m_alignedIndices)
+		{
+			ib->prepareAlignedIndices();
+			++m_modelSubmissionStats.indexCopies;
+			m_modelSubmissionStats.indexCopyBytes += ib->m_storage.length;
+		}
+		else ++m_modelSubmissionStats.indexReuses;
+		m_modelSubmissionStats.indexBytesAvoided += count * indexSize;
+		if (m_verifyModelSubmission)
+		{
+			if (memcmp((const uint8_t*)[ib->m_alignedIndices contents] + offset + 2,
+				(const uint8_t*)[ib->m_storage.buffer contents] + offset, count * indexSize))
+			{ fprintf(stderr, "MODEL_SUBMISSION_VERIFY index mismatch\n"); abort(); }
+			++m_modelSubmissionStats.verifiedIndices;
+		}
+		c.indexBuffer = ib->m_alignedIndices;
+		c.indexOffset = offset + 2;
+		c.indexType = is32 ? MTLIndexTypeUInt32 : MTLIndexTypeUInt16;
+		c.mtlType = primitiveType(PrimitiveType);
+		c.count = count;
+		issueDraw(c);
+		return D3D_OK;
+	}
 	id<MTLBuffer> indexBuffer = ib->m_storage.buffer;
 	if (offset % 4 != 0)
 	{
 		// Metal requires 4 byte aligned index buffer offsets.
+		++m_modelSubmissionStats.indexCopies;
+		m_modelSubmissionStats.indexCopyBytes += count * indexSize;
 		Transient idx = allocTransient(count * indexSize, 4);
 		memcpy(idx.cpu, (const uint8_t*)[indexBuffer contents] + offset, count * indexSize);
 		indexBuffer = idx.buffer;

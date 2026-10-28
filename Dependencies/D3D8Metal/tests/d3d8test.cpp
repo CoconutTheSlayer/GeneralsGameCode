@@ -266,6 +266,303 @@ static void drawCube(float angle, float tx = 0.0f, float tz = 0.0f)
 	g_device->DrawPrimitiveUP(D3DPT_TRIANGLELIST, (UINT)v.size() / 3, v.data(), sizeof(LitVertex));
 }
 
+// Compare the game's two stencil passes with separate local-space volumes and
+// CPU-transformed batches, including overlapping volumes, occlusion masks, depth
+// clipping, reflected/scaled transforms and a split at the 16-bit vertex limit.
+static int testShadowBatches(const std::string& out)
+{
+	struct Position { float x, y, z; };
+	const Position cube[] = {{-.125f,-.125f,.25f},{.125f,-.125f,.25f},{.125f,.125f,.25f},{-.125f,.125f,.25f},
+		{-.125f,-.125f,.75f},{.125f,-.125f,.75f},{.125f,.125f,.75f},{-.125f,.125f,.75f}};
+	const uint16_t indices[] = {0,2,1,0,3,2,4,5,6,4,6,7,0,1,5,0,5,4,1,2,6,1,6,5,2,3,7,2,7,6,3,0,4,3,4,7};
+	std::vector<D3DMATRIX> transforms;
+	for (int i = 0; i < 96; ++i)
+	{
+		D3DMATRIX m = identity();
+		m._11 = i % 3 == 0 ? -.5f : 1.f;
+		m._22 = i % 5 == 0 ? .5f : 1.f;
+		if (i % 4 == 0) { m._12 = m._11; m._21 = -m._22; m._11 = m._22 = 0; }
+		m._41 = (i % 12 - 6) * .125f;
+		m._42 = (i / 12 - 4) * .125f;
+		m._43 = i % 7 == 0 ? -.25f : 0;
+		transforms.push_back(m);
+	}
+	struct Batch { std::vector<Position> vertices; std::vector<uint16_t> indices; };
+	std::vector<Batch> batches(1);
+	batches.back().vertices.resize(65520); // unused padding exercises index rebasing near the limit
+	for (const auto& m : transforms)
+	{
+		if (batches.back().vertices.size() + 8 > 65535) batches.emplace_back();
+		auto& b = batches.back();
+		size_t base = b.vertices.size();
+		for (const auto& v : cube) b.vertices.push_back({v.x*m._11+v.y*m._21+v.z*m._31+m._41,
+			v.x*m._12+v.y*m._22+v.z*m._32+m._42, v.x*m._13+v.y*m._23+v.z*m._33+m._43});
+		for (auto index : indices) b.indices.push_back((uint16_t)(base + index));
+	}
+	int failures = 0;
+	for (int maskMode = 0; maskMode < 2; ++maskMode)
+	{
+		std::vector<DWORD> reference;
+		for (int batched = 0; batched < 2; ++batched)
+		{
+			resetStates();
+			D3DMATRIX unit = identity();
+			g_device->SetTransform(D3DTS_WORLD, &unit);
+			g_device->SetTransform(D3DTS_VIEW, &unit);
+			g_device->SetTransform(D3DTS_PROJECTION, &unit);
+			g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL, 0xFFFFFFFF, .6f, 0);
+			g_device->BeginScene();
+			g_device->SetRenderState(D3DRS_COLORWRITEENABLE, 0);
+			g_device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+			g_device->SetRenderState(D3DRS_ZENABLE, FALSE);
+			g_device->SetRenderState(D3DRS_STENCILENABLE, TRUE);
+			g_device->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_ALWAYS);
+			g_device->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_REPLACE);
+			g_device->SetRenderState(D3DRS_STENCILFAIL, D3DSTENCILOP_KEEP);
+			g_device->SetRenderState(D3DRS_STENCILZFAIL, D3DSTENCILOP_KEEP);
+			g_device->SetRenderState(D3DRS_STENCILWRITEMASK, 0xff);
+			g_device->SetRenderState(D3DRS_STENCILREF, 0x80);
+			quad(0, 0, W/3.f, H, 0,0,0,0);
+			g_device->SetRenderState(D3DRS_STENCILREF, 0x90);
+			quad(W*2/3.f, 0, W/3.f, H, 0,0,0,0);
+			g_device->SetRenderState(D3DRS_ZENABLE, TRUE);
+			g_device->SetRenderState(D3DRS_STENCILREF, 0x80);
+			g_device->SetRenderState(D3DRS_STENCILMASK, maskMode ? 0xf0 : 0x80);
+			g_device->SetRenderState(D3DRS_STENCILFUNC, maskMode ? D3DCMP_GREATEREQUAL : D3DCMP_NOTEQUAL);
+			g_device->SetVertexShader(D3DFVF_XYZ);
+			for (int pass = 0; pass < 2; ++pass)
+			{
+				g_device->SetRenderState(D3DRS_CULLMODE, pass ? D3DCULL_CCW : D3DCULL_CW);
+				g_device->SetRenderState(D3DRS_STENCILPASS, pass ? D3DSTENCILOP_DECRSAT : D3DSTENCILOP_INCR);
+				if (batched)
+				{
+					g_device->SetTransform(D3DTS_WORLD, &unit);
+					for (const auto& b : batches) check(g_device->DrawIndexedPrimitiveUP(D3DPT_TRIANGLELIST, 0,
+						b.vertices.size(), b.indices.size()/3, b.indices.data(), D3DFMT_INDEX16, b.vertices.data(), sizeof(Position)), "batched shadow");
+				}
+				else for (size_t i = 0; i < transforms.size(); ++i)
+				{
+					g_device->SetTransform(D3DTS_WORLD, &transforms[pass ? transforms.size()-1-i : i]);
+					check(g_device->DrawIndexedPrimitiveUP(D3DPT_TRIANGLELIST, 0, 8, 12, indices,
+						D3DFMT_INDEX16, cube, sizeof(Position)), "separate shadow");
+				}
+			}
+			g_device->SetRenderState(D3DRS_COLORWRITEENABLE, 0xf);
+			g_device->SetRenderState(D3DRS_ZENABLE, FALSE);
+			g_device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+			g_device->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_NOTEQUAL);
+			g_device->SetRenderState(D3DRS_STENCILREF, 0);
+			g_device->SetRenderState(D3DRS_STENCILMASK, 0xf);
+			g_device->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_KEEP);
+			quad(0,0,W,H,0xff000000,0xff000000,0xff000000,0xff000000);
+			g_device->EndScene();
+			saveFrame(out + "/scene16_shadow_" + std::to_string(maskMode) + (batched ? "_batched.png" : "_separate.png"));
+			IDirect3DSurface8 *back = nullptr, *image = nullptr;
+			check(g_device->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &back), "shadow backbuffer");
+			check(g_device->CreateImageSurface(W,H,D3DFMT_A8R8G8B8,&image), "shadow image");
+			check(g_device->CopyRects(back,nullptr,0,image,nullptr), "shadow readback");
+			D3DLOCKED_RECT lock;
+			check(image->LockRect(&lock,nullptr,D3DLOCK_READONLY), "shadow pixels");
+			int dark = 0;
+			for (int y = 0; y < H; ++y) for (int x = 0; x < W; ++x)
+			{
+				DWORD pixel = ((DWORD*)((BYTE*)lock.pBits+y*lock.Pitch))[x];
+				if (!(pixel & 0xffffff)) ++dark;
+				if (!batched) reference.push_back(pixel);
+				else if (pixel != reference[y*W+x]) ++failures;
+			}
+			if (dark == 0 || dark == W*H) ++failures; // reject a vacuous all-clear/all-shadow comparison
+			image->UnlockRect(); image->Release(); back->Release();
+			g_device->Present(nullptr,nullptr,nullptr,nullptr);
+		}
+	}
+	g_device->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
+	printf("scene16: shadow batch pixel comparison failures: %d (%d pixels, two masks)\n", failures, 2*W*H);
+	return failures;
+}
+
+static int testModelSubmission(const std::string& out, D3DPRESENT_PARAMETERS pp)
+{
+	struct Pixel { int x, y; DWORD color; };
+	int failures = 0, pixelChecks = 0;
+	auto checkPixels = [&](const std::vector<Pixel>& pixels) {
+		IDirect3DSurface8 *back = nullptr, *image = nullptr;
+		check(g_device->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &back), "model backbuffer");
+		check(g_device->CreateImageSurface(W, H, D3DFMT_A8R8G8B8, &image), "model image");
+		check(g_device->CopyRects(back, nullptr, 0, image, nullptr), "model readback");
+		D3DLOCKED_RECT lock;
+		check(image->LockRect(&lock, nullptr, D3DLOCK_READONLY), "model pixels");
+		for (const auto& expected : pixels)
+		{
+			const uint8_t* got = (const uint8_t*)lock.pBits + expected.y * lock.Pitch + expected.x * 4;
+			for (int channel = 0; channel < 3; ++channel)
+				if (abs(int(got[channel]) - int((expected.color >> (channel * 8)) & 255)) > 1) { ++failures; break; }
+			++pixelChecks;
+		}
+		image->UnlockRect(); image->Release(); back->Release();
+	};
+
+	// Static/dynamic and 16/32-bit indices, odd start indices, reuse, failed and
+	// read-only locks, writes/renames, NOOVERWRITE, DISCARD and release before flush.
+	resetStates();
+	g_device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+	g_device->SetRenderState(D3DRS_CLIPPLANEENABLE, 0);
+	g_device->SetVertexShader(TLFVF);
+	g_device->Clear(0, nullptr, D3DCLEAR_TARGET, 0xFF102030, 1, 0);
+	g_device->BeginScene();
+	std::vector<TLVertex> vertices;
+	std::vector<Pixel> pixels;
+	const DWORD red = 0xFFE04020, green = 0xFF20B060;
+	for (int row = 0; row < 4; ++row) for (int col = 0; col < 12; ++col)
+	{
+		float x = col * 52.f + 26, y = row * 100.f + 50;
+		for (DWORD color : {red, green})
+		{
+			vertices.push_back({x-20,y-25,.5f,1,color,0,0}); vertices.push_back({x+20,y-25,.5f,1,color,0,0});
+			vertices.push_back({x-20,y+25,.5f,1,color,0,0}); vertices.push_back({x+20,y+25,.5f,1,color,0,0});
+		}
+		pixels.push_back({int(x),int(y), (col >= 4 && col < 8) || col >= 10 ? green : red});
+	}
+	IDirect3DVertexBuffer8* vb = nullptr;
+	check(g_device->CreateVertexBuffer(vertices.size()*sizeof(TLVertex), 0, TLFVF, D3DPOOL_MANAGED, &vb), "model vertices");
+	BYTE* data = nullptr;
+	check(vb->Lock(0,0,&data,0), "model vertex lock"); memcpy(data,vertices.data(),vertices.size()*sizeof(TLVertex)); vb->Unlock();
+	g_device->SetStreamSource(0,vb,sizeof(TLVertex));
+	for (int row = 0; row < 4; ++row)
+	{
+		bool wide = row >= 2, dynamic = row % 2;
+		unsigned stride = wide ? 4 : 2;
+		IDirect3DIndexBuffer8* ib = nullptr;
+		check(g_device->CreateIndexBuffer(24*stride,dynamic ? D3DUSAGE_DYNAMIC : 0,wide ? D3DFMT_INDEX32 : D3DFMT_INDEX16,D3DPOOL_DEFAULT,&ib), "model indices");
+		auto write = [&](unsigned start, unsigned base, DWORD flags) {
+			BYTE* target = nullptr; check(ib->Lock(start*stride,6*stride,&target,flags), "model index write");
+			const unsigned indices[] = {base,base+1,base+2,base+2,base+1,base+3};
+			for (unsigned i=0;i<6;++i) { if(wide) ((uint32_t*)target)[i]=indices[i]; else ((uint16_t*)target)[i]=indices[i]; }
+			ib->Unlock();
+		};
+		write(1,0,0); write(9,0,0);
+		for (int col = 0; col < 12; ++col)
+		{
+			if (col == 2) { BYTE* read = nullptr; check(ib->Lock(0,0,&read,D3DLOCK_READONLY), "model read-only lock"); ib->Unlock(); }
+			if (col == 3) { BYTE* bad = nullptr; if (SUCCEEDED(ib->Lock(24*stride+1,0,&bad,0))) ++failures; }
+			if (col == 4 || col == 10) write(1,4,0);
+			if (col == 6) write(9,4,D3DLOCK_NOOVERWRITE);
+			if (col == 8) write(1,0,dynamic ? D3DLOCK_DISCARD : 0);
+			check(g_device->SetIndices(ib,(row*12+col)*8), "model base vertex");
+			check(g_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,0,8,col==6 || col==7 ? 9 : 1,2), "model indexed draw");
+		}
+		g_device->SetIndices(nullptr,0); ib->Release();
+	}
+	g_device->SetStreamSource(0,nullptr,0); vb->Release();
+	g_device->EndScene();
+	saveFrame(out+"/scene18_model_indices.png"); checkPixels(pixels);
+	g_device->Present(nullptr,nullptr,nullptr,nullptr);
+
+	// Unchanged light setters must preserve pending state, including after a
+	// state block, an encoder boundary and a device reset.
+	for (int phase = 0; phase < 2; ++phase)
+	{
+		if (phase) check(g_device->Reset(&pp), "model device reset");
+		resetStates(); g_device->SetPixelShader(0); g_device->SetVertexShader(LITFVF);
+		g_device->SetRenderState(D3DRS_ZENABLE,D3DZB_FALSE);
+		g_device->SetRenderState(D3DRS_CLIPPLANEENABLE,0);
+		g_device->SetRenderState(D3DRS_LIGHTING,TRUE); g_device->SetRenderState(D3DRS_COLORVERTEX,FALSE);
+		g_device->SetRenderState(D3DRS_AMBIENT,0);
+		g_device->SetRenderState(D3DRS_DIFFUSEMATERIALSOURCE,D3DMCS_MATERIAL);
+		g_device->SetRenderState(D3DRS_AMBIENTMATERIALSOURCE,D3DMCS_MATERIAL);
+		g_device->SetRenderState(D3DRS_EMISSIVEMATERIALSOURCE,D3DMCS_MATERIAL);
+		for (int i=0;i<8;++i) g_device->LightEnable(i,FALSE);
+		D3DMATERIAL8 material = {}; material.Diffuse = {1,1,1,1}; g_device->SetMaterial(&material);
+		D3DMATRIX transform = identity(); g_device->SetTransform(D3DTS_VIEW,&transform); g_device->SetTransform(D3DTS_PROJECTION,&transform);
+		const LitVertex quad[] = {{-.18f,-.18f,.5f,0,0,-1,0,0},{.18f,-.18f,.5f,0,0,-1,0,0},{-.18f,.18f,.5f,0,0,-1,0,0},{.18f,.18f,.5f,0,0,-1,0,0}};
+		pixels.clear(); g_device->Clear(0,nullptr,D3DCLEAR_TARGET,0xFF102030,1,0); g_device->BeginScene();
+		for (int i=0;i<16;++i)
+		{
+			DWORD color = i%2 ? green : red; BOOL enabled = i%4 != 3;
+			D3DLIGHT8 light = {}; light.Type=D3DLIGHT_DIRECTIONAL; light.Direction={0,0,1};
+			light.Diffuse={float((color>>16)&255)/255,float((color>>8)&255)/255,float(color&255)/255,1};
+			g_device->SetLight(0,&light); g_device->LightEnable(0,enabled);
+			DWORD block = 0; check(g_device->CreateStateBlock(D3DSBT_ALL,&block), "model light block");
+			D3DLIGHT8 other = light; other.Diffuse={0,0,1,1}; g_device->SetLight(0,&other); g_device->LightEnable(0,!enabled);
+			check(g_device->ApplyStateBlock(block), "model restore lights"); g_device->DeleteStateBlock(block);
+			for (int repeat=0;repeat<8;++repeat) { g_device->SetLight(0,&light); g_device->LightEnable(0,enabled); }
+			D3DLIGHT8 got = {}; BOOL gotEnabled = FALSE; g_device->GetLight(0,&got); g_device->GetLightEnable(0,&gotEnabled);
+			if (memcmp(&got,&light,sizeof(light)) || gotEnabled != enabled) ++failures;
+			transform._41=(i%4+.5f)*.5f-1; transform._42=1-(i/4+.5f)*.5f; g_device->SetTransform(D3DTS_WORLD,&transform);
+			g_device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP,2,quad,sizeof(LitVertex));
+			pixels.push_back({i%4*(W/4)+W/8,i/4*(H/4)+H/8,enabled ? color : 0});
+			if (i==7) saveFrame(out+"/scene18_lights_boundary_"+std::to_string(phase)+".png");
+		}
+		g_device->EndScene(); saveFrame(out+"/scene18_model_lights_"+std::to_string(phase)+".png"); checkPixels(pixels);
+		g_device->Present(nullptr,nullptr,nullptr,nullptr);
+	}
+	printf("scene18: %d pixel checks plus index-lock/light-state checks; %d failures\n",pixelChecks,failures);
+	return failures;
+}
+
+static int testModelBatching(const std::string& out)
+{
+	resetStates();
+	g_device->SetRenderState((D3DRENDERSTATETYPE)249, 1); // native model scope
+	g_device->SetVertexShader(LITFVF); g_device->SetPixelShader(0);
+	g_device->SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
+	g_device->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
+	g_device->SetRenderState(D3DRS_ZFUNC, D3DCMP_LESSEQUAL);
+	g_device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+	g_device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+	g_device->SetRenderState(D3DRS_LIGHTING, TRUE);
+	g_device->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
+	g_device->SetRenderState(D3DRS_COLORVERTEX, FALSE);
+	g_device->SetRenderState(D3DRS_AMBIENT, 0);
+	g_device->SetRenderState(D3DRS_DIFFUSEMATERIALSOURCE, D3DMCS_MATERIAL);
+	g_device->SetRenderState(D3DRS_AMBIENTMATERIALSOURCE, D3DMCS_MATERIAL);
+	g_device->SetRenderState(D3DRS_EMISSIVEMATERIALSOURCE, D3DMCS_MATERIAL);
+	for (int i=0;i<8;++i) g_device->LightEnable(i,FALSE);
+	D3DLIGHT8 light = {}; light.Type=D3DLIGHT_DIRECTIONAL; light.Direction={0,0,1}; light.Diffuse={1,1,1,1};
+	g_device->SetLight(0,&light); g_device->LightEnable(0,TRUE);
+	D3DMATRIX unit=identity(); g_device->SetTransform(D3DTS_VIEW,&unit); g_device->SetTransform(D3DTS_PROJECTION,&unit);
+	const LitVertex vertices[]={{-.07f,-.08f,0,0,0,-1,0,0},{.07f,-.08f,0,0,0,-1,0,0},{-.07f,.08f,0,0,0,-1,0,0},{.07f,.08f,0,0,0,-1,0,0}};
+	const uint16_t indices[]={0,0,1,2,2,1,3};
+	IDirect3DVertexBuffer8* vb=nullptr; IDirect3DIndexBuffer8* ib=nullptr; BYTE* data=nullptr;
+	check(g_device->CreateVertexBuffer(sizeof(vertices),0,LITFVF,D3DPOOL_MANAGED,&vb),"batch vb");
+	check(vb->Lock(0,0,&data,0),"batch vertices"); memcpy(data,vertices,sizeof(vertices)); vb->Unlock();
+	check(g_device->CreateIndexBuffer(sizeof(indices),0,D3DFMT_INDEX16,D3DPOOL_MANAGED,&ib),"batch ib");
+	check(ib->Lock(0,0,&data,0),"batch indices"); memcpy(data,indices,sizeof(indices)); ib->Unlock();
+	g_device->SetStreamSource(0,vb,sizeof(LitVertex)); g_device->SetIndices(ib,0);
+	g_device->Clear(0,nullptr,D3DCLEAR_TARGET|D3DCLEAR_ZBUFFER,0xFF102030,1,0); g_device->BeginScene();
+	D3DMATERIAL8 material={}; material.Diffuse={.8f,.2f,.1f,1}; g_device->SetMaterial(&material);
+	for (int i=0;i<80;++i)
+	{
+		D3DMATRIX world=identity(); world._41=(i%10+.5f)*.2f-1; world._42=1-(i/10+.5f)*.25f;
+		world._43=.5f; world._11=i%3 ? .75f : -.75f; world._33=i%2 ? .5f : 1.25f;
+		if (i==40) { material.Diffuse={.1f,.7f,.2f,1}; g_device->SetMaterial(&material); }
+		if (i==60) { check(vb->Lock(0,0,&data,0),"batch rename"); memcpy(data,vertices,sizeof(vertices)); vb->Unlock(); }
+		if (i==60) { check(ib->Lock(0,0,&data,0),"batch index rename"); memcpy(data,indices,sizeof(indices)); ib->Unlock(); }
+		g_device->SetTransform(D3DTS_WORLD,&world);
+		check(g_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,0,4,1,2),"batch draw");
+		if (i==19) saveFrame(out+"/scene19_batch_boundary.png");
+	}
+	// No world setter: the final batched world must remain the inherited state.
+	material.Diffuse={.2f,.1f,.8f,1}; g_device->SetMaterial(&material);
+	g_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,0,4,1,2);
+	g_device->SetStreamSource(0,nullptr,0); g_device->SetIndices(nullptr,0); vb->Release(); ib->Release();
+	g_device->EndScene(); saveFrame(out+"/scene19_model_batching.png");
+	g_device->SetRenderState((D3DRENDERSTATETYPE)249, 0);
+	IDirect3DSurface8 *back=nullptr,*image=nullptr; g_device->GetBackBuffer(0,D3DBACKBUFFER_TYPE_MONO,&back);
+	g_device->CreateImageSurface(W,H,D3DFMT_A8R8G8B8,&image); check(g_device->CopyRects(back,nullptr,0,image,nullptr),"batch readback");
+	D3DLOCKED_RECT lock; check(image->LockRect(&lock,nullptr,D3DLOCK_READONLY),"batch pixels"); int failures=0;
+	for (int i=0;i<80;++i)
+	{
+		const uint8_t* pixel=(uint8_t*)lock.pBits+(i/10*(H/8)+H/16)*lock.Pitch+(i%10*(W/10)+W/20)*4;
+		const int red[3]={26,51,204}, green[3]={51,179,26}, blue[3]={204,26,51};
+		const int* expected=i==79 ? blue : i<40 ? red : green;
+		for (int c=0;c<3;++c) if (abs(int(pixel[c])-expected[c])>1) { ++failures; break; }
+	}
+	image->UnlockRect(); image->Release(); back->Release(); g_device->Present(nullptr,nullptr,nullptr,nullptr);
+	printf("scene19: 80 instancing pixel checks; %d failures\n",failures);
+	return failures;
+}
+
 int main(int argc, char** argv)
 {
 	std::string out = argc > 1 ? argv[1] : ".";
@@ -1559,6 +1856,203 @@ int main(int argc, char** argv)
 		unused->Release();
 	}
 
+	// Scene 14: derived uniform state across adjacent draws. Includes camera-only changes,
+	// nonuniform scaling, light enable/data changes, unlit normal/reflection texgen and clip planes.
+	// Compare this frame with the reference renderer in both threaded and inline modes.
+	{
+		resetStates();
+		g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF203040, 1.0f, 0);
+		g_device->BeginScene();
+		g_device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+		g_device->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
+		modulateStage0(checker);
+		D3DMATERIAL8 material = {};
+		material.Diffuse = { 0.8f, 0.7f, 0.6f, 1.0f };
+		material.Ambient = { 0.1f, 0.1f, 0.1f, 1.0f };
+		g_device->SetMaterial(&material);
+		D3DLIGHT8 light = {};
+		light.Type = D3DLIGHT_POINT;
+		light.Diffuse = { 1, 0.8f, 0.6f, 1 };
+		light.Position = { 0, 0, -2 };
+		light.Range = 20;
+		light.Attenuation0 = 1;
+		const LitVertex vertices[] = {
+			{ -0.7f, -0.7f, 0.4f, 0.4f, 0.3f, -0.8660254f, 0, 1 },
+			{  0.7f, -0.7f, 0.4f, 0.4f, 0.3f, -0.8660254f, 1, 1 },
+			{ -0.7f,  0.7f, 0.4f, 0.4f, 0.3f, -0.8660254f, 0, 0 },
+			{  0.7f,  0.7f, 0.4f, 0.4f, 0.3f, -0.8660254f, 1, 0 },
+		};
+		for (unsigned i = 0; i < 16; ++i)
+		{
+			D3DVIEWPORT8 vp = { (i % 4) * (W / 4), (i / 4) * (H / 4), W / 4, H / 4, 0, 1 };
+			g_device->SetViewport(&vp);
+			D3DMATRIX world = identity(), view = identity(), projection = identity(), texture = identity();
+			world._11 = i >= 4 ? 0.8f : 1.0f;
+			world._22 = i >= 4 ? 1.2f : 1.0f;
+			view._41 = (i == 2 || i == 10) ? 0.2f : 0.0f;
+			view._43 = (i == 2 || i == 10) ? 0.15f : 0.0f;
+			projection._11 = (i == 3 || i == 11) ? 0.7f : 1.0f;
+			g_device->SetTransform(D3DTS_WORLD, &world);
+			g_device->SetTransform(D3DTS_VIEW, &view);
+			g_device->SetTransform(D3DTS_PROJECTION, &projection);
+			light.Position.x = i == 5 ? 2.0f : 0.0f;
+			g_device->SetLight(0, &light);
+			g_device->LightEnable(0, i != 6);
+			g_device->SetRenderState(D3DRS_LIGHTING, i < 8 || i == 15);
+			g_device->SetTextureStageState(0, D3DTSS_COLOROP, i < 8 || i == 15 ? D3DTOP_MODULATE : D3DTOP_SELECTARG1);
+			g_device->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, i < 8 || i == 15 ? 0 :
+				(i < 12 ? D3DTSS_TCI_CAMERASPACENORMAL : D3DTSS_TCI_CAMERASPACEREFLECTIONVECTOR));
+			texture._11 = texture._22 = 0.5f;
+			texture._31 = texture._32 = 0.2f;
+			texture._41 = texture._42 = 0.5f;
+			g_device->SetTransform(D3DTS_TEXTURE0, &texture);
+			g_device->SetTextureStageState(0, D3DTSS_TEXTURETRANSFORMFLAGS, i < 8 || i == 15 ? D3DTTFF_DISABLE : D3DTTFF_COUNT2);
+			const float plane[] = { 1, 0, 0, 0 };
+			g_device->SetClipPlane(0, plane);
+			g_device->SetRenderState(D3DRS_CLIPPLANEENABLE, i == 7 || i == 14 ? 1 : 0);
+			g_device->SetVertexShader(LITFVF);
+			g_device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, vertices, sizeof(LitVertex));
+		}
+		g_device->EndScene();
+		saveFrame(out + "/scene14_uniforms.png");
+		g_device->Present(nullptr, nullptr, nullptr, nullptr);
+	}
+
+
+	// Scene 15: queue draws, immediately unbind/release their vertex/index buffers, and
+	// roll the transient arena before the command buffer is committed. The serial retirement
+	// lists must keep every borrowed Metal buffer alive through encoding and GPU completion.
+	int failures15 = 0;
+	{
+		resetStates();
+		D3DVIEWPORT8 fullViewport = {0, 0, W, H, 0, 1};
+		g_device->SetViewport(&fullViewport);
+		g_device->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFF000000, 1, 0);
+		g_device->BeginScene();
+		g_device->SetVertexShader(TLFVF);
+		for (int cell = 0; cell < 192; ++cell)
+		{
+			float x = (cell % 16) * 32.0f, y = (cell / 16) * 32.0f;
+			DWORD color = 0xFF000000 | ((cell * 137 + 0x123456) & 0xFFFFFF);
+			TLVertex vertices[] = {
+				{x,y,0.5f,1,color,0,0}, {x+32,y,0.5f,1,color,0,0},
+				{x+32,y+32,0.5f,1,color,0,0}, {x,y+32,0.5f,1,color,0,0}
+			};
+			IDirect3DVertexBuffer8* vb = nullptr;
+			IDirect3DIndexBuffer8* ib = nullptr;
+			check(g_device->CreateVertexBuffer(sizeof(vertices), D3DUSAGE_DYNAMIC, TLFVF, D3DPOOL_DEFAULT, &vb), "lifetime vb");
+			BYTE* data = nullptr;
+			check(vb->Lock(0, 0, &data, D3DLOCK_DISCARD), "lifetime vb lock");
+			memcpy(data, vertices, sizeof(vertices)); vb->Unlock();
+			g_device->SetStreamSource(0, vb, sizeof(TLVertex));
+			if (cell % 2)
+			{
+				const uint16_t indices[] = { 0, 0, 1, 2, 0, 2, 3 };
+				check(g_device->CreateIndexBuffer(sizeof(indices), D3DUSAGE_DYNAMIC, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &ib), "lifetime ib");
+				check(ib->Lock(0, 0, &data, D3DLOCK_DISCARD), "lifetime ib lock");
+				memcpy(data, indices, sizeof(indices)); ib->Unlock();
+				g_device->SetIndices(ib, 0);
+				check(g_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 4, 1, 2), "unaligned index lifetime draw");
+			}
+			else check(g_device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2), "fan lifetime draw");
+			g_device->SetStreamSource(0, nullptr, 0);
+			g_device->SetIndices(nullptr, 0);
+			vb->Release();
+			if (ib) ib->Release();
+		}
+		std::vector<TLVertex> degenerate(30000, {0,0,0.5f,1,0xFFFFFFFF,0,0});
+		for (int i = 0; i < 6; ++i)
+			check(g_device->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 10000, degenerate.data(), sizeof(TLVertex)), "transient rollover draw");
+		g_device->EndScene();
+		saveFrame(out + "/scene15_buffer_lifetime.png");
+		IDirect3DSurface8 *back = nullptr, *image = nullptr;
+		check(g_device->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &back), "lifetime backbuffer");
+		check(g_device->CreateImageSurface(W, H, D3DFMT_A8R8G8B8, &image), "lifetime image");
+		check(g_device->CopyRects(back, nullptr, 0, image, nullptr), "lifetime readback");
+		D3DLOCKED_RECT lock;
+		check(image->LockRect(&lock, nullptr, D3DLOCK_READONLY), "lifetime pixels");
+		for (int cell = 0; cell < 192; ++cell)
+		{
+			const uint8_t* pixel = (const uint8_t*)lock.pBits + (cell / 16 * 32 + 16) * lock.Pitch + (cell % 16 * 32 + 16) * 4;
+			DWORD got = (DWORD(pixel[2]) << 16) | (DWORD(pixel[1]) << 8) | pixel[0];
+			if (got != ((cell * 137 + 0x123456) & 0xFFFFFF)) ++failures15;
+		}
+		image->UnlockRect(); image->Release(); back->Release();
+		printf("scene15: %d of 192 released-buffer checks match\n", 192 - failures15);
+		g_device->Present(nullptr, nullptr, nullptr, nullptr);
+	}
+
+	int failures16 = testShadowBatches(out);
+	// Scene 17: adjacent draws change only transforms, then only material, then
+	// neither. A mid-scene readback ends the encoder; unchanged cached bindings
+	// must be sent again. Check actual pixels against independently chosen colors.
+	int failures17 = 0;
+	{
+		resetStates();
+		D3DVIEWPORT8 vp = { 0, 0, W, H, 0, 1 };
+		g_device->SetViewport(&vp);
+		g_device->SetRenderState(D3DRS_CLIPPLANEENABLE, 0);
+		g_device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+		g_device->SetRenderState(D3DRS_LIGHTING, TRUE);
+		g_device->SetRenderState(D3DRS_COLORVERTEX, FALSE);
+		g_device->SetRenderState(D3DRS_AMBIENT, 0);
+		g_device->SetRenderState(D3DRS_EMISSIVEMATERIALSOURCE, D3DMCS_MATERIAL);
+		g_device->SetRenderState(D3DRS_DIFFUSEMATERIALSOURCE, D3DMCS_MATERIAL);
+		g_device->SetRenderState(D3DRS_AMBIENTMATERIALSOURCE, D3DMCS_MATERIAL);
+		for (int i = 0; i < 8; ++i) g_device->LightEnable(i, FALSE);
+		D3DMATRIX transform = identity();
+		g_device->SetTransform(D3DTS_VIEW, &transform);
+		g_device->SetTransform(D3DTS_PROJECTION, &transform);
+		g_device->SetVertexShader(LITFVF);
+		const LitVertex quad[] = {
+			{ -0.045f,-0.045f,0.5f, 0,0,-1, 0,0 }, { 0.045f,-0.045f,0.5f, 0,0,-1, 1,0 },
+			{ -0.045f, 0.045f,0.5f, 0,0,-1, 0,1 }, { 0.045f, 0.045f,0.5f, 0,0,-1, 1,1 }
+		};
+		g_device->Clear(0, nullptr, D3DCLEAR_TARGET, 0xFF102030, 1, 0);
+		g_device->BeginScene();
+		const DWORD colors[] = { 0xE04020, 0x20B060, 0x4080D0, 0xD0C040 };
+		for (int i = 0; i < 128; ++i)
+		{
+			D3DMATERIAL8 material = {};
+			DWORD color = colors[(i / 16) % 4];
+			material.Diffuse.a = 1;
+			material.Emissive = { float((color >> 16) & 255) / 255, float((color >> 8) & 255) / 255, float(color & 255) / 255, 1 };
+			g_device->SetMaterial(&material);
+			transform._41 = (float(i % 16) + 0.5f) / 8.0f - 1.0f;
+			transform._42 = 1.0f - (float(i / 16) + 0.5f) / 4.0f;
+			g_device->SetTransform(D3DTS_WORLD, &transform);
+			g_device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, quad, sizeof(LitVertex));
+			if (i % 4 == 0) // only the shared data changes at the same position
+			{
+				material.Emissive = { 1, 0, 1, 1 };
+				g_device->SetMaterial(&material);
+				g_device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, quad, sizeof(LitVertex));
+			}
+			if (i == 63) saveFrame(out + "/scene17_encoder_boundary.png");
+			// Repeated draw after readback also tests re-binding on a new encoder.
+			g_device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, quad, sizeof(LitVertex));
+		}
+		g_device->EndScene();
+		saveFrame(out + "/scene17_split_uniforms.png");
+		IDirect3DSurface8 *back = nullptr, *image = nullptr;
+		g_device->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &back);
+		g_device->CreateImageSurface(W, H, D3DFMT_A8R8G8B8, &image);
+		g_device->CopyRects(back, nullptr, 0, image, nullptr);
+		D3DLOCKED_RECT lock;
+		check(image->LockRect(&lock, nullptr, D3DLOCK_READONLY), "split uniform pixels");
+		for (int i = 0; i < 128; ++i)
+		{
+			const uint8_t* pixel = static_cast<const uint8_t*>(lock.pBits) + (i / 16 * (H / 8) + H / 16) * lock.Pitch + (i % 16 * (W / 16) + W / 32) * 4;
+			DWORD expected = i % 4 == 0 ? 0xFF00FF : colors[(i / 16) % 4];
+			DWORD got = (DWORD(pixel[2]) << 16) | (DWORD(pixel[1]) << 8) | pixel[0];
+			if (got != expected) ++failures17;
+		}
+		image->UnlockRect(); image->Release(); back->Release();
+		printf("scene17: %d of 128 transform/material/encoder checks match\n", 128 - failures17);
+		g_device->Present(nullptr, nullptr, nullptr, nullptr);
+	}
+	int failures18 = testModelSubmission(out, pp);
+	int failures19 = testModelBatching(out);
 	checker->Release();
 	checker565->Release();
 	checker4444->Release();
@@ -1567,5 +2061,5 @@ int main(int argc, char** argv)
 	g_device->Release();
 	d3d->Release();
 	printf("done\n");
-	return failures7 || failures8 || failures9 || failures10 || failures11 || failures12 || failures13 ? 1 : 0;
+	return failures7 || failures8 || failures9 || failures10 || failures11 || failures12 || failures13 || failures15 || failures16 || failures17 || failures18 || failures19 ? 1 : 0;
 }

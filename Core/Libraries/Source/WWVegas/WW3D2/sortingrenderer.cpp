@@ -50,6 +50,8 @@
 #include <WWDebug/wwprofile.h>
 #include <algorithm>
 #include <list>
+#include "rts/visual_sort.h"
+#include "rts/benchmark.h"
 
 
 bool SortingRendererClass::_EnableTriangleDraw=true;
@@ -82,71 +84,9 @@ bool operator >(const TempIndexStruct &l, const TempIndexStruct &r) { return l.z
 bool operator >=(const TempIndexStruct &l, const TempIndexStruct &r) { return l.z >= r.z; }
 bool operator ==(const TempIndexStruct &l, const TempIndexStruct &r) { return l.z == r.z; }
 // ----------------------------------------------------------------------------
-static
-void InsertionSort(TempIndexStruct *begin, TempIndexStruct *end)
+static void Sort(TempIndexStruct* begin, TempIndexStruct* end)
 {
-	for (TempIndexStruct *iter = begin + 1; iter < end; ++iter) {
-		TempIndexStruct val = iter[0];
-		TempIndexStruct *insert = iter;
-		while (insert != begin && insert[-1] > val) {
-			insert[0] = insert[-1];
-			insert -= 1;
-		}
-		insert[0] = val;
-	}
-}
-
-// ----------------------------------------------------------------------------
-static
-void Sort(TempIndexStruct *begin, TempIndexStruct *end)
-{
-	const int diff = end - begin;
-	if (diff <= 16) {
-		// Insertion sort has less overhead for small arrays
-		InsertionSort(begin, end);
-	} else {
-		// Choose the median of begin, mid, and (end - 1) as the partitioning element.
-		// Rearrange so that *(begin + 1) <= *begin <= *(end - 1).  These will be guard
-		// elements.
-		TempIndexStruct *mid = begin + diff/2;
-		std::swap(mid[0], begin[1]);
-		if (begin[1] > end[-1]) {
-			std::swap(begin[1], end[-1]);
-		}
-		if (begin[0] > end[-1]) {
-			std::swap(begin[0], end[-1]);
-		}
-		if (begin[1] > begin[0]) {
-			std::swap(begin[1], begin[0]);
-		}
-
-		// *begin is now the partitioning element
-		TempIndexStruct *begin1 = begin + 1;	// TODO: Temp fix until I find out who is passing me NaN
-		TempIndexStruct *end1 = end - 1;			// TODO: Temp fix until I find out who is passing me NaN
-		TempIndexStruct *left = begin + 1;
-		TempIndexStruct *right = end - 1;
-		for (;;) {
-#if 0		// TODO: Temp fix until I find out who is passing me NaN.
-			do ++left; while (left[0] < begin[0]);		// Scan up to find element >= than partition
-			do --right; while (right[0] > begin[0]);	// Scan down to find element <= than partition
-#else
-			do ++left; while (left < end1 && left[0] < begin[0]);		// Scan up to find element >= than partition
-			do --right; while (right > begin1 && right[0] > begin[0]);	// Scan down to find element <= than partition
-#endif
-			if (right < left) break;									// Pointers crossed.  Partitioning completed.
-			std::swap(left[0], right[0]);							// Exchange elements.
-		}
-		std::swap(begin[0], right[0]);							// Insert partition element
-
-		// Sort the smaller subarray first then the larger
-		if (right - begin > end - (right + 1)) {
-			Sort(right + 1, end);
-			Sort(begin, right);
-		} else {
-			Sort(begin, right);
-			Sort(right + 1, end);
-		}
-	}
+    rts_visual_sort::sort(begin, end);
 }
 
 // ----------------------------------------------------------------------------
@@ -525,7 +465,25 @@ void SortingRendererClass::Flush_Sorting_Pool()
 		}
 	}
 
-	Sort(tis, tis + overlapping_polygon_count);
+#if defined(RTS_POSIX_PORT)
+	if (rts_visual::enabled("GENERALS_PARALLEL_PARTICLES") && overlapping_polygon_count >= 4096)
+	{
+		RTS_BENCH_SCOPE("particles.depth_sort_jobs");
+		RTS_BENCH_COUNTER("particles.sorted_triangles", overlapping_polygon_count);
+		std::vector<TempIndexStruct> reference;
+		if (rts_visual::verify()) reference.assign(tis, tis + overlapping_polygon_count);
+		rts_visual_sort::parallelSort(tis, tis + overlapping_polygon_count);
+		if (rts_visual::verify())
+		{
+			Sort(reference.data(), reference.data() + reference.size());
+			if (memcmp(reference.data(), tis, reference.size() * sizeof(TempIndexStruct)))
+			{ fprintf(stderr, "VISUAL_VERIFY particle sort mismatch\n"); abort(); }
+			RTS_BENCH_COUNTER("verify.sorted_triangles", reference.size());
+		}
+	}
+	else
+#endif
+		Sort(tis, tis + overlapping_polygon_count);
 
 	// TheSuperHackers @fix stephanmeesters 10/06/2026
 	// Split rendering into chunks to prevent a crash when exceeding the 16-bit index buffer limit.

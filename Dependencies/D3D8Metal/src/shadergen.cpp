@@ -208,6 +208,13 @@ struct VertexUniforms
 	Light lights[8];
 };
 
+struct VertexTransforms
+{
+	float4x4 worldViewProj;
+	float4x4 worldView;
+	float4x4 normalMatrix;
+};
+
 struct FragmentUniforms
 {
 	float4 textureFactor;
@@ -353,9 +360,14 @@ std::string GenerateShaderSource(const ShaderKey& key)
 	// Vertex shader
 	//-------------------------------------------------------------------------
 	s << "vertex VOut vs_main(VIn in [[stage_in]], constant VertexUniforms& u [[buffer(0)]]";
+	if (key.instanced)
+		s << ", constant VertexTransforms* instances [[buffer(3)]], uint instanceId [[instance_id]]";
+	else if (key.splitUniforms)
+		s << ", constant VertexTransforms& t [[buffer(2)]]";
 	if (vsMode)
 		s << ", constant float4* vc [[buffer(1)]]";
 	s << ") {\n";
+	if (key.instanced) s << "\tconstant VertexTransforms& t = instances[instanceId];\n";
 	s << "\tVOut out;\n";
 	if (vsMode)
 	{
@@ -412,14 +424,15 @@ std::string GenerateShaderSource(const ShaderKey& key)
 	else
 	{
 		s << "\tfloat4 pos = float4(in.position, 1.0);\n";
-		s << "\tout.position = u.worldViewProj * pos;\n";
+		const char* transforms = key.splitUniforms || key.instanced ? "t." : "u.";
+		s << "\tout.position = " << transforms << "worldViewProj * pos;\n";
 		// D3D samples pixels at integer coordinates, Metal at half integers.
 		s << "\tout.position.x += out.position.w / u.viewport.z;\n";
 		s << "\tout.position.y -= out.position.w / u.viewport.w;\n";
-		s << "\tfloat3 viewPos = (u.worldView * pos).xyz;\n";
+		s << "\tfloat3 viewPos = (" << transforms << "worldView * pos).xyz;\n";
 		if (hasNormal)
 		{
-			s << "\tfloat3 viewNormal = (u.normalMatrix * float4(in.normal, 0.0)).xyz;\n";
+			s << "\tfloat3 viewNormal = (" << transforms << "normalMatrix * float4(in.normal, 0.0)).xyz;\n";
 			if (key.normalizeNormals || key.lighting)
 				s << "\tviewNormal = normalize(viewNormal);\n";
 		}

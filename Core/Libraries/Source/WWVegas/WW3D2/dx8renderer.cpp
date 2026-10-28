@@ -41,6 +41,7 @@
 //#define ENABLE_STRIPING
 
 #include "dx8renderer.h"
+#include <rts/benchmark.h>
 #include "dx8wrapper.h"
 #include "dx8polygonrenderer.h"
 #include "dx8vertexbuffer.h"
@@ -1687,6 +1688,16 @@ unsigned DX8TextureCategoryClass::Add_Mesh(
 
 void DX8TextureCategoryClass::Render()
 {
+#if defined(__APPLE__) && defined(RTS_POSIX_PORT)
+	// Native renderer hint: repeated model geometry is grouped here. Closing the
+	// scope flushes pending instances; shadow/particle submissions outside this
+	// loop avoid the more expensive per-model compatibility checks.
+	struct NativeModelScope
+	{
+		NativeModelScope() { DX8Wrapper::Set_DX8_Render_State((D3DRENDERSTATETYPE)249, 1); }
+		~NativeModelScope() { DX8Wrapper::Set_DX8_Render_State((D3DRENDERSTATETYPE)249, 0); }
+	} nativeModelScope;
+#endif
 	#ifdef WWDEBUG
 	if (!WW3D::Expose_Prelit()) {
 	#endif
@@ -2182,6 +2193,7 @@ static void Render_FVF_Category_Container_List_Delayed_Passes(FVFCategoryList& l
 
 void DX8MeshRendererClass::Flush()
 {
+	RTS_BENCH_SCOPE("models.flush");
 	int i;
 
 	WWPROFILE("DX8MeshRenderer::Flush");

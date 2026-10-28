@@ -1,3 +1,4 @@
+#include "rts/benchmark.h"
 /*
 **	Command & Conquer Generals Zero Hour(tm)
 **	Copyright 2025 Electronic Arts Inc.
@@ -3693,6 +3694,7 @@ extern __int64 Total_Load_3D_Assets;
 // ------------------------------------------------------------------------------------------------
 void GameLogic::update()
 {
+	RTS_BENCH_SCOPE("simulation.tick");
 	USE_PERF_TIMER(GameLogic_update)
 	PROFILER_SECTION_COLOR(0x4CAF50);
 
@@ -3745,7 +3747,7 @@ void GameLogic::update()
 
 	// update (execute) scripts
 	{
-		TheScriptEngine->UPDATE();
+		{ RTS_BENCH_SCOPE("simulation.scripts"); TheScriptEngine->UPDATE(); }
 	}
 
 	// TheSuperHackers @info Updates the frozen time status because it may have changed after the script engine update.
@@ -3757,7 +3759,7 @@ void GameLogic::update()
 	// Note - TerrainLogic update needs to happen after ScriptEngine update, but before object updates.  jba.
 	// This way changes in bridges are noted in the script engine before being cleared in TerrainLogic->update
 	{
-		TheTerrainLogic->UPDATE();
+		{ RTS_BENCH_SCOPE("simulation.terrain"); TheTerrainLogic->UPDATE(); }
 	}
 
 	// force CRC calculation, so we can keep a cache of the last N CRCs.  We do this right where the recorder
@@ -3774,7 +3776,7 @@ void GameLogic::update()
 
 	if (generateForSolo || generateForMP)
 	{
-		m_CRC = getCRC( CRC_RECALC );
+		{ RTS_BENCH_SCOPE("simulation.crc"); m_CRC = getCRC( CRC_RECALC ); }
 		bool isPlayback = (TheRecorder && TheRecorder->isPlaybackMode());
 #if defined(RTS_POSIX_PORT) || defined(_WIN64)
 		// GENERALS_CRC_LOG=1 prints each game state CRC, to compare the simulation between builds
@@ -3822,12 +3824,12 @@ void GameLogic::update()
 
 	// Update the Recorder
 	{
-		TheRecorder->UPDATE();
+		{ RTS_BENCH_SCOPE("simulation.recorder"); TheRecorder->UPDATE(); }
 	}
 
 	// process client commands
 	{
-		processCommandList( TheCommandList );
+		{ RTS_BENCH_SCOPE("simulation.commands"); processCommandList( TheCommandList ); }
 	}
 
 #ifdef ALLOW_NONSLEEPY_UPDATES
@@ -3864,6 +3866,7 @@ void GameLogic::update()
 #endif
 
 	{
+		RTS_BENCH_SCOPE("simulation.object_modules");
 		while (!m_sleepyUpdates.empty())
 		{
 			UpdateModulePtr u = peekSleepyUpdate();
@@ -3918,17 +3921,17 @@ void GameLogic::update()
 
 	// update the Artificial Intelligence system
 	{
-		TheAI->UPDATE();
+		{ RTS_BENCH_SCOPE("simulation.ai"); TheAI->UPDATE(); }
 	}
 
 	// production updates
 	{
-		TheBuildAssistant->UPDATE();
+		{ RTS_BENCH_SCOPE("simulation.production"); TheBuildAssistant->UPDATE(); }
 	}
 
 	// update partition info
 	{
-		ThePartitionManager->UPDATE();
+		{ RTS_BENCH_SCOPE("simulation.partition"); ThePartitionManager->UPDATE(); }
 	}
 
 	//
@@ -3978,6 +3981,60 @@ void GameLogic::update()
 				score->getTotalBuildingsBuilt(), score->getTotalBuildingsLost(), score->getTotalBuildingsDestroyed(),
 				score->getTotalMoneyEarned(), player->hasAnyObjects() ? 1 : 0);
 		}
+	}
+
+	// Opt-in rendering stress fixture: two opposing armies attack across the map centre.
+	// GENERALS_BATTLE_TEST=FriendlyTemplate:EnemyTemplate:countPerSide. Use a fixed -battle seed.
+	static const char *battleTest = getenv("GENERALS_BATTLE_TEST");
+	if (battleTest && m_frame == 2 * LOGICFRAMES_PER_SECOND && ThePlayerList->getLocalPlayer())
+	{
+		char names[2][128] = {};
+		Int count = 0;
+		Player *players[2] = { ThePlayerList->getLocalPlayer(), nullptr };
+		for (Int i = 0; i < ThePlayerList->getPlayerCount(); ++i)
+		{
+			Player *candidate = ThePlayerList->getNthPlayer(i);
+			if (candidate && candidate->isPlayerActive() && candidate->getPlayerTemplate() &&
+				players[0]->getRelationship(candidate->getDefaultTeam()) == ENEMIES)
+			{
+				players[1] = candidate;
+				break;
+			}
+		}
+		if (players[1] && sscanf(battleTest, "%127[^:]:%127[^:]:%d", names[0], names[1], &count) == 3 && count > 0 && count <= 1000)
+		{
+			Region3D extent;
+			TheTerrainLogic->getExtent(&extent);
+			const Real cx = (extent.lo.x + extent.hi.x) * 0.5f;
+			const Real cy = (extent.lo.y + extent.hi.y) * 0.5f;
+			const Int columns = (Int)ceil(sqrt((Real)count));
+			Int spawned[2] = {};
+			for (Int side = 0; side < 2; ++side)
+			{
+				const ThingTemplate *tmpl = TheThingFactory->findTemplate(names[side]);
+				AIGroupPtr group = TheAI->createGroup();
+				const Real direction = side == 0 ? -1.0f : 1.0f;
+				for (Int i = 0; tmpl && i < count; ++i)
+				{
+					Object *obj = TheThingFactory->newObject(tmpl, players[side]->getDefaultTeam());
+					if (!obj) continue;
+					Coord3D pos = { cx + direction * (160.0f + (i / columns) * 35.0f),
+						cy + (i % columns - (columns - 1) * 0.5f) * 35.0f, 0.0f };
+					pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
+					obj->setPosition(&pos);
+					obj->setOrientation(side == 0 ? 0.0f : PI);
+					group->add(obj);
+					++spawned[side];
+				}
+				Coord3D goal = { cx - direction * 160.0f, cy, 0.0f };
+				goal.z = TheTerrainLogic->getGroundHeight(goal.x, goal.y);
+				group->groupAttackMoveToPosition(&goal, NO_MAX_SHOTS_LIMIT, CMD_FROM_PLAYER);
+			}
+			ThePartitionManager->revealMapForPlayerPermanently(players[0]->getPlayerIndex());
+			fprintf(stderr, "BATTLE_TEST spawned %d %s vs %d %s\n", spawned[0], names[0], spawned[1], names[1]);
+		}
+		else
+			fprintf(stderr, "BATTLE_TEST invalid setup (needs an enemy and 1..1000 units per side)\n");
 	}
 
 	// GENERALS_LINEUP=TemplateA,TemplateB,... places one of each in a row through the middle of the map,

@@ -18,6 +18,11 @@
 
 #pragma once
 
+#ifdef RTS_POSIX_PORT
+#include <rts/cost_bucket_index.h>
+class PathfindCellInfo;
+#endif
+
 class PathfindCell;
 
 // TheSuperHackers @info The PathfindCellList class acts as a new management class for the pathfindcell open and closed lists
@@ -29,9 +34,9 @@ public:
 	PathfindCellList() : m_head(nullptr), m_tail(nullptr) {}
 
 #if RETAIL_COMPATIBLE_PATHFINDING
-	void reset(PathfindCell* newHead = nullptr) { m_head = newHead; m_tail = nullptr; }
+	void reset(PathfindCell* newHead = nullptr) { resetIndex(); m_head = newHead; m_tail = nullptr; }
 #else
-	void reset() { m_head = nullptr; m_tail = nullptr; }
+	void reset() { resetIndex(); m_head = nullptr; m_tail = nullptr; }
 #endif
 
 	PathfindCell* getHead() const { return m_head; }
@@ -41,6 +46,18 @@ public:
 	Bool canReverseSort(PathfindCell& currentCell) const;
 
 private:
+	void resetIndex() {
+#ifdef RTS_POSIX_PORT
+		if (m_costIndex) m_costIndex->clear();
+		m_indexReady = m_indexDisabled = false;
+		m_indexSize = 0;
+#endif
+	}
+#ifdef RTS_POSIX_PORT
+	std::unique_ptr<rts::CostBucketIndex<PathfindCellInfo>> m_costIndex;
+	Bool m_indexReady = false, m_indexDisabled = false;
+	UnsignedInt m_indexSize = 0;
+#endif
 	PathfindCell* m_head;
 	PathfindCell* m_tail;
 };

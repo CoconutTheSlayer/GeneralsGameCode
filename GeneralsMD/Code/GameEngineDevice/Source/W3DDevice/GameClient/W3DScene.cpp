@@ -1,3 +1,4 @@
+#include "rts/benchmark.h"
 /*
 **	Command & Conquer Generals Zero Hour(tm)
 **	Copyright 2025 Electronic Arts Inc.
@@ -394,6 +395,7 @@ Bool RTS3DScene::castRay(RayCollisionTestClass & raytest, Bool testAll, Int coll
 //=============================================================================
 void RTS3DScene::Visibility_Check(CameraClass * camera)
 {
+	RTS_BENCH_SCOPE("scene.visibility");
 #ifdef DIRTY_CONDITION_FLAGS
 	StDrawableDirtyStuffLocker lockDirtyStuff;
 #endif
@@ -850,35 +852,35 @@ void RTS3DScene::Flush(RenderInfoClass & rinfo)
 
 	//don't draw shadows in this mode because they interfere with destination alpha or are invisible (wireframe)
 	if (m_customPassMode == SCENE_PASS_DEFAULT && Get_Extra_Pass_Polygon_Mode() == EXTRA_PASS_DISABLE)
-		DoShadows(rinfo, false);	//draw all non-stencil shadows (decals) since they fall under other objects.
+		{ RTS_BENCH_PHASE("render.decal_shadows"); DoShadows(rinfo, false); }	//draw all non-stencil shadows (decals) since they fall under other objects.
 
-	TheDX8MeshRenderer.Flush();	//draw all non-translucent objects.
+	{ RTS_BENCH_PHASE("render.opaque_meshes"); TheDX8MeshRenderer.Flush(); }	//draw all non-translucent objects.
 
 	//draw all non-translucent objects which were separated because they are hidden and need custom rendering.
 #ifdef USE_NON_STENCIL_OCCLUSION
-	flushOccludedObjects(rinfo);
+	{ RTS_BENCH_PHASE("render.occluded"); flushOccludedObjects(rinfo); }
 #else
 	if (DX8Wrapper::Has_Stencil())
-		flushOccludedObjectsIntoStencil(rinfo);
+		{ RTS_BENCH_PHASE("render.occluded"); flushOccludedObjectsIntoStencil(rinfo); }
 #endif
 
 	// (gth) CNC3 Flush the shader meshes
 	SHD_FLUSH;
 
 	// Draw the trees last so they alpha blend onto everything correctly.
-	DoTrees(rinfo);
+	{ RTS_BENCH_PHASE("render.trees"); DoTrees(rinfo); }
 
 	//don't draw shadows in this mode because they interfere with destination alpha
 	if (m_customPassMode == SCENE_PASS_DEFAULT && Get_Extra_Pass_Polygon_Mode() == EXTRA_PASS_DISABLE)
-		DoShadows(rinfo, true);	//draw all stencil shadows
+		{ RTS_BENCH_PHASE("render.stencil_shadows"); DoShadows(rinfo, true); }	//draw all stencil shadows
 
-	WW3D::Render_And_Clear_Static_Sort_Lists(rinfo);	//draws things like water
+	{ RTS_BENCH_PHASE("render.water_static_sort"); WW3D::Render_And_Clear_Static_Sort_Lists(rinfo); }	//draws things like water
 
 	if (m_customPassMode == SCENE_PASS_DEFAULT && Get_Extra_Pass_Polygon_Mode() == EXTRA_PASS_DISABLE)
-		flushTranslucentObjects(rinfo);	//draw all translucent meshes which don't need per-polygon sorting.
+		{ RTS_BENCH_PHASE("render.translucent"); flushTranslucentObjects(rinfo); }	//draw all translucent meshes which don't need per-polygon sorting.
 
 	{
-		//USE_PERF_TIMER(translucentRender)
+		RTS_BENCH_PHASE("render.particles_sort");
 
 		//don't draw transparent in this mode because they interfere with destination alpha
 		if (m_customPassMode == SCENE_PASS_DEFAULT && Get_Extra_Pass_Polygon_Mode() == EXTRA_PASS_DISABLE)
@@ -970,6 +972,7 @@ void RTS3DScene::updatePlayerColorPasses()
 //DECLARE_PERF_TIMER(NonTerrainRender)
 void RTS3DScene::Render(RenderInfoClass & rinfo)
 {
+	RTS_BENCH_SCOPE("scene.render");
 	//USE_PERF_TIMER(NonTerrainRender)
 	DX8Wrapper::Set_Fog(FogEnabled, FogColor, FogStart, FogEnd);
 
@@ -1101,6 +1104,7 @@ void RTS3DScene::Render(RenderInfoClass & rinfo)
 //=============================================================================
 void RTS3DScene::Customized_Render( RenderInfoClass &rinfo )
 {
+	RTS_BENCH_SCOPE("scene.submit");
 #ifdef DIRTY_CONDITION_FLAGS
 	StDrawableDirtyStuffLocker lockDirtyStuff;
 #endif
@@ -1140,6 +1144,7 @@ void RTS3DScene::Customized_Render( RenderInfoClass &rinfo )
 	//terrain needs to be rendered first
 	if (terrainObject)	// Don't check visibility - terrain is always visible. jba.
 	{
+		RTS_BENCH_PHASE("render.terrain");
 		robj=terrainObject;
 		rinfo.light_environment = nullptr;		// Terrain is self lit.
 		rinfo.Camera.Set_User_Data(this);	//pass the scene to terrain via user data.
@@ -1870,6 +1875,7 @@ void RTS3DInterfaceScene::Customized_Render( RenderInfoClass &rinfo )
 
 void RTS3DScene::Visibility_Check(CameraClass * camera)
 {
+	RTS_BENCH_SCOPE("scene.visibility");
 #ifdef DIRTY_CONDITION_FLAGS
 	StDrawableDirtyStuffLocker lockDirtyStuff;
 #endif

@@ -102,6 +102,9 @@ public:
 
 	/// put self on "open" list in ascending cost order
 	void putOnSortedOpenList( PathfindCellList &list );
+#ifdef RTS_POSIX_PORT
+	Bool putOnIndexedOpenList(PathfindCellList &list);
+#endif
 
 	/// remove self from "open" list
 	void removeFromOpenList( PathfindCellList &list );

@@ -1,3 +1,4 @@
+#include "d3d8metal_profile.h"
 /*
 **	Command & Conquer Generals Zero Hour(tm)
 **	Copyright 2026 TheSuperHackers
@@ -57,6 +58,7 @@ namespace d3d8metal
 {
 
 class Device;
+struct GPUProfile;
 
 //-----------------------------------------------------------------------------
 // Reference counting helper for COM style objects.
@@ -268,8 +270,12 @@ public:
 	STDMETHOD(Lock)(UINT OffsetToLock, UINT SizeToLock, BYTE** ppbData, DWORD Flags) override;
 	STDMETHOD(Unlock)() override { return S_OK; }
 	STDMETHOD(GetDesc)(D3DINDEXBUFFER_DESC* pDesc) override;
+	void prepareAlignedIndices();
 
 	BufferStorage m_storage;
+	// A two-byte prefix aligns odd 16-bit index offsets. Retained with the
+	// original buffer's submission serial and invalidated by every writing lock.
+	id<MTLBuffer> m_alignedIndices = nil;
 	D3DFORMAT m_format;
 	D3DPOOL m_pool;
 };
@@ -322,7 +328,7 @@ enum { EMULATED_STAGES = 2 };
 
 // Render state outside the Direct3D 8 range the game sets while it draws its sorted translucent
 // polygons (particles): the soft particle fade distance in view space units as float bits, 0 off.
-enum { RS_SOFT_PARTICLES = 250 };
+enum { RS_MODEL_BATCH = 249, RS_SOFT_PARTICLES = 250 };
 
 struct StreamSource
 {
@@ -388,6 +394,7 @@ struct EncoderState
 	id<MTLSamplerState> samplers[MAX_STAGES];
 	id<MTLTexture> softDepth;
 	bool vertexUniformsValid;
+	bool vertexTransformsValid;
 	bool fragmentUniformsValid;
 	VertexUniforms vertexUniforms;
 	FragmentUniforms fragmentUniforms;
@@ -552,6 +559,15 @@ private:
 		void* cpu;
 	};
 
+	void initializeProfiling();
+	std::shared_ptr<GPUProfile> newGPUProfile();
+	void profileRenderPass(MTLRenderPassDescriptor* pass, const char* name);
+	id<MTLBlitCommandEncoder> profileBlitEncoder(id<MTLCommandBuffer> cb, const char* name);
+	void completeGPUProfile(id<MTLCommandBuffer> cb, std::shared_ptr<GPUProfile> profile, const char* name);
+	std::shared_ptr<GPUProfile> m_gpuProfile, m_uploadGPUProfile;
+	id<MTLCounterSet> m_profileCounterSet = nil;
+	const char* m_profilePhase = "unclassified";
+
 	void resetState();
 	bool createSwapChainResources();
 	void applyPresentationParameters();
@@ -562,7 +578,7 @@ private:
 	void endRenderEncoder();
 	id<MTLTexture> activeDepthTexture();
 	Transient allocTransient(NSUInteger length, NSUInteger alignment = 16);
-	void beginDraw(D3DPRIMITIVETYPE type, bool& ok);
+	void beginDraw(D3DPRIMITIVETYPE type, bool& ok, bool instanced = false);
 	void bindVertexBuffer(id<MTLBuffer> buffer, NSUInteger offset);
 	void traceDraw(const ShaderKey& key, D3DPRIMITIVETYPE type) const;
 	void writeScreenshotIfRequested();
@@ -602,6 +618,7 @@ private:
 	void commitRecord(void (*run)(Device*, void*));
 	template <class F> void submit(F&& f)
 	{
+		flushModelBatch();
 		using Fn = typename std::decay<F>::type;
 		void* p = reserveRecord(sizeof(Fn));
 		new (p) Fn(std::forward<F>(f));
@@ -636,6 +653,14 @@ private:
 
 	// Front end: the state the game sees, and what changed since it was last sent.
 	DeviceState m_front;
+	bool m_modelSubmission = false;
+	bool m_verifyModelSubmission = false;
+	struct ModelSubmissionStats
+	{
+		uint64_t lightsSkipped = 0, enablesSkipped = 0;
+		uint64_t indexCopies = 0, indexCopyBytes = 0, indexReuses = 0, indexBytesAvoided = 0;
+		uint64_t verifiedIndices = 0, verifiedLights = 0;
+	} m_modelSubmissionStats;
 	Surface* m_frontRenderTarget = nullptr;
 	Surface* m_frontDepthStencil = nullptr;
 	std::vector<uint16_t> m_dirtyRenderStates;
@@ -657,7 +682,6 @@ private:
 	uint32_t m_dirtyMisc = 0;
 	int m_vsDirtyLo = 96, m_vsDirtyHi = 0;
 	int m_psDirtyLo = 8, m_psDirtyHi = 0;
-	std::vector<uint8_t> m_deltaBuffer;
 	void markRenderState(unsigned index);
 	void markAllDirty();
 	void syncState();
@@ -673,9 +697,13 @@ private:
 	{
 		D3DPRIMITIVETYPE type;
 		UINT stride;
-		id<MTLBuffer> vertexBuffer;
+		// The front end marks original buffers with the submission serial; renamed or
+		// released buffers stay in m_retiredBuffers, and UP/fan/alignment copies stay
+		// in m_retiredTransient, until that serial completes on the GPU. A queued draw
+		// only borrows them, avoiding retain/release for every record copy/destruction.
+		__unsafe_unretained id<MTLBuffer> vertexBuffer;
 		NSUInteger vertexOffset;
-		id<MTLBuffer> indexBuffer; // nil for non-indexed draws
+		__unsafe_unretained id<MTLBuffer> indexBuffer; // nil for non-indexed draws
 		NSUInteger indexOffset;
 		MTLIndexType indexType;
 		MTLPrimitiveType mtlType;
@@ -685,6 +713,19 @@ private:
 	};
 	void issueDraw(const DrawCommand& c);
 	void execDraw(const DrawCommand& c);
+	// Producer batches only consecutive identical static indexed draws, with
+	// world transforms as the sole varying state. Every other command is a barrier.
+	bool m_modelBatching = false, m_verifyModelBatching = false;
+	static constexpr unsigned MAX_MODEL_INSTANCES = 16; // 3 KiB Metal inline transform data
+	DrawCommand m_batchDraw {};
+	D3DMATRIX m_batchWorlds[MAX_MODEL_INSTANCES] {};
+	unsigned m_batchCount = 0;
+	std::unique_ptr<DeviceState> m_batchReference;
+	struct ModelBatchStats { uint64_t candidates=0, batches=0, instances=0, saved=0, verified=0; } m_batchStats;
+	bool canBatchModel(const DrawCommand& c) const;
+	bool modelBatchStateCompatible() const;
+	void flushModelBatch();
+	void execModelBatch(const DrawCommand& c, const D3DMATRIX* worlds, unsigned count);
 	void execClear(const std::vector<D3DRECT>& rects, DWORD flags, D3DCOLOR color, float z, DWORD stencil);
 	void execSetRenderTarget(Surface* rt, Surface* ds);
 	void execPresent(uint64_t serial, MTLViewport viewport);
@@ -738,6 +779,25 @@ private:
 	DWORD m_pendingClearStencil = 0;
 
 	DeviceState m_state;
+	// Derived from render-thread state, not encoder state. These survive encoder changes;
+	// resetState and applyState invalidate them when their actual inputs change.
+	struct DerivedUniforms
+	{
+		bool transformsDirty = true;
+		bool normalDirty = true;
+		bool lightsDirty = true;
+		bool viewInverseDirty = true;
+		D3DMATRIX worldView {}, worldViewProj {}, normalMatrix {}, viewInverse {};
+		LightUniform lights[MAX_LIGHTS] {};
+	} m_derivedUniforms;
+	// Render-thread cache of the shared uniform suffix. Its inputs change much
+	// less often than object transforms; encoder resets only invalidate bindings.
+	struct SharedVertexUniformCache
+	{
+		VertexUniforms value {};
+		bool dirty = true;
+		uint8_t numStages = 0, lighting = 0, clipPlaneMask = 0;
+	} m_sharedVertexUniforms;
 	bool m_recordingStateBlock = false;
 	std::map<DWORD, DeviceState> m_stateBlocks;
 	DWORD m_nextStateBlock = 1;
@@ -776,6 +836,7 @@ private:
 	bool m_softDepthValid = false;
 	bool captureSoftDepth(id<MTLTexture> depth);
 	unsigned renderTargetSamples() const;
+	id<MTLTexture> m_benchmarkPresentTarget = nil;
 	id<MTLRenderPipelineState> m_presentPipeline = nil;
 	id<MTLRenderPipelineState> m_clearPipelines[16] {};
 	id<MTLDepthStencilState> m_clearDepthStates[4] {};

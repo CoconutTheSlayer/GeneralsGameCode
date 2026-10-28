@@ -1,3 +1,4 @@
+#include "rts/benchmark.h"
 /*
 **	Command & Conquer Generals Zero Hour(tm)
 **	Copyright 2025 Electronic Arts Inc.
@@ -930,23 +931,24 @@ DECLARE_PERF_TIMER(GameEngine_update)
  */
 void GameEngine::update()
 {
+	RTS_BENCH_SCOPE("engine.update");
 	USE_PERF_TIMER(GameEngine_update)
 	{
 		{
 			// VERIFY CRC needs to be in this code block.  Please to not pull TheGameLogic->update() inside this block.
 			VERIFY_CRC
 
-			TheRadar->UPDATE();
+			{ RTS_BENCH_SCOPE("radar.update"); TheRadar->UPDATE(); }
 
 			/// @todo Move audio init, update, etc, into GameClient update
 
-			TheAudio->UPDATE();
+			{ RTS_BENCH_SCOPE("audio.update"); TheAudio->UPDATE(); }
 			TheGameClient->UPDATE();
-			TheMessageStream->propagateMessages();
+			{ RTS_BENCH_SCOPE("messages.propagate"); TheMessageStream->propagateMessages(); }
 
 			if (TheNetwork != nullptr)
 			{
-				TheNetwork->UPDATE();
+				{ RTS_BENCH_SCOPE("network.update"); TheNetwork->UPDATE(); }
 			}
 		}
 
@@ -979,6 +981,7 @@ void GameEngine::execute()
 	// pretty basic for now
 	while( !m_quitting )
 	{
+		RTS_BENCH_BEGIN_FRAME(TheGameLogic ? TheGameLogic->getFrame() : 0);
 
 		//if (TheGlobalData->m_vTune)
 		{
@@ -1040,8 +1043,10 @@ void GameEngine::execute()
 				}
 			}
 
-			TheFramePacer->update();
+			{ RTS_BENCH_SCOPE("wait.frame_pacer"); TheFramePacer->update(); }
 		}
+
+		RTS_BENCH_END_FRAME();
 
 #ifdef PERF_TIMERS
 		if (!m_quitting && TheGameLogic->isInGame() && !TheGameLogic->isInShellGame() && !TheGameLogic->isGamePaused())

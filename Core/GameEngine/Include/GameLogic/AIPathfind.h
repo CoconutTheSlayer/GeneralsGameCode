@@ -283,6 +283,10 @@ protected:
 	void adjustCoordToCell(Int cellX, Int cellY, Bool centerInCell, Coord3D &pos, PathfindLayerEnum layer);
 	Bool checkDestination(const Object *obj, Int cellX, Int cellY, PathfindLayerEnum layer, Int iRadius, Bool centerInCell);
 	Bool checkForMovement(const Object *obj, TCheckMovementInfo &info);
+#ifdef RTS_POSIX_PORT
+	Bool checkForMovementFast(const Object *obj, TCheckMovementInfo &info);
+	Bool checkForMovementReference(const Object *obj, TCheckMovementInfo &info);
+#endif
 	Bool segmentIntersectsTallBuilding(const PathNode *curNode, PathNode *nextNode,
 		ObjectID ignoreBuilding, Coord3D *insertPos1, Coord3D *insertPos2, Coord3D *insertPos3);	///< Return true if the straight line between the given points intersects a tall building.
 	Bool circleClipsTallBuilding(const Coord3D *from, const Coord3D *to, Real radius, ObjectID ignoreBuilding, Coord3D *adjustTo);	///< Return true if the circle at the end of the line between the given points intersects a tall building.

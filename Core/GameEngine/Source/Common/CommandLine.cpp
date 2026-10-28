@@ -367,6 +367,9 @@ Int parseLogToConsole(char *args[], int)
 Int parseNoAudio(char *args[], int)
 {
 	TheWritableGlobalData->m_audioOn = false;
+#if defined(RTS_POSIX_PORT)
+	fprintf(stderr, "Audio disabled (-noaudio)\n");
+#endif
 	TheWritableGlobalData->m_speechOn = false;
 	TheWritableGlobalData->m_soundsOn = false;
 	TheWritableGlobalData->m_musicOn = false;
@@ -1339,8 +1342,10 @@ static CommandLineParam paramsForEngineInit[] =
 	// TheSuperHackers @feature xezon 03/08/2025 Force full viewport for 'Control Bar Pro' Addons like GenTool did it.
 	{ "-forcefullviewport", parseFullViewport },
 
-#if defined(RTS_DEBUG)
+#if defined(RTS_DEBUG) || defined(RTS_POSIX_PORT)
 	{ "-noaudio", parseNoAudio },
+#endif
+#if defined(RTS_DEBUG)
 	{ "-map", parseMapName },
 	{ "-nomusic", parseNoMusic },
 	{ "-novideo", parseNoVideo },

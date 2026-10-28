@@ -36,6 +36,12 @@
 
 // SYSTEM INCLUDES ////////////////////////////////////////////////////////////
 #include <assert.h>
+#if defined(RTS_POSIX_PORT)
+#include <time.h>
+#include <vector>
+#include "rts/visual_jobs.h"
+#include "GameLogic/GameLogic.h"
+#endif
 
 // USER INCLUDES //////////////////////////////////////////////////////////////
 #include "WWLib/always.h"
@@ -126,6 +132,49 @@ static Real beY;
 static Real beZ;
 
 static LPDIRECT3DVERTEXBUFFER8 lastActiveVertexBuffer=nullptr;
+
+#if defined(RTS_POSIX_PORT)
+namespace {
+struct ShadowUploadProfile
+{
+	Bool verify = getenv("GENERALS_VERIFY_SHADOW_STREAM") != nullptr;
+	Bool enabled = verify || getenv("GENERALS_SHADOW_STATS") != nullptr;
+	unsigned frames = 0;
+	unsigned long long uploads = 0, reused = 0, bytes = 0, nanos = 0;
+	unsigned long long verified = 0, errors = 0;
+} shadowUploadProfile;
+
+unsigned long long shadowCpuTime()
+{
+	timespec ts;
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts);
+	return (unsigned long long)ts.tv_sec * 1000000000 + ts.tv_nsec;
+}
+
+struct ShadowProfileScope
+{
+	unsigned long long start;
+	ShadowProfileScope() : start(shadowUploadProfile.enabled ? shadowCpuTime() : 0) {}
+	~ShadowProfileScope()
+	{
+		if (!shadowUploadProfile.enabled) return;
+		shadowUploadProfile.nanos += shadowCpuTime() - start;
+		if (++shadowUploadProfile.frames == 240)
+		{
+			fprintf(stderr, "SHADOW_STATS frames %u logic %u cpu_ms %.4f uploads %llu reused %llu bytes %llu verified %llu errors %llu\n",
+				shadowUploadProfile.frames, TheGameLogic ? TheGameLogic->getFrame() : 0, shadowUploadProfile.nanos / 240000000.0,
+				shadowUploadProfile.uploads, shadowUploadProfile.reused, shadowUploadProfile.bytes,
+				shadowUploadProfile.verified, shadowUploadProfile.errors);
+			shadowUploadProfile.frames = 0;
+			shadowUploadProfile.nanos = shadowUploadProfile.uploads = shadowUploadProfile.reused = shadowUploadProfile.bytes = 0;
+			shadowUploadProfile.verified = shadowUploadProfile.errors = 0;
+		}
+	}
+};
+} // namespace
+#endif
+
+
 
 /** A simple structure to hold random geometry (vertices, polygons, etc.).  We'll use this
 * to store shadow volumes. */
@@ -226,6 +275,260 @@ private:
 	SphereClass m_boundingSphere;	///<object space bounding sphere of shadow volume
 	VisibleState	m_visibleState;		///<flag if this geometry was visible in this frame.
 };
+
+#if defined(RTS_POSIX_PORT) && !defined(SV_DEBUG) && !defined(SV_DEBUG_BOUNDS)
+#define BATCH_DYNAMIC_SHADOWS
+namespace {
+// Dynamic volumes share all rendering state except their world transform. Bake it
+// into position-only vertices and submit bounded 16-bit-index batches. Front and
+// back stencil passes remain separate: INCR and DECRSAT cannot be interleaved.
+// Within each pass depth/color writes are off and every volume uses the same stencil
+// comparison/op, so grouping volumes preserves the per-pixel stencil contribution.
+// Dynamic silhouette and extrusion jobs use private scratch flags and distinct
+// (caster, mesh) output buffers. Hierarchy updates, shared normal-cache creation,
+// allocations of engine objects and all graphics calls stay on the game thread.
+struct ShadowBuildJob
+{
+ W3DVolumetricShadow* shadow;
+ Vector3 light;
+ Real distance;
+ Int lightIndex, meshIndex;
+ Bool rebuildSilhouette;
+ std::vector<Short> originalSilhouette; // populated only by the verification mode
+};
+std::vector<ShadowBuildJob> shadowBuildJobs;
+std::vector<W3DVolumetricShadowRenderTask*> shadowDrawOrder;
+Bool deferShadowBuilds = FALSE;
+
+struct ShadowBatch
+{
+	std::vector<Vector3> vertices;
+	std::vector<UnsignedShort> indices;
+	LPDIRECT3DVERTEXBUFFER8 vertexBuffer = nullptr;
+	LPDIRECT3DINDEXBUFFER8 indexBuffer = nullptr;
+	size_t vertexCapacity = 0, indexCapacity = 0;
+};
+std::vector<ShadowBatch> shadowBatches;
+struct ShadowTransformJob
+{
+ Geometry* geometry;
+ Matrix3D transform;
+ size_t batch, vertexOffset, indexOffset;
+};
+std::vector<ShadowTransformJob> shadowTransformJobs;
+Bool parallelShadowTransforms = FALSE;
+size_t shadowBatchIndex = 0;
+Bool collectingShadowBatches = FALSE;
+Bool shadowBatchCollectionFailed = FALSE;
+
+Bool batchDynamicShadows()
+{
+	static const char *setting = getenv("GENERALS_DYNAMIC_SHADOW_STREAM");
+	static const Bool enabled = !setting || atoi(setting) != 0;
+	return enabled;
+}
+
+Bool lazyShadowPreparation()
+{
+	static const char *setting = getenv("GENERALS_LAZY_SHADOW_PREP");
+	// The measured CPU saving did not translate into repeatable battle FPS gains.
+	static const Bool enabled = setting && atoi(setting) != 0;
+	return enabled;
+}
+Bool verifyShadowPreparation()
+{
+	static const char *setting = getenv("GENERALS_VERIFY_SHADOW_PREP");
+	static const Bool enabled = setting && atoi(setting) != 0;
+	return enabled;
+}
+unsigned shadowBoundsSkipped = 0, shadowBoundsPrepared = 0;
+
+void releaseShadowBatches()
+{
+	for (auto &batch : shadowBatches)
+	{
+		if (batch.vertexBuffer) batch.vertexBuffer->Release();
+		if (batch.indexBuffer) batch.indexBuffer->Release();
+	}
+	shadowBatches.clear();
+	shadowTransformJobs.clear();
+	collectingShadowBatches = FALSE;
+}
+
+void beginShadowBatches()
+{
+	shadowBatchIndex = 0;
+	shadowTransformJobs.clear();
+	parallelShadowTransforms = rts_visual::enabled("GENERALS_PARALLEL_SHADOWS");
+	for (auto &batch : shadowBatches)
+	{
+		batch.vertices.clear();
+		batch.indices.clear();
+	}
+	collectingShadowBatches = TRUE;
+	shadowBatchCollectionFailed = FALSE;
+}
+
+Bool collectShadowBatch(Geometry *geometry, const Matrix3D *transform)
+{
+	const size_t vertexCount = geometry->GetNumActiveVertex();
+	const size_t indexCount = geometry->GetNumActivePolygon() * 3;
+	if (vertexCount > 65535) shadowBatchCollectionFailed = TRUE;
+	// Defer the entire frame to the original path on unsupported geometry; drawing
+	// only some original volumes here would double their stencil contribution on fallback.
+	if (shadowBatchCollectionFailed) return TRUE;
+	if (shadowBatchIndex < shadowBatches.size() && shadowBatches[shadowBatchIndex].vertices.size() + vertexCount > 65535)
+		++shadowBatchIndex;
+	if (shadowBatchIndex == shadowBatches.size()) shadowBatches.emplace_back();
+	ShadowBatch &batch = shadowBatches[shadowBatchIndex];
+	const size_t baseVertex = batch.vertices.size();
+	batch.vertices.resize(baseVertex + vertexCount);
+	const size_t baseIndex = batch.indices.size();
+	batch.indices.resize(baseIndex + indexCount);
+	if (parallelShadowTransforms)
+		shadowTransformJobs.push_back({geometry, *transform, shadowBatchIndex, baseVertex, baseIndex});
+	else
+	{
+		for (size_t i = 0; i < vertexCount; ++i)
+			Matrix3D::Transform_Vector(*transform, *geometry->GetVertex(i), &batch.vertices[baseVertex + i]);
+		short triangle[3];
+		const UnsignedShort *sourceIndices = geometry->GetPolygonIndex(0, triangle);
+		for (size_t i = 0; i < indexCount; ++i)
+			batch.indices[baseIndex + i] = (UnsignedShort)(baseVertex + sourceIndices[i]);
+	}
+	if (shadowUploadProfile.enabled) ++shadowUploadProfile.reused;
+	return TRUE;
+}
+
+void prepareShadowBatches()
+{
+	if (shadowTransformJobs.empty()) return;
+	RTS_BENCH_SCOPE("shadows.transform_jobs");
+	RTS_BENCH_COUNTER("shadows.transform_jobs", shadowTransformJobs.size());
+	// All vector growth is complete before workers write their disjoint slices.
+	rts_visual::parallelFor(shadowTransformJobs.size(), 16, "shadows.world_transform", [&](size_t j) {
+		const auto& job = shadowTransformJobs[j];
+		auto& batch = shadowBatches[job.batch];
+		for (int i = 0; i < job.geometry->GetNumActiveVertex(); ++i)
+			Matrix3D::Transform_Vector(job.transform, *job.geometry->GetVertex(i), &batch.vertices[job.vertexOffset + i]);
+		short triangle[3];
+		const auto* indices = job.geometry->GetPolygonIndex(0, triangle);
+		for (int i = 0; i < job.geometry->GetNumActivePolygon() * 3; ++i)
+			batch.indices[job.indexOffset + i] = (UnsignedShort)(job.vertexOffset + indices[i]);
+	});
+	if (rts_visual::verify())
+	{
+		for (const auto& job : shadowTransformJobs)
+		{
+			const auto& batch = shadowBatches[job.batch];
+			for (int i = 0; i < job.geometry->GetNumActiveVertex(); ++i)
+			{
+				Vector3 reference;
+				Matrix3D::Transform_Vector(job.transform, *job.geometry->GetVertex(i), &reference);
+				if (memcmp(&reference, &batch.vertices[job.vertexOffset+i], sizeof(Vector3)))
+				{ fprintf(stderr, "VISUAL_VERIFY shadow transform mismatch\n"); abort(); }
+			}
+			short triangle[3];
+			const auto* indices = job.geometry->GetPolygonIndex(0, triangle);
+			for (int i = 0; i < job.geometry->GetNumActivePolygon() * 3; ++i)
+				if (batch.indices[job.indexOffset+i] != (UnsignedShort)(job.vertexOffset+indices[i]))
+				{ fprintf(stderr, "VISUAL_VERIFY shadow index mismatch\n"); abort(); }
+		}
+		RTS_BENCH_COUNTER("verify.shadow_transforms", shadowTransformJobs.size());
+	}
+}
+
+Bool uploadShadowBatches(LPDIRECT3DDEVICE8 device)
+{
+	if (parallelShadowTransforms) prepareShadowBatches();
+	static_assert(sizeof(Vector3) == sizeof(SHADOW_DYNAMIC_VOLUME_VERTEX), "Position-only shadow vertices required");
+	for (auto &batch : shadowBatches)
+	{
+		if (batch.vertices.empty()) continue;
+		if (batch.vertexCapacity < batch.vertices.size())
+		{
+			LPDIRECT3DVERTEXBUFFER8 buffer = nullptr;
+			const size_t capacity = __max((size_t)16384, batch.vertices.size() * 2);
+			if (FAILED(device->CreateVertexBuffer(capacity * sizeof(Vector3), D3DUSAGE_WRITEONLY | D3DUSAGE_DYNAMIC,
+				SHADOW_DYNAMIC_VOLUME_FVF, D3DPOOL_DEFAULT, &buffer))) return FALSE;
+			if (batch.vertexBuffer) batch.vertexBuffer->Release();
+			batch.vertexBuffer = buffer;
+			batch.vertexCapacity = capacity;
+		}
+		if (batch.indexCapacity < batch.indices.size())
+		{
+			LPDIRECT3DINDEXBUFFER8 buffer = nullptr;
+			const size_t capacity = __max((size_t)32768, batch.indices.size() * 2);
+			if (FAILED(device->CreateIndexBuffer(capacity * sizeof(UnsignedShort), D3DUSAGE_WRITEONLY | D3DUSAGE_DYNAMIC,
+				D3DFMT_INDEX16, D3DPOOL_DEFAULT, &buffer))) return FALSE;
+			if (batch.indexBuffer) batch.indexBuffer->Release();
+			batch.indexBuffer = buffer;
+			batch.indexCapacity = capacity;
+		}
+		BYTE *vertices = nullptr, *indices = nullptr;
+		const size_t vertexBytes = batch.vertices.size() * sizeof(Vector3);
+		const size_t indexBytes = batch.indices.size() * sizeof(UnsignedShort);
+		if (FAILED(batch.vertexBuffer->Lock(0, vertexBytes, &vertices, D3DLOCK_DISCARD))) return FALSE;
+		if (FAILED(batch.indexBuffer->Lock(0, indexBytes, &indices, D3DLOCK_DISCARD)))
+		{
+			batch.vertexBuffer->Unlock();
+			return FALSE;
+		}
+		memcpy(vertices, batch.vertices.data(), vertexBytes);
+		memcpy(indices, batch.indices.data(), indexBytes);
+		batch.indexBuffer->Unlock();
+		batch.vertexBuffer->Unlock();
+		if (shadowUploadProfile.enabled)
+		{
+			++shadowUploadProfile.uploads;
+			shadowUploadProfile.bytes += vertexBytes + indexBytes;
+		}
+		if (shadowUploadProfile.verify)
+		{
+			Bool valid = TRUE;
+			for (UnsignedShort index : batch.indices) valid = valid && index < batch.vertices.size();
+			if (SUCCEEDED(batch.vertexBuffer->Lock(0, vertexBytes, &vertices, D3DLOCK_READONLY)))
+			{
+				valid = valid && memcmp(vertices, batch.vertices.data(), vertexBytes) == 0;
+				batch.vertexBuffer->Unlock();
+			}
+			else valid = FALSE;
+			if (SUCCEEDED(batch.indexBuffer->Lock(0, indexBytes, &indices, D3DLOCK_READONLY)))
+			{
+				valid = valid && memcmp(indices, batch.indices.data(), indexBytes) == 0;
+				batch.indexBuffer->Unlock();
+			}
+			else valid = FALSE;
+			++shadowUploadProfile.verified;
+			if (!valid)
+			{
+				++shadowUploadProfile.errors;
+				fprintf(stderr, "SHADOW_VERIFY mismatch in uploaded batch\n");
+			}
+		}
+	}
+	return TRUE;
+}
+
+void renderShadowBatches(LPDIRECT3DDEVICE8 device)
+{
+	D3DMATRIX world = To_D3DMATRIX(Matrix3D::Identity);
+	device->SetTransform(D3DTS_WORLD, &world);
+	for (auto &batch : shadowBatches)
+	{
+		if (batch.vertices.empty()) continue;
+		device->SetIndices(batch.indexBuffer, 0);
+		device->SetStreamSource(0, batch.vertexBuffer, sizeof(Vector3));
+		lastActiveVertexBuffer = batch.vertexBuffer;
+		if (DX8Wrapper::_Is_Triangle_Draw_Enabled())
+		{
+			Debug_Statistics::Record_DX8_Polys_And_Vertices(batch.indices.size() / 3, batch.vertices.size(), ShaderClass::_PresetOpaqueShader);
+			device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, batch.vertices.size(), 0, batch.indices.size() / 3);
+		}
+	}
+}
+} // namespace
+#endif
 
 // CONST //////////////////////////////////////////////////////////////////////
 const Int MAX_POLYGON_NEIGHBORS = 3;  // we use nothing but triangles for
@@ -1422,7 +1725,16 @@ void W3DVolumetricShadow::RenderDynamicMeshVolume(Int meshIndex, Int lightIndex,
 	if( numVerts == 0 || numPolys == 0 )
 		return;
 
-
+#ifdef BATCH_DYNAMIC_SHADOWS
+	if (collectingShadowBatches && collectShadowBatch(geometry, meshXform)) return;
+#endif
+#if defined(RTS_POSIX_PORT)
+	if (shadowUploadProfile.enabled)
+	{
+		++shadowUploadProfile.uploads;
+		shadowUploadProfile.bytes += numVerts * sizeof(SHADOW_DYNAMIC_VOLUME_VERTEX) + numIndex * sizeof(UnsignedShort);
+	}
+#endif
 	if (nShadowVertsInBuf > (SHADOW_VERTEX_SIZE-numVerts))	//check if room for model verts
 	{
 		//flush the buffer by drawing the contents and re-locking again
@@ -1880,7 +2192,7 @@ void W3DVolumetricShadow::updateVolumes(Real zoffset)
 				/**@todo: Getting the transform of the mesh may be forcing a full hierarchy evaluation.
 					Expensive for off-screen models... do we really need this?	*/
 				//Extend floor of model by 'zoffset' to compensate for flying units.
-				updateMeshVolume(j, i, &mesh->Get_Transform(), mesh->Get_Bounding_Box(),m_robj->Get_Position().Z - zoffset);
+				updateMeshVolume(j, i, &mesh->Get_Transform(), mesh, zoffset);
 				//update visibility if not set yet
 				if (m_shadowVolume[i][j])
 				{
@@ -1934,10 +2246,20 @@ void W3DVolumetricShadow::updateVolumes(Real zoffset)
 	}
 }
 
-/*floorZ is the assumed ground height below the model.  The code will try to extrude shadows just long enough to hit this point in order
-to reduce fill rate usage.*/
-void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const Matrix3D *meshXform, const AABoxClass &meshBox, float floorZ )
+/* zoffset lowers the extrusion floor below the model. Bounds and the floor are
+only needed when rebuilding; moving a mesh need not rebuild its shadow volume. */
+void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const Matrix3D *meshXform, RenderObjClass *mesh, Real zoffset)
 {
+	const AABoxClass *eagerBox = nullptr;
+	Real floorZ = 0;
+#ifdef BATCH_DYNAMIC_SHADOWS
+	if (!lazyShadowPreparation() || verifyShadowPreparation())
+#endif
+	{
+		// Retain the original eager path for comparisons and verification.
+		eagerBox = &mesh->Get_Bounding_Box();
+		floorZ = m_robj->Get_Position().Z - zoffset;
+	}
 	Vector3 lightPosObject;
 	Matrix4x4 worldToObject;
 	Vector3 objectCenter;
@@ -2081,7 +2403,20 @@ void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const 
 		//Updating shadow volumes is expensive, so verify that this volume is even visible.
 
 		//Generate bounding box around shadow volume by extruding AABB corners
-		AABoxClass box(meshBox);	//copy current mesh bounding box (will be smaller than shadow box).
+		AABoxClass box(eagerBox ? *eagerBox : mesh->Get_Bounding_Box());
+#ifdef BATCH_DYNAMIC_SHADOWS
+		++shadowBoundsPrepared;
+		if (verifyShadowPreparation())
+		{
+			const AABoxClass reference = box;
+			const Real referenceFloor = floorZ;
+			box = mesh->Get_Bounding_Box();
+			floorZ = m_robj->Get_Position().Z - zoffset;
+			if (memcmp(&reference, &box, sizeof(box)) || memcmp(&referenceFloor, &floorZ, sizeof(floorZ)))
+			{ fprintf(stderr, "SHADOW_PREP_VERIFY bounds/floor mismatch\n"); abort(); }
+		}
+#endif
+		if (!eagerBox) floorZ = m_robj->Get_Position().Z - zoffset;
 		SphereClass sphere;			//rough bounding sphere of shadow volume - based on box.
 		Vector3 Corners[8];
 		Vector3 lightRay;
@@ -2156,8 +2491,16 @@ void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const 
 				//make future updates faster by pre-caching face normals.
 				m_geometry->getMesh(meshIndex)->buildPolygonNormals();
 			}
-			resetSilhouette(meshIndex);
-			buildSilhouette(meshIndex, &lightPosObject);
+			Bool deferredSilhouette = FALSE;
+#ifdef BATCH_DYNAMIC_SHADOWS
+			deferredSilhouette = deferShadowBuilds && m_shadowVolume[lightIndex][meshIndex] &&
+				(m_shadowVolume[lightIndex][meshIndex]->GetFlags() & SHADOW_DYNAMIC) && !m_shadowVolumeVB[lightIndex][meshIndex];
+#endif
+			if (!deferredSilhouette)
+			{
+				resetSilhouette(meshIndex);
+				buildSilhouette(meshIndex, &lightPosObject);
+			}
 
 			//
 			// in a multiple shadow situation we would be allocating a volume
@@ -2189,7 +2532,19 @@ void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const 
 			// passed shadow volume geometry index
 			//
 			if (m_shadowVolume[ lightIndex ][meshIndex]->GetFlags() & SHADOW_DYNAMIC)
-				constructVolume( &lightPosObject, vectorScaleMax, lightIndex, meshIndex );
+			{
+#ifdef BATCH_DYNAMIC_SHADOWS
+				if (deferShadowBuilds)
+				{
+					ShadowBuildJob job{this, lightPosObject, vectorScaleMax, lightIndex, meshIndex, deferredSilhouette, {}};
+					if (rts_visual::verify() && !deferredSilhouette) job.originalSilhouette.assign(m_silhouetteIndex[meshIndex],
+						m_silhouetteIndex[meshIndex] + m_numSilhouetteIndices[meshIndex]);
+					shadowBuildJobs.push_back(std::move(job));
+				}
+				else
+#endif
+					constructVolume( &lightPosObject, vectorScaleMax, lightIndex, meshIndex );
+			}
 			else
 				constructVolumeVB( &lightPosObject, vectorScaleMax, lightIndex, meshIndex );
 
@@ -2220,6 +2575,9 @@ void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const 
 	else
 	{
 		//not reconstructing volume, so don't know if visible or not.
+#ifdef BATCH_DYNAMIC_SHADOWS
+		++shadowBoundsSkipped;
+#endif
 		if (m_shadowVolume[ lightIndex ][meshIndex])
 			m_shadowVolume[ lightIndex ][meshIndex]->setVisibleState(Geometry::STATE_UNKNOWN);
 	}
@@ -2402,7 +2760,7 @@ void W3DVolumetricShadow::addSilhouetteIndices(Int meshIndex, Short edgeStart, S
 // Given a light position, and our polygon neighbor information this will
 // build the silhouette of the object edges from the given light position
 // ============================================================================
-void W3DVolumetricShadow::buildSilhouette(Int meshIndex, Vector3 *lightPosObject)
+void W3DVolumetricShadow::buildSilhouette(Int meshIndex, Vector3 *lightPosObject, Bool privateFlags)
 {
 	PolyNeighbor *polyNeighbor;  // the poly we're looking at right now
 	Vector3 lightVector;  // vector from light to polygon
@@ -2423,6 +2781,15 @@ void W3DVolumetricShadow::buildSilhouette(Int meshIndex, Vector3 *lightPosObject
 	meshEdgeStart=m_numSilhouetteIndices[meshIndex];
 
 	numPolys = geomMesh->GetNumPolygon();
+#if defined(RTS_POSIX_PORT)
+	thread_local std::vector<Byte> privateStatus;
+	if (privateFlags) privateStatus.resize(numPolys);
+	auto status = [&](PolyNeighbor* polygon) -> Byte& {
+		return privateFlags ? privateStatus[polygon->myIndex] : polygon->status;
+	};
+#else
+	auto status = [](PolyNeighbor* polygon) -> Byte& { return polygon->status; };
+#endif
 	for( i = 0; i < numPolys; i++ )
 	{
 		Short poly[ 3 ];
@@ -2431,7 +2798,7 @@ void W3DVolumetricShadow::buildSilhouette(Int meshIndex, Vector3 *lightPosObject
 		polyNeighbor = geomMesh->GetPolyNeighbor( i );
 
 		// take this opportunity to initialize our processing flags to zero
-		polyNeighbor->status = 0;
+		status(polyNeighbor) = 0;
 
 		// get the normal for this polygon
 		const Vector3& normal=geomMesh->GetPolygonNormal(i);
@@ -2457,7 +2824,7 @@ void W3DVolumetricShadow::buildSilhouette(Int meshIndex, Vector3 *lightPosObject
 		// poly is visible from this location
 		//
 		if( Vector3::Dot_Product( lightVector, normal ) < 0.0f )
-			BitSet( polyNeighbor->status, POLY_VISIBLE );
+			BitSet( status(polyNeighbor), POLY_VISIBLE );
 
 	}
 
@@ -2496,7 +2863,7 @@ void W3DVolumetricShadow::buildSilhouette(Int meshIndex, Vector3 *lightPosObject
 				// ignore neighbors that are marked as processed as those
 				// ones have already detected edges if present
 				//
-				if( BitIsSet( otherNeighbor->status, POLY_PROCESSED ) )
+				if( BitIsSet( status(otherNeighbor), POLY_PROCESSED ) )
 					continue;  // for j
 
 			}
@@ -2509,7 +2876,7 @@ void W3DVolumetricShadow::buildSilhouette(Int meshIndex, Vector3 *lightPosObject
 			// if we have no neighbor we just record the fact that we have
 			// real model end edges to add after this inner j loop;
 			//
-			if( BitIsSet( polyNeighbor->status, POLY_VISIBLE ) )
+			if( BitIsSet( status(polyNeighbor), POLY_VISIBLE ) )
 			{
 
 				// check for no neighbor edges
@@ -2519,7 +2886,7 @@ void W3DVolumetricShadow::buildSilhouette(Int meshIndex, Vector3 *lightPosObject
 					visibleNeighborless = TRUE;
 
 				}
-				else if( BitIsSet( otherNeighbor->status, POLY_VISIBLE ) == FALSE )
+				else if( BitIsSet( status(otherNeighbor), POLY_VISIBLE ) == FALSE )
 				{
 
 					// "we" are visible and "they" are not
@@ -2529,7 +2896,7 @@ void W3DVolumetricShadow::buildSilhouette(Int meshIndex, Vector3 *lightPosObject
 
 			}
 			else if( otherNeighbor != nullptr &&
-							 BitIsSet( otherNeighbor->status, POLY_VISIBLE ) )
+							 BitIsSet( status(otherNeighbor), POLY_VISIBLE ) )
 			{
 
 				// "they" are visible and "we" are not
@@ -2555,7 +2922,7 @@ void W3DVolumetricShadow::buildSilhouette(Int meshIndex, Vector3 *lightPosObject
 		// polygons that reference back to this one can ignore their
 		// processing cause any edges were already detected
 		//
-		BitSet( polyNeighbor->status, POLY_PROCESSED );
+		BitSet( status(polyNeighbor), POLY_PROCESSED );
 
 	}
 
@@ -3445,6 +3812,9 @@ void W3DVolumetricShadowManager::renderStencilShadows()
 
 void W3DVolumetricShadowManager::renderShadows( Bool forceStencilFill )
 {
+#if defined(RTS_POSIX_PORT)
+	ShadowProfileScope profileScope;
+#endif
 	W3DVolumetricShadow *shadow;
 	Int numRenderedShadows = 0;
 
@@ -3557,30 +3927,106 @@ void W3DVolumetricShadowManager::renderShadows( Bool forceStencilFill )
 
 		lastActiveVertexBuffer=nullptr;	//reset
 
+#ifdef BATCH_DYNAMIC_SHADOWS
+		Bool batched = batchDynamicShadows();
+		shadowBoundsSkipped = shadowBoundsPrepared = 0;
+		if (batched) beginShadowBatches();
+		// A caster shares its silhouette between lights. Defer only the single-sun
+		// configuration; multiple lights retain the original serial path.
+		deferShadowBuilds = MAX_SHADOW_LIGHTS == 1 && rts_visual::enabled("GENERALS_PARALLEL_SHADOWS");
+		shadowBuildJobs.clear();
+		shadowDrawOrder.clear();
+#endif
+
 		m_dynamicShadowVolumesToRender=nullptr;	//clear list of pending dynamic shadows
 		W3DVolumetricShadowRenderTask *shadowDynamicTasksStart,*shadowDynamicTask;
 
 		// step through each of our shadows and render
-		for( shadow = m_shadowList; shadow; shadow = shadow->m_next )
 		{
-			if (shadow->m_isEnabled && !shadow->m_isInvisibleEnabled)
+			RTS_BENCH_SCOPE("shadows.update_and_collect");
+			for( shadow = m_shadowList; shadow; shadow = shadow->m_next )
 			{
-				//Record last added task
-				shadowDynamicTasksStart=m_dynamicShadowVolumesToRender;
-				shadow->Update();
-				shadowDynamicTask=m_dynamicShadowVolumesToRender;
-				while (shadowDynamicTask != shadowDynamicTasksStart)
+				if (shadow->m_isEnabled && !shadow->m_isInvisibleEnabled)
 				{
-					//update() added a dynamic shadow
-					//dynamic shadow columns don't need to wait in queue since they
-					//all use the same vertex buffer.  Flush them ASAP.
-					shadow->RenderVolume(shadowDynamicTask->m_meshIndex,shadowDynamicTask->m_lightIndex);
-					//move to next dynamic task
-					shadowDynamicTask=(W3DVolumetricShadowRenderTask *)shadowDynamicTask->m_nextTask;
-					numRenderedShadows++;
+					//Record last added task
+					shadowDynamicTasksStart=m_dynamicShadowVolumesToRender;
+					shadow->Update();
+					shadowDynamicTask=m_dynamicShadowVolumesToRender;
+					while (shadowDynamicTask != shadowDynamicTasksStart)
+					{
+						// Queue the volume for batching, or submit it immediately on the original path.
+#ifdef BATCH_DYNAMIC_SHADOWS
+						if (deferShadowBuilds) shadowDrawOrder.push_back(shadowDynamicTask);
+						else
+#endif
+							shadow->RenderVolume(shadowDynamicTask->m_meshIndex,shadowDynamicTask->m_lightIndex);
+						//move to next dynamic task
+						shadowDynamicTask=(W3DVolumetricShadowRenderTask *)shadowDynamicTask->m_nextTask;
+						numRenderedShadows++;
+					}
 				}
 			}
 		}
+
+#ifdef BATCH_DYNAMIC_SHADOWS
+		RTS_BENCH_COUNTER("shadows.bounds_not_needed", shadowBoundsSkipped);
+		RTS_BENCH_COUNTER("shadows.bounds_prepared", shadowBoundsPrepared);
+		if (verifyShadowPreparation()) RTS_BENCH_COUNTER("verify.shadow_bounds", shadowBoundsPrepared);
+		if (deferShadowBuilds)
+		{
+			RTS_BENCH_SCOPE("shadows.build_jobs");
+			RTS_BENCH_COUNTER("shadows.geometry_jobs", shadowBuildJobs.size());
+			rts_visual::parallelFor(shadowBuildJobs.size(), 8, "shadows.build", [&](size_t index) {
+				auto& job = shadowBuildJobs[index];
+				if (job.rebuildSilhouette)
+				{
+					job.shadow->resetSilhouette(job.meshIndex);
+					job.shadow->buildSilhouette(job.meshIndex, &job.light, TRUE);
+				}
+				job.shadow->constructVolume(&job.light, job.distance, job.lightIndex, job.meshIndex);
+			});
+			if (rts_visual::verify())
+			{
+				for (auto& job : shadowBuildJobs)
+				{
+					Geometry* geometry = job.shadow->m_shadowVolume[job.lightIndex][job.meshIndex];
+					const int nv = geometry->GetNumActiveVertex(), np = geometry->GetNumActivePolygon();
+					std::vector<Vector3> vertices;
+					std::vector<UnsignedShort> indices;
+					for (int v = 0; v < nv; ++v) vertices.push_back(*geometry->GetVertex(v));
+					short triangle[3];
+					if (np) { const auto* source = geometry->GetPolygonIndex(0, triangle); indices.assign(source, source + np*3); }
+					if (job.rebuildSilhouette)
+					{
+						job.shadow->resetSilhouette(job.meshIndex);
+						job.shadow->buildSilhouette(job.meshIndex, &job.light);
+					}
+					else std::copy(job.originalSilhouette.begin(), job.originalSilhouette.end(), job.shadow->m_silhouetteIndex[job.meshIndex]);
+					job.shadow->constructVolume(&job.light, job.distance, job.lightIndex, job.meshIndex);
+					bool same = nv == geometry->GetNumActiveVertex() && np == geometry->GetNumActivePolygon();
+					for (int v = 0; same && v < nv; ++v) same = memcmp(&vertices[v], geometry->GetVertex(v), sizeof(Vector3)) == 0;
+					if (same && np) same = memcmp(indices.data(), geometry->GetPolygonIndex(0, triangle), indices.size()*sizeof(UnsignedShort)) == 0;
+					if (!same) { fprintf(stderr, "VISUAL_VERIFY shadow mismatch\n"); abort(); }
+				}
+				RTS_BENCH_COUNTER("verify.shadow_jobs", shadowBuildJobs.size());
+			}
+			deferShadowBuilds = FALSE;
+			// Preserve the original per-caster draw order, including alpha/stencil state.
+			for (auto* task : shadowDrawOrder) task->m_parentShadow->RenderVolume(task->m_meshIndex, task->m_lightIndex);
+		}
+		collectingShadowBatches = FALSE;
+		if (batched)
+		{
+			batched = !shadowBatchCollectionFailed && uploadShadowBatches(m_pDev);
+			if (batched) renderShadowBatches(m_pDev);
+			else
+			{
+				// Nothing batched was drawn yet. Preserve shadows if allocation/locking fails.
+				for (auto *task = m_dynamicShadowVolumesToRender; task; task = (W3DVolumetricShadowRenderTask *)task->m_nextTask)
+					task->m_parentShadow->RenderVolume(task->m_meshIndex, task->m_lightIndex);
+			}
+		}
+#endif
 
 		// Set vertex format to that used by static shadow volumes
 		m_pDev->SetVertexShader(W3DBufferManager::getDX8Format(W3DBufferManager::VBM_FVF_XYZ));
@@ -3621,13 +4067,17 @@ void W3DVolumetricShadowManager::renderShadows( Bool forceStencilFill )
 
 		m_pDev->SetVertexShader(SHADOW_DYNAMIC_VOLUME_FVF);
 		//flush any dynamic shadow volumes
-		shadowDynamicTask=m_dynamicShadowVolumesToRender;
-		while (shadowDynamicTask)
+#ifdef BATCH_DYNAMIC_SHADOWS
+		if (batched) renderShadowBatches(m_pDev);
+		else
+#endif
 		{
-			//dynamic shadow columns don't need to wait in queue since they
-			//all use the same vertex buffer.  Flush them ASAP.
-			shadowDynamicTask->m_parentShadow->RenderVolume(shadowDynamicTask->m_meshIndex,shadowDynamicTask->m_lightIndex);
-			shadowDynamicTask=(W3DVolumetricShadowRenderTask *)shadowDynamicTask->m_nextTask;
+			shadowDynamicTask=m_dynamicShadowVolumesToRender;
+			while (shadowDynamicTask)
+			{
+				shadowDynamicTask->m_parentShadow->RenderVolume(shadowDynamicTask->m_meshIndex,shadowDynamicTask->m_lightIndex);
+				shadowDynamicTask=(W3DVolumetricShadowRenderTask *)shadowDynamicTask->m_nextTask;
+			}
 		}
 
 		//Reset all render tasks for next frame.
@@ -3771,6 +4221,9 @@ W3DVolumetricShadowManager::~W3DVolumetricShadowManager()
 /** Releases all W3D/D3D assets before a reset.. */
 void W3DVolumetricShadowManager::ReleaseResources()
 {
+#ifdef BATCH_DYNAMIC_SHADOWS
+	releaseShadowBatches();
+#endif
 	if (shadowIndexBufferD3D)
 		shadowIndexBufferD3D->Release();
 	if (shadowVertexBufferD3D)

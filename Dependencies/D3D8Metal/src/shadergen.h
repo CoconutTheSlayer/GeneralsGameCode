@@ -45,6 +45,8 @@ enum BufferSlot
 {
 	BUFFER_UNIFORMS = 0,
 	BUFFER_SHADER_CONSTANTS = 1, // vs.1.1 / ps.1.x constant registers
+	BUFFER_VERTEX_TRANSFORMS = 2, // frequently changing object transforms
+	BUFFER_MODEL_INSTANCES = 3,
 	BUFFER_STREAM0 = 16,
 };
 
@@ -103,7 +105,9 @@ struct ShaderKey
 	// Soft particles: fade the result where it nears the scene depth behind it. 1 scales alpha,
 	// 2 scales color and alpha (additive blending), 3 fades color to white (multiplicative).
 	uint8_t softParticle;
-	uint8_t pad[7];
+	uint8_t splitUniforms; // transforms have their own buffer; part of the persistent shader key
+	uint8_t instanced; // consecutive static models read an array of object transforms
+	uint8_t pad[5];
 
 	uint64_t hash() const;
 	bool operator==(const ShaderKey& o) const { return memcmp(this, &o, sizeof(*this)) == 0; }
@@ -160,6 +164,11 @@ struct VertexUniforms
 	float pointScale[4];    // A, B, C, viewport height
 	LightUniform lights[8];
 };
+
+// The shared block keeps its existing layout. In split mode its first three
+// matrices are unused by the shader and are supplied through buffer 2 instead.
+constexpr size_t VERTEX_TRANSFORM_BYTES = 3 * 16 * sizeof(float);
+static_assert(offsetof(VertexUniforms, texMatrix) == VERTEX_TRANSFORM_BYTES);
 
 struct FragmentUniforms
 {

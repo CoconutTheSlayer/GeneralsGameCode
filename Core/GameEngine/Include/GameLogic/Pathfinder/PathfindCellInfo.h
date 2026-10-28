@@ -44,6 +44,9 @@ protected:
 	PathfindCell *m_cell;															///< Cell this info belongs to currently.
 
 	UnsignedShort m_totalCost, m_costSoFar;	///< cost estimates for A* search
+#ifdef RTS_POSIX_PORT
+	UnsignedShort m_openIndexCost; ///< insertion cost; callers may change totalCost BEFORE unlinking
+#endif
 
 	/// have to include cell's coordinates, since cells are often accessed via pointer only
 	ICoord2D m_pos;

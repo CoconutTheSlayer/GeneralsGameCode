@@ -121,7 +121,7 @@ class W3DVolumetricShadow	: public Shadow
 		// called once per frame, updates shadow volume when necessary
 		void Update();
 		void updateVolumes(Real zoffset);	///<update shadow volumes of all meshes in this model
-		void updateMeshVolume(Int meshIndex, Int lightIndex, const Matrix3D *meshXform, const AABoxClass &meshBox, float floorZ);///<update shadow volume of this mesh.
+		void updateMeshVolume(Int meshIndex, Int lightIndex, const Matrix3D *meshXform, RenderObjClass *mesh, Real zoffset);///<update shadow volume of this mesh.
 
 		// rendering interface
 		void RenderVolume(Int meshIndex, Int lightIndex);	///<renders a specific volume from the model hierarchy
@@ -135,7 +135,7 @@ class W3DVolumetricShadow	: public Shadow
 		W3DVolumetricShadow *m_next;	/// for the shadow manager list
 
 		// silhouette tools
-		void buildSilhouette(Int meshIndex, Vector3 *lightPosWorld);
+		void buildSilhouette(Int meshIndex, Vector3 *lightPosWorld, Bool privateFlags = FALSE);
 		void addSilhouetteEdge(Int meshIndex, PolyNeighbor *visible, PolyNeighbor *hidden );
 		void addNeighborlessEdges(Int meshIndex, PolyNeighbor *us );
 		void addSilhouetteIndices(Int meshIndex, Short edgeStart, Short edgeEnd );

@@ -96,6 +96,15 @@ fragment float4 clear_fs(constant ClearUniforms& u [[buffer(0)]])
 Device::Device(Direct3D* d3d, HWND window, DWORD behaviorFlags, D3DPRESENT_PARAMETERS* params)
 	: m_d3d(d3d), m_window(window), m_behaviorFlags(behaviorFlags), m_params(*params)
 {
+	const char* modelSubmission = getenv("D3D8METAL_MODEL_SUBMISSION");
+	m_modelSubmission = !modelSubmission || atoi(modelSubmission) != 0;
+	const char* modelBatching = getenv("D3D8METAL_MODEL_BATCHING");
+	m_modelBatching = modelBatching && atoi(modelBatching) != 0;
+	const char* verifyBatching = getenv("GENERALS_VERIFY_MODEL_BATCHING");
+	m_verifyModelBatching = verifyBatching && atoi(verifyBatching) != 0;
+	if (m_verifyModelBatching) m_batchReference = std::make_unique<DeviceState>();
+	const char* verifySubmission = getenv("GENERALS_VERIFY_MODEL_SUBMISSION");
+	m_verifyModelSubmission = verifySubmission && atoi(verifySubmission) != 0;
 	m_d3d->AddRef();
 	m_mtlDevice = d3d->m_mtlDevice;
 	m_native16 = [m_mtlDevice supportsFamily:MTLGPUFamilyApple1];
@@ -120,6 +129,7 @@ Device::Device(Direct3D* d3d, HWND window, DWORD behaviorFlags, D3DPRESENT_PARAM
 
 Device::~Device()
 {
+	if (rts_bench::enabled()) rts_bench::setHooks(nullptr, nullptr, nullptr);
 	stopWorker();
 	if (m_commandBuffer)
 	{
@@ -266,6 +276,7 @@ bool Device::initialize()
 	{
 		const char* env = getenv("D3D8METAL_THREADED");
 		m_threaded = env == nullptr || atoi(env) != 0;
+		initializeProfiling();
 		if (m_threaded)
 			m_worker = std::thread([this] { workerMain(); });
 		fprintf(stderr, "d3d8metal: render thread %s\n", m_threaded ? "on" : "off");
@@ -319,6 +330,9 @@ void Device::applyPresentationParameters()
 
 	UINT interval = m_params.FullScreen_PresentationInterval;
 	m_layer.displaySyncEnabled = !(interval == D3DPRESENT_INTERVAL_IMMEDIATE && !m_params.Windowed);
+	if (const char* vsync = getenv("D3D8METAL_VSYNC"))
+		m_layer.displaySyncEnabled = strcmp(vsync, "0") != 0;
+	rts_bench::metadata("display sync", m_layer.displaySyncEnabled ? "on" : "off");
 }
 
 bool Device::createSwapChainResources()
@@ -385,6 +399,8 @@ void Device::resetState()
 	++m_vsConstantsVersion;
 	++m_psConstantsVersion;
 	resetDeviceState(m_state);
+	m_derivedUniforms = DerivedUniforms {};
+	m_sharedVertexUniforms = SharedVertexUniformCache {};
 	// The game thread's copy starts out the same, with its own texture references (none).
 	for (int i = 0; i < MAX_STAGES; ++i)
 	{
@@ -517,6 +533,7 @@ id<MTLCommandBuffer> Device::commandBuffer()
 	if (m_commandBuffer == nil)
 	{
 		m_commandBuffer = [m_queue commandBuffer];
+		m_gpuProfile = newGPUProfile();
 	}
 	return m_commandBuffer;
 }
@@ -527,12 +544,13 @@ id<MTLBlitCommandEncoder> Device::uploadEncoder()
 	{
 		commandBuffer(); // the upload shares the serial of the command buffer it precedes
 		m_uploadCommandBuffer = [m_queue commandBuffer];
+		m_uploadGPUProfile = newGPUProfile();
 		// Take the queue position ahead of the command buffer being recorded, which is
 		// enqueued when it is committed.
 		[m_uploadCommandBuffer enqueue];
 	}
 	if (m_uploadBlit == nil)
-		m_uploadBlit = [m_uploadCommandBuffer blitCommandEncoder];
+		m_uploadBlit = profileBlitEncoder(m_uploadCommandBuffer, "texture uploads");
 	return m_uploadBlit;
 }
 
@@ -549,6 +567,7 @@ void Device::endRenderEncoder()
 // afterFlush(), so serials only ever change there.
 void Device::execFlush(uint64_t serial, bool wait)
 {
+	RTS_BENCH_SCOPE("renderer.flush");
 	endRenderEncoder();
 	if (m_commandBuffer == nil)
 		commandBuffer(); // an empty one still completes the serial
@@ -572,10 +591,14 @@ void Device::execFlush(uint64_t serial, bool wait)
 			m_uploadBlit = nil;
 		}
 		[m_uploadCommandBuffer addCompletedHandler:done];
+		completeGPUProfile(m_uploadCommandBuffer, m_uploadGPUProfile, "command: uploads");
+		m_uploadGPUProfile.reset();
 		[m_uploadCommandBuffer commit];
 		m_uploadCommandBuffer = nil;
 	}
 	[m_commandBuffer addCompletedHandler:done];
+	completeGPUProfile(m_commandBuffer, m_gpuProfile, "command: render");
+	m_gpuProfile.reset();
 	[m_commandBuffer commit];
 	if (wait)
 		[m_commandBuffer waitUntilCompleted];
@@ -584,6 +607,7 @@ void Device::execFlush(uint64_t serial, bool wait)
 
 Device::Transient Device::allocTransient(NSUInteger length, NSUInteger alignment)
 {
+	RTS_BENCH_COUNTER("transient_bytes", length);
 	// Game thread only: the render thread only reads the buffers it is given.
 	const NSUInteger kChunk = 4 * 1024 * 1024;
 	NSUInteger offset = (m_transientOffset + alignment - 1) & ~(alignment - 1);
@@ -732,6 +756,8 @@ void Device::markTextureUsed(TextureStorage& storage)
 
 void Device::uploadTexture(TextureStorage& storage, unsigned face, unsigned level, const RECT& rectIn)
 {
+	RTS_BENCH_SCOPE("d3d.texture_upload");
+	RTS_BENCH_COUNTER("texture_uploads", 1);
 	if (storage.texture == nil)
 		return;
 	unsigned w = storage.levelWidth(level);
@@ -804,7 +830,7 @@ void Device::uploadTexture(TextureStorage& storage, unsigned face, unsigned leve
 	submit([this, inOrder, texture, stagingBuffer, stagingOffset, dstPitch, dstRows, rw, rh, face, level, rect] {
 		if (inOrder)
 			endRenderEncoder();
-		id<MTLBlitCommandEncoder> blit = inOrder ? [commandBuffer() blitCommandEncoder] : uploadEncoder();
+		id<MTLBlitCommandEncoder> blit = inOrder ? profileBlitEncoder(commandBuffer(), "copy / readback") : uploadEncoder();
 		[blit copyFromBuffer:stagingBuffer
 				  sourceOffset:stagingOffset
 			 sourceBytesPerRow:dstPitch
@@ -834,7 +860,7 @@ void Device::readbackTexture(TextureStorage& storage, unsigned face, unsigned le
 	if (m_readbackBuffer == nil || [m_readbackBuffer length] < bytes)
 		m_readbackBuffer = [m_mtlDevice newBufferWithLength:bytes options:MTLResourceStorageModeShared];
 	id<MTLBuffer> buffer = m_readbackBuffer;
-	id<MTLBlitCommandEncoder> blit = [commandBuffer() blitCommandEncoder];
+	id<MTLBlitCommandEncoder> blit = profileBlitEncoder(commandBuffer(), "copy / readback");
 	[blit copyFromTexture:storage.texture
 				 sourceSlice:face
 				 sourceLevel:level
@@ -885,17 +911,40 @@ void Device::updateLetterbox()
 
 void Device::presentToDrawable(const MTLViewport& viewport)
 {
-	id<CAMetalDrawable> drawable = [m_layer nextDrawable];
-	if (drawable == nil)
-		return;
+	static const bool offscreen = getenv("D3D8METAL_BENCH_OFFSCREEN") && strcmp(getenv("D3D8METAL_BENCH_OFFSCREEN"), "0") != 0;
+	id<CAMetalDrawable> drawable = nil;
+	id<MTLTexture> target = nil;
+	if (offscreen)
+	{
+		// Benchmark the same presentation shader into a texture of the same size. This
+		// isolates renderer throughput from WindowServer/drawable pacing, not gameplay FPS.
+		NSUInteger w = std::max<NSUInteger>(1, m_layer.drawableSize.width);
+		NSUInteger h = std::max<NSUInteger>(1, m_layer.drawableSize.height);
+		if (!m_benchmarkPresentTarget || m_benchmarkPresentTarget.width != w || m_benchmarkPresentTarget.height != h)
+		{
+			auto desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:m_layer.pixelFormat width:w height:h mipmapped:NO];
+			desc.usage = MTLTextureUsageRenderTarget;
+			desc.storageMode = MTLStorageModePrivate;
+			m_benchmarkPresentTarget = [m_mtlDevice newTextureWithDescriptor:desc];
+		}
+		target = m_benchmarkPresentTarget;
+	}
+	else
+	{
+		RTS_BENCH_SCOPE("wait.drawable");
+		drawable = [m_layer nextDrawable];
+		target = drawable.texture;
+	}
+	if (target == nil) return;
 	if (g_gammaTexture == nil)
 		g_gammaTexture = createGammaTexture(m_mtlDevice, m_execGammaRamp);
 
 	MTLRenderPassDescriptor* pass = [MTLRenderPassDescriptor renderPassDescriptor];
-	pass.colorAttachments[0].texture = drawable.texture;
+	pass.colorAttachments[0].texture = target;
 	pass.colorAttachments[0].loadAction = MTLLoadActionClear;
 	pass.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 1);
 	pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+	profileRenderPass(pass, "presentation");
 	id<MTLRenderCommandEncoder> enc = [commandBuffer() renderCommandEncoderWithDescriptor:pass];
 	[enc setViewport:viewport];
 	[enc setRenderPipelineState:m_presentPipeline];
@@ -904,7 +953,7 @@ void Device::presentToDrawable(const MTLViewport& viewport)
 	[enc setFragmentSamplerState:m_presentSampler atIndex:0];
 	[enc drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
 	[enc endEncoding];
-	[commandBuffer() presentDrawable:drawable];
+	if (drawable) [commandBuffer() presentDrawable:drawable];
 }
 
 // D3D8METAL_SCREENSHOT=<prefix> writes <prefix>_<frame>.png every D3D8METAL_SCREENSHOT_EVERY
@@ -942,6 +991,26 @@ void Device::writeScreenshotIfRequested()
 
 HRESULT Device::Present(CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*)
 {
+	flushModelBatch();
+	RTS_BENCH_COUNTER("models.batch_candidates", m_batchStats.candidates);
+	RTS_BENCH_COUNTER("models.batches", m_batchStats.batches);
+	RTS_BENCH_COUNTER("models.batched_instances", m_batchStats.instances);
+	RTS_BENCH_COUNTER("models.draws_saved", m_batchStats.saved);
+	if (m_verifyModelBatching) RTS_BENCH_COUNTER("verify.model_batch_instances", m_batchStats.verified);
+	m_batchStats = {};
+	// Aggregate on the producer thread; avoid profiling calls for every light/draw.
+	RTS_BENCH_COUNTER("models.light_sets_skipped", m_modelSubmissionStats.lightsSkipped);
+	RTS_BENCH_COUNTER("models.light_enables_skipped", m_modelSubmissionStats.enablesSkipped);
+	RTS_BENCH_COUNTER("models.index_alignment_copies", m_modelSubmissionStats.indexCopies);
+	RTS_BENCH_COUNTER("models.index_alignment_bytes", m_modelSubmissionStats.indexCopyBytes);
+	RTS_BENCH_COUNTER("models.index_alignment_reuses", m_modelSubmissionStats.indexReuses);
+	RTS_BENCH_COUNTER("models.index_bytes_avoided", m_modelSubmissionStats.indexBytesAvoided);
+	if (m_verifyModelSubmission)
+	{
+		RTS_BENCH_COUNTER("verify.model_indices", m_modelSubmissionStats.verifiedIndices);
+		RTS_BENCH_COUNTER("verify.model_lights", m_modelSubmissionStats.verifiedLights);
+	}
+	m_modelSubmissionStats = {};
 	syncState();
 	writeScreenshotIfRequested();
 	// The window is the game thread's; the render thread gets the letterbox rectangle.
@@ -952,6 +1021,8 @@ HRESULT Device::Present(CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*)
 	if (trace)
 		unlink("/tmp/d3d8metal_trace");
 
+	{
+	RTS_BENCH_SCOPE("wait.render_queue");
 	// Stay at most one frame ahead of the render thread.
 	while (m_presentsSubmitted > m_presentsDone.load(std::memory_order_acquire) + 1)
 	{
@@ -960,10 +1031,12 @@ HRESULT Device::Present(CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*)
 		m_producerWake.wait_for(lock, std::chrono::milliseconds(1));
 		m_producerWaiting.store(false);
 	}
+	}
 	const uint64_t serial = m_currentSerial;
 	++m_presentsSubmitted;
 	submit([this, serial, viewport, trace] {
-		execPresent(serial, viewport);
+		{ RTS_BENCH_SCOPE("renderer.present"); execPresent(serial, viewport); }
+		rts_bench::endRenderFrame();
 		m_traceFrame = trace;
 		if (trace)
 			fprintf(stderr, "d3d8metal: ===== tracing one frame =====\n");
@@ -984,7 +1057,7 @@ void Device::execPresent(uint64_t serial, MTLViewport viewport)
 		renderEncoder();
 		endRenderEncoder();
 	}
-	dispatch_semaphore_wait(m_frameSemaphore, DISPATCH_TIME_FOREVER);
+	{ RTS_BENCH_SCOPE("wait.gpu_inflight"); dispatch_semaphore_wait(m_frameSemaphore, DISPATCH_TIME_FOREVER); }
 	presentToDrawable(viewport);
 	dispatch_semaphore_t sem = m_frameSemaphore;
 	[commandBuffer() addCompletedHandler:^(id<MTLCommandBuffer>) {
@@ -1318,7 +1391,7 @@ HRESULT Device::CopyRects(IDirect3DSurface8* pSourceSurface, CONST RECT* pSource
 			if (srcSurface == m_renderTarget && m_pendingClearFlags != 0)
 				renderEncoder();
 			endRenderEncoder();
-			id<MTLBlitCommandEncoder> blit = [commandBuffer() blitCommandEncoder];
+			id<MTLBlitCommandEncoder> blit = profileBlitEncoder(commandBuffer(), "copy / readback");
 			for (const Copy& c : copies)
 			{
 				[blit copyFromTexture:from
@@ -1492,6 +1565,7 @@ void Device::execSetRenderTarget(Surface* rt, Surface* ds)
 		m_state.viewport.Height = rt->height();
 		m_state.viewport.MinZ = 0.0f;
 		m_state.viewport.MaxZ = 1.0f;
+		m_sharedVertexUniforms.dirty = true; // dimensions and viewport changed with the target
 	}
 }
 
@@ -1597,6 +1671,11 @@ HRESULT Device::SetLight(DWORD Index, CONST D3DLIGHT8* light)
 {
 	if (Index >= MAX_LIGHTS || light == nullptr)
 		return D3DERR_INVALIDCALL;
+	if (m_modelSubmission && memcmp(&m_front.lights[Index], light, sizeof(*light)) == 0)
+	{
+		++m_modelSubmissionStats.lightsSkipped;
+		return D3D_OK; // Keep any already-pending dirty bit, including reset/state-block changes.
+	}
 	m_front.lights[Index] = *light;
 	m_dirtyMisc |= DIRTY_LIGHT0 << Index;
 	return D3D_OK;
@@ -1614,6 +1693,11 @@ HRESULT Device::LightEnable(DWORD Index, BOOL Enable)
 {
 	if (Index >= MAX_LIGHTS)
 		return D3DERR_INVALIDCALL;
+	if (m_modelSubmission && m_front.lightEnabled[Index] == (Enable != FALSE))
+	{
+		++m_modelSubmissionStats.enablesSkipped;
+		return D3D_OK;
+	}
 	m_front.lightEnabled[Index] = Enable != FALSE;
 	m_dirtyMisc |= DIRTY_LIGHT0 << Index;
 	return D3D_OK;
@@ -1648,6 +1732,11 @@ HRESULT Device::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value)
 {
 	if ((unsigned)State >= 256)
 		return D3DERR_INVALIDCALL;
+	if (State == RS_MODEL_BATCH)
+	{
+		if (!m_modelBatching) return D3D_OK;
+		if (!Value) flushModelBatch();
+	}
 	if (m_front.renderStates[State] != Value)
 	{
 		m_front.renderStates[State] = Value;

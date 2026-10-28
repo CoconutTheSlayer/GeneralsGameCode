@@ -80,6 +80,7 @@ W3DShroud::W3DShroud()
 	m_dstTextureHeight=m_numMaxVisibleCellsY=0;
 	m_boderShroudLevel = (W3DShroudLevel)TheGlobalData->m_shroudAlpha;	//assume border is black
 	m_clearDstTexture = TRUE;	//force clearing of destination texture;
+	SetRect(&m_dirtyRect, 0, 0, 0, 0);
 
 	m_cellWidth=DEFAULT_SHROUD_CELL_SIZE;
 	m_cellHeight=DEFAULT_SHROUD_CELL_SIZE;
@@ -216,6 +217,7 @@ void W3DShroud::reset()
 	m_currentFogData=nullptr;
 
 	m_clearDstTexture = TRUE;	//always refill the destination texture after a reset
+	SetRect(&m_dirtyRect, 0, 0, 0, 0);
 }
 
 //-----------------------------------------------------------------------------
@@ -282,6 +284,19 @@ W3DShroudLevel W3DShroud::getShroudLevel(Int x, Int y)
 }
 
 //-----------------------------------------------------------------------------
+void W3DShroud::markShroudDirty(Int x, Int y)
+{
+	if (m_dirtyRect.right <= m_dirtyRect.left)
+		SetRect(&m_dirtyRect, x, y, x + 1, y + 1);
+	else
+	{
+		m_dirtyRect.left = __min(m_dirtyRect.left, x);
+		m_dirtyRect.top = __min(m_dirtyRect.top, y);
+		m_dirtyRect.right = __max(m_dirtyRect.right, x + 1);
+		m_dirtyRect.bottom = __max(m_dirtyRect.bottom, y + 1);
+	}
+}
+
 void W3DShroud::setShroudLevel(Int x, Int y, W3DShroudLevel level, Bool textureOnly)
 {
 	DEBUG_ASSERTCRASH( m_pSrcTexture != nullptr, ("Writing empty shroud.  Usually means that map failed to load."));
@@ -289,7 +304,7 @@ void W3DShroud::setShroudLevel(Int x, Int y, W3DShroudLevel level, Bool textureO
 	if (!m_pSrcTexture)
 		return;
 
-	if (x < m_numCellsX && y < m_numCellsY)
+	if (x >= 0 && y >= 0 && x < m_numCellsX && y < m_numCellsY)
 	{
 		if (level < TheGlobalData->m_shroudAlpha)
 			level = TheGlobalData->m_shroudAlpha;
@@ -307,7 +322,12 @@ void W3DShroud::setShroudLevel(Int x, Int y, W3DShroudLevel level, Bool textureO
 			Int alphaVal = 255 - level;
 
 			UnsignedShort pixel=((blueVal>>4)&0xf) | (((greenVal>>4)&0xf)<<4) | (((redVal>>4)&0xf)<<8) | (((alphaVal>>4)&0xf)<<12);
-			*(UnsignedShort *)((Byte *)m_srcTextureData + x*2 + y*m_srcTexturePitch)=pixel;
+			UnsignedShort *texel = (UnsignedShort *)((Byte *)m_srcTextureData + x*2 + y*m_srcTexturePitch);
+			if (*texel != pixel)
+			{
+				*texel = pixel;
+				markShroudDirty(x, y);
+			}
 		}
 		else
 #endif
@@ -343,7 +363,12 @@ void W3DShroud::setShroudLevel(Int x, Int y, W3DShroudLevel level, Bool textureO
 //				bluepixel -= redpixel;
 //			}
 
-			*texel = ( ((bluepixel&0xf8) >> 3) | ((greenpixel&0xfc)<<3) | ((redpixel&0xf8)<<8));
+			const UnsignedShort pixel = (((bluepixel&0xf8) >> 3) | ((greenpixel&0xfc)<<3) | ((redpixel&0xf8)<<8));
+			if (*texel != pixel)
+			{
+				*texel = pixel;
+				markShroudDirty(x, y);
+			}
 		}
 		return;
 	}
@@ -395,6 +420,7 @@ void W3DShroud::fillShroudData(W3DShroudLevel level)
 	}
 
 	UnsignedShort *ptr=(UnsignedShort *)m_srcTextureData;
+	SetRect(&m_dirtyRect, 0, 0, m_numCellsX, m_numCellsY);
 	Int pitch = m_srcTexturePitch >> 1;	//2 bytes per pointer increment
 	for (y=0; y<m_numCellsY; y++)
 	{
@@ -525,6 +551,42 @@ TextureClass *DummyTexture=nullptr;
 
 //-----------------------------------------------------------------------------
 /** Updates video memory surface with currently visible shroud data */
+#if defined(RTS_POSIX_PORT)
+// Opt-in regression check: compare the destination texture with the complete source map,
+// including frames where an upload was skipped. Keep readbacks out of normal rendering.
+static void verifyShroudCopy(SurfaceClass *destination, const void *source, UnsignedInt pitch, Int width, Int height)
+{
+	static const Bool enabled = getenv("GENERALS_VERIFY_SHROUD") != nullptr;
+	static unsigned frame = 0;
+	if (!enabled || ++frame % 240 != 0)
+		return;
+	IDirect3DDevice8 *device = DX8Wrapper::_Get_D3D_Device8();
+	IDirect3DSurface8 *surface = destination->Peek_D3D_Surface();
+	D3DSURFACE_DESC desc;
+	IDirect3DSurface8 *readback = nullptr;
+	if (FAILED(surface->GetDesc(&desc)) || FAILED(device->CreateImageSurface(width, height, desc.Format, &readback)))
+	{
+		fprintf(stderr, "SHROUD_VERIFY failed to create readback\n");
+		return;
+	}
+	RECT rect = { 1, 1, width + 1, height + 1 };
+	POINT origin = { 0, 0 };
+	D3DLOCKED_RECT locked;
+	if (FAILED(device->CopyRects(surface, &rect, 1, readback, &origin)) || FAILED(readback->LockRect(&locked, nullptr, D3DLOCK_READONLY)))
+		fprintf(stderr, "SHROUD_VERIFY failed to read texture\n");
+	else
+	{
+		unsigned mismatchedRows = 0;
+		for (Int y = 0; y < height; ++y)
+			if (memcmp((const Byte *)source + y * pitch, (const Byte *)locked.pBits + y * locked.Pitch, width * sizeof(UnsignedShort)) != 0)
+				++mismatchedRows;
+		readback->UnlockRect();
+		fprintf(stderr, "SHROUD_VERIFY frame %u mismatchedRows %u\n", frame, mismatchedRows);
+	}
+	readback->Release();
+}
+#endif
+
 void W3DShroud::render(CameraClass *cam)
 {
 	if (!m_pSrcTexture)
@@ -704,6 +766,42 @@ void W3DShroud::render(CameraClass *cam)
 	//interpolate current shroud state to the final one
 	interpolateFogLevels(&srcRect);
 #endif
+	// Interpolation must keep advancing even when logic has not changed. Its
+	// setShroudLevel calls mark only texels whose packed colour actually changed.
+	const Bool fullUpload = m_clearDstTexture;
+	const Bool upload = fullUpload || m_dirtyRect.right > m_dirtyRect.left;
+	if (!fullUpload && upload)
+	{
+		srcRect = m_dirtyRect;
+		dstPoint.x = srcRect.left + 1;
+		dstPoint.y = srcRect.top + 1;
+	}
+
+#if defined(RTS_POSIX_PORT)
+	static const Bool logUploads = getenv("GENERALS_SHROUD_STATS") != nullptr;
+	if (logUploads)
+	{
+		static unsigned frames = 0, copies = 0;
+		static unsigned long long pixels = 0, fullPixels = 0;
+		++frames;
+		fullPixels += (unsigned long long)m_numCellsX * m_numCellsY;
+		if (upload)
+		{
+			++copies;
+			pixels += (unsigned long long)(srcRect.right-srcRect.left) * (srcRect.bottom-srcRect.top);
+		}
+		if (frames % 240 == 0)
+			fprintf(stderr, "SHROUD_UPLOAD frames %u copies %u pixels %llu fullPixels %llu\n", frames, copies, pixels, fullPixels);
+	}
+#endif
+	if (!upload)
+	{
+#if defined(RTS_POSIX_PORT)
+		verifyShroudCopy(pDestSurface, m_srcTextureData, m_srcTexturePitch, m_numCellsX, m_numCellsY);
+#endif
+		REF_PTR_RELEASE(pDestSurface);
+		return;
+	}
 
 	if (m_clearDstTexture)
 	{
@@ -723,7 +821,11 @@ void W3DShroud::render(CameraClass *cam)
 				pDestSurface->Peek_D3D_Surface(),
 				&dstPoint);
 	}
+	SetRect(&m_dirtyRect, 0, 0, 0, 0);
 
+#if defined(RTS_POSIX_PORT)
+	verifyShroudCopy(pDestSurface, m_srcTextureData, m_srcTexturePitch, m_numCellsX, m_numCellsY);
+#endif
 	REF_PTR_RELEASE (pDestSurface);
 }
 

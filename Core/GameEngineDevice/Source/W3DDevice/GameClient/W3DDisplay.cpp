@@ -1,3 +1,4 @@
+#include "rts/benchmark.h"
 /*
 **	Command & Conquer Generals Zero Hour(tm)
 **	Copyright 2025 Electronic Arts Inc.
@@ -1787,6 +1788,7 @@ Int W3DDisplay::getLastFrameDrawCalls()
 //=============================================================================
 void W3DDisplay::update()
 {
+	RTS_BENCH_SCOPE("display.update");
 	Display::update();
 
 	if (TheGlobalData->m_headless)
@@ -1841,6 +1843,7 @@ void W3DDisplay::step()
 //DECLARE_PERF_TIMER(W3DDisplay_draw)
 void W3DDisplay::draw()
 {
+	RTS_BENCH_SCOPE("display.draw");
 	//USE_PERF_TIMER(W3DDisplay_draw)
 
 	extern HWND ApplicationHWnd;
@@ -1982,15 +1985,15 @@ AGAIN:
 			if (!viewsUpdated)
 				updateViews();
 
-			TheParticleSystemManager->DRAW();
+			{ RTS_BENCH_PHASE("particles.prepare"); TheParticleSystemManager->DRAW(); }
 
 			if (TheWaterRenderObj && TheGlobalData->m_waterType == 2)
-				TheWaterRenderObj->updateRenderTargetTextures(primaryW3DView->get3DCamera());	//do a render into each texture
+				{ RTS_BENCH_PHASE("render.water_reflections"); TheWaterRenderObj->updateRenderTargetTextures(primaryW3DView->get3DCamera()); }	//do a render into each texture
 
 			//Can't render into textures while rendering to screen so these textures need to be updated
 			//before we enter main rendering loop.
 			if (TheW3DProjectedShadowManager)
-				TheW3DProjectedShadowManager->updateRenderTargetTextures();
+				{ RTS_BENCH_PHASE("render.projected_shadow_textures"); TheW3DProjectedShadowManager->updateRenderTargetTextures(); }
 		}
 
 		viewsUpdated = FALSE;
@@ -2030,9 +2033,9 @@ AGAIN:
 				drawViews();
 
 				// draw the user interface
-				TheInGameUI->DRAW();
+				{ RTS_BENCH_PHASE("render.ui"); TheInGameUI->DRAW(); }
 
-				TheGameClient->DRAW();
+				{ RTS_BENCH_PHASE("render.client_overlay"); TheGameClient->DRAW(); }
 
 				// draw the mouse
 				if( TheMouse )

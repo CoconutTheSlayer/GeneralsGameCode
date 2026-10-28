@@ -289,6 +289,8 @@ HRESULT lockBuffer(Device* device, BufferStorage& storage, UINT offset, UINT siz
 	if (size > storage.length - offset)
 		return D3DERR_INVALIDCALL;
 
+	RTS_BENCH_COUNTER("buffer_lock_bytes", size);
+	RTS_BENCH_COUNTER("buffer_locks", 1);
 	bool inFlight = device->isInFlight(storage.lastUsedSerial) || storage.lastUsedSerial == device->currentSerial();
 	if (inFlight && !(flags & D3DLOCK_NOOVERWRITE) && !(flags & D3DLOCK_READONLY))
 	{
@@ -348,12 +350,29 @@ IndexBuffer::IndexBuffer(Device* device, unsigned length, DWORD usage, D3DFORMAT
 
 IndexBuffer::~IndexBuffer()
 {
+	if (m_alignedIndices) m_device->retireBuffer(m_alignedIndices, m_storage.lastUsedSerial);
 	m_device->retireBuffer(m_storage.buffer, m_storage.lastUsedSerial);
 }
 
 HRESULT IndexBuffer::Lock(UINT OffsetToLock, UINT SizeToLock, BYTE** ppbData, DWORD Flags)
 {
-	return lockBuffer(m_device, m_storage, OffsetToLock, SizeToLock, ppbData, Flags);
+	const uint64_t previousUse = m_storage.lastUsedSerial;
+	HRESULT result = lockBuffer(m_device, m_storage, OffsetToLock, SizeToLock, ppbData, Flags);
+	if (SUCCEEDED(result) && !(Flags & D3DLOCK_READONLY) && m_alignedIndices)
+	{
+		// Earlier queued/GPU draws may still use this version, even after a rename.
+		m_device->retireBuffer(m_alignedIndices, previousUse);
+		m_alignedIndices = nil;
+	}
+	return result;
+}
+
+void IndexBuffer::prepareAlignedIndices()
+{
+	if (m_alignedIndices) return;
+	m_alignedIndices = m_device->acquireBuffer(m_storage.length + 2);
+	memset([m_alignedIndices contents], 0, 2);
+	memcpy((uint8_t*)[m_alignedIndices contents] + 2, [m_storage.buffer contents], m_storage.length);
 }
 
 HRESULT IndexBuffer::GetDesc(D3DINDEXBUFFER_DESC* pDesc)

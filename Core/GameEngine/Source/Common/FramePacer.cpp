@@ -16,6 +16,8 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "PreRTS.h"
+#include "rts/benchmark.h"
+#include <cstdlib>
 
 #include "Common/FramePacer.h"
 
@@ -60,6 +62,7 @@ void FramePacer::update()
 {
 	// Uses a high resolution counter to cap the frame rate more accurately to the desired limit than retail did.
 	const UnsignedInt maxFps = getWaitFramesPerSecondLimit();
+	RTS_BENCH_COUNTER("render_fps_limit", maxFps);
 	m_updateTime = m_frameRateLimit.wait(maxFps);
 
 	if (TheGameLogic != nullptr)
@@ -158,6 +161,14 @@ Int FramePacer::getActualFramesPerSecondLimit() const
 
 UnsignedInt FramePacer::getWaitFramesPerSecondLimit() const
 {
+#if defined(RTS_POSIX_PORT)
+	// The release build does not expose the debug-only -noFPSLimit switch. Only remove
+	// render pacing when logic already has its independent clock; never accelerate simulation.
+	static const char* uncapped = getenv("GENERALS_BENCH_UNCAPPED");
+	if (uncapped && atoi(uncapped) != 0 && isLogicTimeScaleEnabled())
+		return RenderFpsPreset::UncappedFpsValue;
+#endif
+
 	const Int maxFps = getActualFramesPerSecondLimit();
 #if defined(RTS_POSIX_PORT)
 	// Presentation already waits for the display refresh, so limiting the render rate to the refresh

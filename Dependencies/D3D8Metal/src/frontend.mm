@@ -21,6 +21,7 @@
 
 #include "internal.h"
 
+#include <bit>
 #include <pthread.h>
 
 namespace d3d8metal
@@ -69,6 +70,7 @@ void* Device::reserveRecord(size_t payload)
 			m_ringRecordSize = total;
 			return m_ring.get() + pos + sizeof(RecordHeader);
 		}
+		RTS_BENCH_SCOPE("wait.ring_full");
 		// Full: let the render thread catch up.
 		if (!m_threaded)
 		{
@@ -173,6 +175,8 @@ void Device::workerMain()
 
 void Device::drain()
 {
+	flushModelBatch();
+	RTS_BENCH_SCOPE("wait.renderer_drain");
 	if (!m_threaded)
 		return;
 	const uint64_t head = m_ringHead.load(std::memory_order_seq_cst);
@@ -230,18 +234,16 @@ enum StateKind : uint8_t
 	K_TEXTURE,
 };
 
-template <class T> void put(std::vector<uint8_t>& out, const T& value)
+template <class T> void put(uint8_t*& out, const T& value)
 {
-	const size_t at = out.size();
-	out.resize(at + sizeof(T));
-	memcpy(out.data() + at, &value, sizeof(T));
+	memcpy(out, &value, sizeof(T));
+	out += sizeof(T);
 }
 
-void putBytes(std::vector<uint8_t>& out, const void* data, size_t size)
+void putBytes(uint8_t*& out, const void* data, size_t size)
 {
-	const size_t at = out.size();
-	out.resize(at + size);
-	memcpy(out.data() + at, data, size);
+	memcpy(out, data, size);
+	out += size;
 }
 
 template <class T> T get(const uint8_t*& p)
@@ -291,12 +293,31 @@ void Device::markAllDirty()
 
 void Device::syncState()
 {
+	flushModelBatch();
+	RTS_BENCH_DETAIL("d3d.serialize_state");
 	if (m_dirtyRenderStates.empty() && m_dirtyStageStates.empty() && m_dirtyTransforms.empty() && m_dirtyMisc == 0
 		&& m_vsDirtyLo >= m_vsDirtyHi && m_psDirtyLo >= m_psDirtyHi)
 		return;
 
-	std::vector<uint8_t>& out = m_deltaBuffer;
-	out.clear();
+	// Reserve once and serialize directly into the unpublished ring record. Previously every
+	// field resized/zero-filled a temporary vector, then the entire delta was copied again.
+	// No command can be submitted between this reservation and commitRecord below.
+	const uint32_t misc = m_dirtyMisc;
+	size_t size = (m_dirtyRenderStates.size() + m_dirtyStageStates.size()) * (1 + sizeof(uint16_t) + sizeof(DWORD))
+		+ m_dirtyTransforms.size() * (1 + sizeof(uint16_t) + sizeof(D3DMATRIX));
+	if (misc & DIRTY_VIEWPORT) size += 1 + sizeof(D3DVIEWPORT8);
+	if (misc & DIRTY_MATERIAL) size += 1 + sizeof(D3DMATERIAL8);
+	if (misc & DIRTY_VERTEX_SHADER) size += 1 + sizeof(DWORD);
+	if (misc & DIRTY_PIXEL_SHADER) size += 1 + sizeof(DWORD);
+	size += std::popcount(misc & (0xffu << 8)) * (5 + sizeof(D3DLIGHT8));
+	size += std::popcount(misc & (0x3fu << 16)) * (2 + sizeof(float) * 4);
+	size += std::popcount(misc & (0xffu << 24)) * (2 + sizeof(IDirect3DBaseTexture8*));
+	if (m_vsDirtyLo < m_vsDirtyHi) size += 5 + (size_t)(m_vsDirtyHi - m_vsDirtyLo) * 16;
+	if (m_psDirtyLo < m_psDirtyHi) size += 5 + (size_t)(m_psDirtyHi - m_psDirtyLo) * 16;
+	uint8_t* payload = static_cast<uint8_t*>(reserveRecord(sizeof(uint64_t) + size));
+	const uint64_t length = size;
+	memcpy(payload, &length, sizeof(length));
+	uint8_t* out = payload + sizeof(length);
 	for (uint16_t i : m_dirtyRenderStates)
 	{
 		put<uint8_t>(out, K_RENDER_STATE);
@@ -322,7 +343,6 @@ void Device::syncState()
 	m_dirtyStageStates.clear();
 	m_dirtyTransforms.clear();
 
-	const uint32_t misc = m_dirtyMisc;
 	m_dirtyMisc = 0;
 	if (misc & DIRTY_VIEWPORT)
 	{
@@ -397,10 +417,7 @@ void Device::syncState()
 		m_psDirtyHi = 0;
 	}
 
-	const size_t size = out.size();
-	uint8_t* payload = static_cast<uint8_t*>(reserveRecord(sizeof(uint64_t) + size));
-	memcpy(payload, &size, sizeof(uint64_t));
-	memcpy(payload + sizeof(uint64_t), out.data(), size);
+	assert(out == payload + sizeof(length) + size);
 	commitRecord([](Device* device, void* p) {
 		uint64_t length;
 		memcpy(&length, p, sizeof(uint64_t));
@@ -423,6 +440,15 @@ void Device::applyState(const uint8_t* p, size_t size)
 			if (i == RS_SOFT_PARTICLES && value != 0 && s.renderStates[i] == 0)
 				m_softDepthValid = false; // the scene may have changed since the last copy
 			s.renderStates[i] = value;
+			switch (i)
+			{
+			case D3DRS_AMBIENT:
+			case D3DRS_FOGSTART: case D3DRS_FOGEND: case D3DRS_FOGDENSITY:
+			case D3DRS_POINTSIZE: case D3DRS_POINTSIZE_MIN: case D3DRS_POINTSIZE_MAX:
+			case D3DRS_POINTSCALE_A: case D3DRS_POINTSCALE_B: case D3DRS_POINTSCALE_C:
+				m_sharedVertexUniforms.dirty = true;
+				break;
+			}
 			break;
 		}
 		case K_STAGE_STATE:
@@ -435,28 +461,44 @@ void Device::applyState(const uint8_t* p, size_t size)
 		{
 			const uint16_t i = get<uint16_t>(p);
 			s.transforms[i] = get<D3DMATRIX>(p);
+			if (i == D3DTS_VIEW || (i >= D3DTS_TEXTURE0 && i < D3DTS_TEXTURE0 + MAX_STAGES))
+				m_sharedVertexUniforms.dirty = true;
+			if (i == D3DTS_WORLDMATRIX(0) || i == D3DTS_VIEW || i == D3DTS_PROJECTION)
+				m_derivedUniforms.transformsDirty = true;
+			if (i == D3DTS_WORLDMATRIX(0) || i == D3DTS_VIEW)
+				m_derivedUniforms.normalDirty = true;
+			if (i == D3DTS_VIEW)
+			{
+				m_derivedUniforms.lightsDirty = true;
+				m_derivedUniforms.viewInverseDirty = true;
+			}
 			break;
 		}
-		case K_VIEWPORT: s.viewport = get<D3DVIEWPORT8>(p); break;
-		case K_MATERIAL: s.material = get<D3DMATERIAL8>(p); break;
+		case K_VIEWPORT: s.viewport = get<D3DVIEWPORT8>(p); m_sharedVertexUniforms.dirty = true; break;
+		case K_MATERIAL: s.material = get<D3DMATERIAL8>(p); m_sharedVertexUniforms.dirty = true; break;
 		case K_VERTEX_SHADER: s.vertexShader = get<DWORD>(p); break;
 		case K_PIXEL_SHADER: s.pixelShader = get<DWORD>(p); break;
 		case K_LIGHT:
 		{
 			const uint8_t i = get<uint8_t>(p);
 			s.lights[i] = get<D3DLIGHT8>(p);
+			m_sharedVertexUniforms.dirty = true;
+			m_derivedUniforms.lightsDirty = true;
 			break;
 		}
 		case K_LIGHT_ENABLE:
 		{
 			const uint8_t i = get<uint8_t>(p);
 			s.lightEnabled[i] = get<uint8_t>(p) != 0;
+			m_sharedVertexUniforms.dirty = true;
+			m_derivedUniforms.lightsDirty = true;
 			break;
 		}
 		case K_CLIP_PLANE:
 		{
 			const uint8_t i = get<uint8_t>(p);
 			memcpy(s.clipPlanes[i], p, sizeof(float) * 4);
+			m_sharedVertexUniforms.dirty = true;
 			p += sizeof(float) * 4;
 			break;
 		}

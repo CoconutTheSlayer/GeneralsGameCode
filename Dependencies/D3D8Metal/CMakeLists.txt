@@ -6,6 +6,8 @@ set(D3D8METAL_SRC
     src/draw.mm
     src/formats.cpp
     src/formats.h
+    src/profile.cpp
+    src/profile.mm
     src/frontend.mm
     src/internal.h
     src/resources.mm
@@ -43,3 +45,8 @@ add_executable(d3d8metal_test EXCLUDE_FROM_ALL tests/d3d8test.cpp)
 target_link_libraries(d3d8metal_test PRIVATE d3d8metal)
 target_include_directories(d3d8metal_test PRIVATE ${CMAKE_SOURCE_DIR}/Dependencies/Utility)
 target_compile_definitions(d3d8metal_test PRIVATE NOMINMAX)
+
+# Recorder correctness without a window or Metal device.
+add_executable(native_profile_test EXCLUDE_FROM_ALL tests/profile_test.cpp src/profile.cpp)
+target_include_directories(native_profile_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(native_profile_test PRIVATE cxx_std_20)

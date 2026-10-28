@@ -49,6 +49,32 @@
 //-------------------------------------------------------------------------------------------------
 
 
+#if defined(RTS_POSIX_PORT)
+#include "rts/visual_jobs.h"
+namespace {
+struct ParticleCullJob { ParticleSystem* system; UnsignedInt visible; };
+std::vector<ParticleCullJob> particleCullJobs;
+UnsignedInt cullParticleSystem(ParticleSystem* sys, const AABoxClass& box, bool verifyOnly = false)
+{
+ if (!sys || sys->isUsingDrawables()) return 0;
+ UnsignedInt count = 0;
+ for (Particle* p = sys->getFirstParticle(); p; p = p->m_systemNext)
+ {
+  const Coord3D* pos = p->getPosition();
+  const Real size = p->getSize();
+  const bool culled = WWMath::Fabs(pos->x - box.Center.X) > box.Extent.X + size ||
+   WWMath::Fabs(pos->y - box.Center.Y) > box.Extent.Y + size ||
+   WWMath::Fabs(pos->z - box.Center.Z) > box.Extent.Z + size;
+  if (verifyOnly && bool(p->isCulled()) != culled)
+  { fprintf(stderr, "VISUAL_VERIFY particle culling mismatch\n"); abort(); }
+  if (!verifyOnly) p->setIsCulled(culled);
+  if (!culled) ++count;
+ }
+ return count;
+}
+}
+#endif
+
 W3DParticleSystemManager::W3DParticleSystemManager()
 {
 	m_batchParticleAlignment = ParticleSystemInfo::PARTICLE_ALIGNMENT_BILLBOARD;
@@ -156,7 +182,33 @@ void W3DParticleSystemManager::doParticles(RenderInfoClass &rinfo)
 	UnsignedInt pointCount = 0;
 
 	ParticleSystemManager::ParticleSystemList &particleSysList = TheParticleSystemManager->getAllParticleSystems();
-	for( ParticleSystemManager::ParticleSystemListIt it = particleSysList.begin(); it != particleSysList.end(); ++it)
+#if defined(RTS_POSIX_PORT)
+	const bool parallelCull = rts_visual::enabled("GENERALS_PARALLEL_PARTICLES") && getParticleCount() >= 1024;
+	if (parallelCull)
+	{
+		RTS_BENCH_SCOPE("particles.cull_jobs");
+		particleCullJobs.clear();
+		for (auto* system : particleSysList) particleCullJobs.push_back({system, 0});
+		rts_visual::parallelFor(particleCullJobs.size(), 4, "particles.cull", [&](size_t i) {
+			auto& job = particleCullJobs[i];
+			job.visible = cullParticleSystem(job.system, bbox);
+		});
+		RTS_BENCH_COUNTER("particles.cull_systems", particleCullJobs.size());
+		if (rts_visual::verify())
+		{
+			for (const auto& job : particleCullJobs)
+				if (cullParticleSystem(job.system, bbox, true) != job.visible)
+				{ fprintf(stderr, "VISUAL_VERIFY particle count mismatch\n"); abort(); }
+			RTS_BENCH_COUNTER("verify.particle_systems", particleCullJobs.size());
+		}
+	}
+	size_t particleSystemIndex = 0;
+#endif
+	for( ParticleSystemManager::ParticleSystemListIt it = particleSysList.begin(); it != particleSysList.end(); ++it
+#if defined(RTS_POSIX_PORT)
+		, ++particleSystemIndex
+#endif
+	)
 	{
 		ParticleSystem *sys = (*it);
 		if (!sys) {
@@ -169,6 +221,10 @@ void W3DParticleSystemManager::doParticles(RenderInfoClass &rinfo)
 
 		// TheSuperHackers @performance Mauller 16/08/2026 Skip processing particle system if no particles are in view.
 		UnsignedInt particleCount = 0;
+#if defined(RTS_POSIX_PORT)
+		if (parallelCull) particleCount = particleCullJobs[particleSystemIndex].visible;
+		else
+#endif
 		for (Particle* vp = sys->getFirstParticle(); vp; vp = vp->m_systemNext)
 		{
 			const Coord3D* pos = vp->getPosition();

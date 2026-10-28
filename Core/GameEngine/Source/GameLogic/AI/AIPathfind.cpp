@@ -57,6 +57,7 @@
 #endif
 
 #include "Common/UnitTimings.h" //Contains the DO_UNIT_TIMINGS define jba.
+#include <rts/benchmark.h>
 
 #define no_INTENSE_DEBUG
 
@@ -118,6 +119,26 @@ constexpr const UnsignedInt MAX_SAFE_PATH_CELL_COUNT = 2000;
 
 constexpr const UnsignedInt PATHFIND_CELLS_PER_FRAME = 5000; // Number of cells we will search pathfinding per frame.
 constexpr const UnsignedInt CELL_INFOS_TO_ALLOCATE = 30000;
+
+#ifdef RTS_POSIX_PORT
+namespace {
+Bool indexedPathOpenList()
+{
+	static const char *setting = getenv("GENERALS_PATH_OPEN_INDEX");
+	// Preserve the original insertion order with bounded cost lookup. The opt-out
+	// keeps the original walk available for A/B measurements and compatibility.
+	static const Bool enabled = !setting || atoi(setting) != 0;
+	return enabled;
+}
+Bool verifyPathOpenIndex()
+{
+	static const char *setting = getenv("GENERALS_VERIFY_PATH_OPEN_INDEX");
+	static const Bool enabled = setting && atoi(setting) != 0;
+	return enabled;
+}
+uint64_t pathIndexInserts = 0, pathIndexVerified = 0, pathIndexFallbacks = 0;
+}
+#endif
 
 //-----------------------------------------------------------------------------------
 PathNode::PathNode() :
@@ -1826,8 +1847,79 @@ void PathfindCell::reverseInsertionSort(PathfindCellList& list)
 }
 
 /// put self on "open" list in ascending cost order, return new list
+#ifdef RTS_POSIX_PORT
+Bool PathfindCell::putOnIndexedOpenList(PathfindCellList &list)
+{
+	if (list.m_indexDisabled) return false;
+	auto fallback = [&]() {
+		list.resetIndex();
+		list.m_indexDisabled = true;
+		++pathIndexFallbacks;
+		return false;
+	};
+	if (!list.m_indexReady)
+	{
+		if (!list.m_costIndex) list.m_costIndex.reset(new rts::CostBucketIndex<PathfindCellInfo>);
+		// Retail mode can seed the list directly with its start cell. Import that
+		// list once; malformed or oversized legacy lists retain their original path.
+		PathfindCellInfo *previous = nullptr;
+		for (PathfindCell *cell = list.m_head; cell; cell = cell->getNextOpen())
+		{
+			PathfindCellInfo *info = cell->m_info;
+			if (!info || info->m_cell != cell || info->m_prevOpen != previous || !info->m_open ||
+				(info->m_nextOpen && (!info->m_nextOpen->m_cell || info->m_nextOpen->m_cell->m_info != info->m_nextOpen)) ||
+				(previous && previous->m_totalCost > info->m_totalCost) || list.m_indexSize >= PATHFIND_CELLS_PER_FRAME)
+				return fallback();
+			info->m_openIndexCost = info->m_totalCost;
+			list.m_costIndex->setTail(info->m_totalCost, info);
+			++list.m_indexSize;
+			previous = info;
+		}
+		list.m_indexReady = true;
+	}
+	// The retail insertion walk is capped at 5,000 nodes. Do not bypass that
+	// compatibility behavior when a search grows beyond the original cap.
+	if (list.m_indexSize >= PATHFIND_CELLS_PER_FRAME) return fallback();
+	PathfindCellInfo *previous = list.m_costIndex->predecessor(m_info->m_totalCost);
+	PathfindCellInfo *next = previous ? previous->m_nextOpen : (list.m_head ? list.m_head->m_info : nullptr);
+	if ((previous && (!previous->m_cell || previous->m_cell->m_info != previous)) ||
+		(next && (!next->m_cell || next->m_cell->m_info != next))) return fallback();
+	if (verifyPathOpenIndex())
+	{
+		PathfindCellInfo *reference = nullptr;
+		UnsignedInt walked = 0;
+		for (PathfindCell *cell = list.m_head; cell && walked < PATHFIND_CELLS_PER_FRAME &&
+			cell->m_info->m_totalCost <= m_info->m_totalCost; cell = cell->getNextOpen(), ++walked)
+			reference = cell->m_info;
+		if (reference != previous)
+		{ fprintf(stderr, "PATH_INDEX_VERIFY insertion order mismatch\n"); abort(); }
+		++pathIndexVerified;
+	}
+	m_info->m_open = true;
+	m_info->m_closed = false;
+	m_info->m_prevOpen = previous;
+	m_info->m_nextOpen = next;
+	if (previous) previous->m_nextOpen = m_info;
+	else list.m_head = this;
+	if (next) next->m_prevOpen = m_info;
+#if RETAIL_COMPATIBLE_PATHFINDING
+	else if (s_useFixedPathfinding) list.m_tail = this;
+#else
+	else list.m_tail = this;
+#endif
+	m_info->m_openIndexCost = m_info->m_totalCost;
+	list.m_costIndex->setTail(m_info->m_totalCost, m_info);
+	++list.m_indexSize;
+	++pathIndexInserts;
+	return true;
+}
+#endif
+
 void PathfindCell::putOnSortedOpenList( PathfindCellList &list )
 {
+#ifdef RTS_POSIX_PORT
+	if (indexedPathOpenList() && putOnIndexedOpenList(list)) return;
+#endif
 #if RETAIL_COMPATIBLE_PATHFINDING
 	if (!s_useFixedPathfinding) {
 		forwardInsertionSortRetailCompatible(list);
@@ -1851,6 +1943,19 @@ void PathfindCell::removeFromOpenList( PathfindCellList &list )
 {
 	DEBUG_ASSERTCRASH(m_info, ("Has to have info."));
 	DEBUG_ASSERTCRASH(m_info->m_closed==FALSE && m_info->m_open==TRUE, ("Serious error - Invalid flags. jba"));
+#ifdef RTS_POSIX_PORT
+	if (list.m_indexReady)
+	{
+		const UnsignedShort cost = m_info->m_openIndexCost;
+		if (list.m_costIndex->tail(cost) == m_info)
+		{
+			if (m_info->m_prevOpen && m_info->m_prevOpen->m_openIndexCost == cost)
+				list.m_costIndex->setTail(cost, m_info->m_prevOpen);
+			else list.m_costIndex->erase(cost);
+		}
+		--list.m_indexSize;
+	}
+#endif
 	if (m_info->m_nextOpen)
 		m_info->m_nextOpen->m_prevOpen = m_info->m_prevOpen;
 	else {
@@ -1871,6 +1976,7 @@ void PathfindCell::removeFromOpenList( PathfindCellList &list )
 /// remove all cells from "open" list
 Int PathfindCell::releaseOpenList( PathfindCellList &list )
 {
+	list.resetIndex(); // Drop index pointers before any cell infos can be recycled.
 	Int count = 0;
 	while (list.m_head) {
 		count++;
@@ -5094,8 +5200,314 @@ Bool Pathfinder::checkDestination(const Object *obj, Int cellX, Int cellY, Pathf
  * Returns false if there are other units already there.
  * Assumes your locomotor already said you can go there.
  */
+#ifdef RTS_POSIX_PORT
+namespace {
+Bool fastMovementChecks()
+{
+	static const char* setting = getenv("GENERALS_FAST_MOVEMENT_CHECKS");
+	static const Bool enabled = setting && atoi(setting) != 0;
+	return enabled;
+}
+Bool verifyMovementChecks()
+{
+	static const char* setting = getenv("GENERALS_VERIFY_MOVEMENT_CHECKS");
+	static const Bool enabled = setting && atoi(setting) != 0;
+	return enabled;
+}
+uint64_t movementChecks = 0, movementVerified = 0;
+}
+
+Bool Pathfinder::checkForMovementFast(const Object *obj, TCheckMovementInfo &info)
+{
+	info.allyFixedCount = 0;
+	info.allyMoving = info.allyGoal = info.enemyFixed = false;
+	if (!obj) return true;
+
+	const AIUpdateInterface* objAI = obj->getAIUpdateInterface();
+	const ObjectID ignoreId = objAI ? objAI->getIgnoredObstacleID() : INVALID_ID;
+	const ObjectID objId = obj->getID();
+	const Int above = info.radius + (info.centerInCell ? 1 : 0);
+	const Int minX = info.cell.x - info.radius, maxX = info.cell.x + above;
+	const Int minY = info.cell.y - info.radius, maxY = info.cell.y + above;
+	// Resolve map bounds/layer once for the common, wholly in-bounds ground
+	// footprint. Bridges and boundary cases keep the original per-cell lookup.
+	const Bool directGround = (info.layer <= LAYER_GROUND || info.layer > LAYER_LAST) &&
+		minX < maxX && minY < maxY &&
+		minX >= m_extent.lo.x && maxX - 1 <= m_extent.hi.x &&
+		minY >= m_extent.lo.y && maxY - 1 <= m_extent.hi.y;
+#ifdef INFANTRY_MOVES_THROUGH_INFANTRY
+	const Bool isInfantry = obj->isKindOf(KINDOF_INFANTRY);
+#endif
+	ObjectID allies[5];
+	Int numAlly = 0;
+	ObjectID lastId = INVALID_ID;
+	Object* unit = nullptr;
+	Bool haveUnit = false, haveRelation = false, allied = false, haveCrush = false, canCrush = false;
+	auto isAlly = [&]() {
+		if (!haveRelation) { allied = obj->getRelationship(unit) == ALLIES; haveRelation = true; }
+		return allied;
+	};
+	for (Int i = minX; i < maxX; ++i)
+	{
+		PathfindCell* row = directGround ? m_map[i] : nullptr;
+		for (Int j = minY; j < maxY; ++j)
+		{
+			PathfindCell* cell = row ? &row[j] : getCell(info.layer, i, j);
+			if (!cell) return false;
+			const PathfindCell::CellFlags flags = cell->getFlags();
+			if (flags == PathfindCell::UNIT_GOAL || flags == PathfindCell::UNIT_GOAL_OTHER_MOVING)
+				info.allyGoal = true;
+			else if (flags == PathfindCell::NO_UNITS) continue;
+			const ObjectID posUnit = cell->getPosUnit();
+			if (posUnit == objId || posUnit == ignoreId) continue;
+			const Bool moving = flags == PathfindCell::UNIT_PRESENT_MOVING || flags == PathfindCell::UNIT_GOAL_OTHER_MOVING;
+			if (!moving && flags != PathfindCell::UNIT_PRESENT_FIXED) continue;
+			// Adjacent footprint cells commonly refer to the same unit. Cache only
+			// read-only answers inside this one call; no state survives a movement check.
+			if (!haveUnit || lastId != posUnit)
+			{
+				unit = TheGameLogic->findObjectByID(posUnit);
+				lastId = posUnit; haveUnit = true;
+				haveRelation = haveCrush = false;
+			}
+			if (!unit) continue;
+			if (moving)
+			{
+				if (isAlly()) info.allyMoving = true;
+				if (!info.considerTransient) continue;
+			}
+			if (objAI && ignoreId == unit->getID()) continue;
+#ifdef INFANTRY_MOVES_THROUGH_INFANTRY
+			if (isInfantry && unit->isKindOf(KINDOF_INFANTRY)) continue;
+#endif
+			if (isAlly())
+			{
+				AIUpdateInterface* unitAI = unit->getAIUpdateInterface();
+				if (!unitAI) return false;
+#if RTS_GENERALS && RETAIL_COMPATIBLE_PATHFINDING
+				if (!unitAI->isIdle()) return false;
+#endif
+				Bool found = false;
+				for (Int k = 0; k < numAlly; ++k)
+					if (allies[k] == unit->getID()) found = true;
+				if (!found)
+				{
+					++info.allyFixedCount;
+					// Preserve the original five-ID limit, including repeated counts
+					// for additional allies that cannot fit in that list.
+					if (numAlly < 5) allies[numAlly++] = unit->getID();
+				}
+			}
+			else
+			{
+				if (!haveCrush) { canCrush = obj->canCrushOrSquish(unit, TEST_CRUSH_OR_SQUISH); haveCrush = true; }
+				if (!canCrush) info.enemyFixed = true;
+			}
+		}
+	}
+	return true;
+}
+
+// Frozen pre-optimization implementation, used only by live correctness checks.
+Bool Pathfinder::checkForMovementReference(const Object *obj, TCheckMovementInfo &info)
+{
+	info.allyFixedCount = 0;
+	info.allyMoving = false;
+	info.allyGoal = false;
+	info.enemyFixed = false;
+
+	const Int		maxAlly = 5;
+	ObjectID		allies[maxAlly];
+	Int					numAlly = 0;
+
+	if (!obj) {
+		return true; // not object can move there.
+	}
+
+	ObjectID ignoreId = INVALID_ID;
+	if (obj->getAIUpdateInterface()) {
+		ignoreId =  obj->getAIUpdateInterface()->getIgnoredObstacleID();
+	}
+
+	Int numCellsAbove = info.radius;
+	if (info.centerInCell) numCellsAbove++;
+	Int i, j;
+//	Bool isInfantry = obj->isKindOf(KINDOF_INFANTRY);
+	for (i=info.cell.x-info.radius; i<info.cell.x+numCellsAbove; i++) {
+		for (j=info.cell.y-info.radius; j<info.cell.y+numCellsAbove; j++) {
+			PathfindCell	*cell = getCell(info.layer,i, j);
+			if (!cell) {
+				return false; // off the map, so can't move here.
+			}
+
+			PathfindCell::CellFlags flags = cell->getFlags();
+			if ((flags == PathfindCell::UNIT_GOAL) || (flags == PathfindCell::UNIT_GOAL_OTHER_MOVING)) {
+				info.allyGoal = true;
+			} else if (flags == PathfindCell::NO_UNITS) {
+				continue;  // Nobody is here, so it's ok.
+			}
+
+			ObjectID posUnit = cell->getPosUnit();
+			if (posUnit == obj->getID()) {
+				continue; // we got it.
+			}
+
+			if (posUnit == ignoreId) {
+				continue; // we are ignoring this one.
+			}
+
+			Bool check = false;
+			Object *unit = nullptr;
+			if (flags == PathfindCell::UNIT_PRESENT_MOVING || flags == PathfindCell::UNIT_GOAL_OTHER_MOVING) {
+				unit = TheGameLogic->findObjectByID(posUnit);
+				// order matters: we want to know if I consider it to be an ally, not vice versa
+				if (unit && obj->getRelationship(unit) == ALLIES) {
+					info.allyMoving = true;
+				}
+				if (info.considerTransient) {
+					check = true;
+				}
+			}
+			if (flags == PathfindCell::UNIT_PRESENT_FIXED) {
+				check = true;
+				unit = TheGameLogic->findObjectByID(posUnit);
+			}
+			if (check && unit!=nullptr) {
+				if (obj->getAIUpdateInterface() && obj->getAIUpdateInterface()->getIgnoredObstacleID()==unit->getID()) {
+					// Don't check if it's the ignored obstacle.
+					check = false;
+				}
+			}
+			if (!check || !unit) {
+				continue;
+			}
+
+#ifdef INFANTRY_MOVES_THROUGH_INFANTRY
+			if (obj->isKindOf(KINDOF_INFANTRY) && unit->isKindOf(KINDOF_INFANTRY)) {
+				// Infantry can run through infantry.
+				continue; //
+			}
+#endif
+			// See if it is an ally.
+			// order matters: we want to know if I consider it to be an ally, not vice versa
+			if (obj->getRelationship(unit) == ALLIES) {
+				if (!unit->getAIUpdateInterface()) {
+					return false; // can't path through not-idle units.
+				}
+#if RTS_GENERALS && RETAIL_COMPATIBLE_PATHFINDING
+				if (!unit->getAIUpdateInterface()->isIdle()) {
+					return false; // can't path through not-idle units.
+				}
+#endif
+				Bool found = false;
+				Int k;
+				for (k=0; k<numAlly; k++) {
+					if (allies[k] == unit->getID()) {
+						found = true;
+					}
+				}
+				if (!found) {
+					info.allyFixedCount++;
+					if (numAlly < maxAlly) {
+						allies[numAlly] = unit->getID();
+						numAlly++;
+					}
+				}
+			} else {
+				Bool canCrush = obj->canCrushOrSquish( unit, TEST_CRUSH_OR_SQUISH );
+				if (!canCrush) {
+					info.enemyFixed = true;
+				}
+			}
+		}
+	}
+	return true;
+}
+#endif
+
 Bool Pathfinder::checkForMovement(const Object *obj, TCheckMovementInfo &info)
 {
+#ifdef RTS_POSIX_PORT
+	++movementChecks;
+	if (fastMovementChecks())
+	{
+		const Bool result = checkForMovementFast(obj, info);
+		if (verifyMovementChecks())
+		{
+			TCheckMovementInfo reference {};
+			reference.cell = info.cell; reference.layer = info.layer; reference.radius = info.radius;
+			reference.centerInCell = info.centerInCell; reference.considerTransient = info.considerTransient;
+			const Bool expected = checkForMovementReference(obj, reference);
+			if (result != expected || info.allyFixedCount != reference.allyFixedCount ||
+				info.allyMoving != reference.allyMoving || info.allyGoal != reference.allyGoal || info.enemyFixed != reference.enemyFixed)
+			{ fprintf(stderr, "MOVEMENT_VERIFY result/flags mismatch\n"); abort(); }
+			++movementVerified;
+			// Diagnostic-only paired replay: sample real inputs, resolve objects at
+			// replay time, then time both routines against the same read-only world.
+			// Batch timers avoid paying for a clock read on every tiny footprint.
+			struct MovementSample { ObjectID id; const Object* object; TCheckMovementInfo info; };
+			static MovementSample samples[512];
+			static Int sampleCount = 0;
+			if (obj && movementVerified % 64 == 0)
+			{
+				samples[sampleCount++] = {obj->getID(), nullptr, reference};
+				if (sampleCount == 512)
+				{
+					for (auto& sample : samples) sample.object = TheGameLogic->findObjectByID(sample.id);
+					auto replay = [&](Bool fast) {
+						uint64_t sum = 0;
+						for (auto& sample : samples)
+						{
+							TCheckMovementInfo work = sample.info;
+							const Bool ok = fast ? checkForMovementFast(sample.object, work) : checkForMovementReference(sample.object, work);
+							sum += ok + 2 * work.allyMoving + 4 * work.allyGoal + 8 * work.enemyFixed + 16 * work.allyFixedCount;
+						}
+						return sum;
+					};
+					// Warm both routines equally; alternate timed order in each round.
+					const uint64_t expectedSum = replay(false);
+					if (replay(true) != expectedSum) { fprintf(stderr, "MOVEMENT_VERIFY replay mismatch\n"); abort(); }
+					for (Int round = 0; round < 4; ++round)
+					for (Int pass = 0; pass < 2; ++pass)
+					{
+						const Bool fast = (round + pass) % 2 != 0;
+						RTS_BENCH_SCOPE(fast ? "verify.movement_fast" : "verify.movement_reference");
+						if (replay(fast) != expectedSum) { fprintf(stderr, "MOVEMENT_VERIFY replay mismatch\n"); abort(); }
+					}
+					RTS_BENCH_COUNTER("verify.movement_replay_cases", 4 * sampleCount);
+					sampleCount = 0;
+				}
+			}
+			// Exercise empty footprints and all map edges as well as the live calls.
+			// No map/object state is changed by either implementation.
+			static Bool checkedBoundaries = false;
+			if (!checkedBoundaries && obj && m_isMapReady)
+			{
+				checkedBoundaries = true;
+				const Int xs[] = {m_extent.lo.x - 1, m_extent.lo.x, m_extent.lo.x + 1,
+					(m_extent.lo.x + m_extent.hi.x) / 2, m_extent.hi.x - 1, m_extent.hi.x, m_extent.hi.x + 1};
+				const Int ys[] = {m_extent.lo.y - 1, m_extent.lo.y, m_extent.lo.y + 1,
+					(m_extent.lo.y + m_extent.hi.y) / 2, m_extent.hi.y - 1, m_extent.hi.y, m_extent.hi.y + 1};
+				Int checked = 0;
+				for (Int x : xs) for (Int y : ys) for (Int radius = 0; radius <= 3; ++radius)
+				for (Int center = 0; center <= 1; ++center) for (Int transient = 0; transient <= 1; ++transient)
+				{
+					TCheckMovementInfo a {}, b {};
+					a.cell.x = x; a.cell.y = y; a.layer = LAYER_GROUND; a.radius = radius;
+					a.centerInCell = center; a.considerTransient = transient; b = a;
+					const Bool ra = checkForMovementFast(obj, a), rb = checkForMovementReference(obj, b);
+					if (ra != rb || a.allyFixedCount != b.allyFixedCount || a.allyMoving != b.allyMoving ||
+						a.allyGoal != b.allyGoal || a.enemyFixed != b.enemyFixed)
+					{ fprintf(stderr, "MOVEMENT_VERIFY boundary mismatch\n"); abort(); }
+					++checked;
+				}
+				fprintf(stderr, "MOVEMENT_VERIFY boundary cases %d matched\n", checked);
+			}
+		}
+		return result;
+	}
+#endif
+
 	info.allyFixedCount = 0;
 	info.allyMoving = false;
 	info.allyGoal = false;
@@ -5993,6 +6405,11 @@ Path *Pathfinder::getAircraftPath( const Object *obj, const Coord3D *to )
 //DECLARE_PERF_TIMER(processPathfindQueue)
 void Pathfinder::processPathfindQueue()
 {
+	RTS_BENCH_SCOPE("simulation.pathfind_queue");
+#ifdef RTS_POSIX_PORT
+	const uint64_t indexInsertsBefore = pathIndexInserts, indexVerifiedBefore = pathIndexVerified, indexFallbacksBefore = pathIndexFallbacks;
+	const uint64_t movementBefore = movementChecks, movementVerifiedBefore = movementVerified;
+#endif
 	//USE_PERF_TIMER(processPathfindQueue)
 	if (!m_isMapReady) {
 		return;
@@ -6047,6 +6464,13 @@ void Pathfinder::processPathfindQueue()
 		PROFILER_PLOT("PathfindCells", (double)m_cumulativeCellsAllocated);
 		PROFILER_PLOT("PathfindPaths", (double)pathsFound);
 	}
+#ifdef RTS_POSIX_PORT
+	RTS_BENCH_COUNTER("pathfind.indexed_inserts", pathIndexInserts - indexInsertsBefore);
+	RTS_BENCH_COUNTER("pathfind.index_fallbacks", pathIndexFallbacks - indexFallbacksBefore);
+	RTS_BENCH_COUNTER("pathfind.movement_checks", movementChecks - movementBefore);
+	if (verifyMovementChecks()) RTS_BENCH_COUNTER("verify.movement_checks", movementVerified - movementVerifiedBefore);
+	if (verifyPathOpenIndex()) RTS_BENCH_COUNTER("verify.pathfind_insertions", pathIndexVerified - indexVerifiedBefore);
+#endif
 #ifdef DEBUG_QPF
 	if (pathsFound>0) {
 #ifdef DEBUG_LOGGING

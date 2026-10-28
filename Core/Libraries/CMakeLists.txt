@@ -18,3 +18,17 @@ else()
     add_library(core_browserengine INTERFACE)
 endif()
 add_subdirectory(Source/Compression)
+
+if(APPLE AND RTS_POSIX_PORT)
+    add_executable(cost_bucket_index_test EXCLUDE_FROM_ALL Tests/cost_bucket_index_test.cpp)
+    target_include_directories(cost_bucket_index_test PRIVATE Include)
+    target_compile_features(cost_bucket_index_test PRIVATE cxx_std_17)
+    target_compile_options(cost_bucket_index_test PRIVATE -UNDEBUG)
+    add_executable(visual_jobs_test EXCLUDE_FROM_ALL
+        Tests/visual_jobs_test.cpp
+        ${CMAKE_SOURCE_DIR}/Dependencies/D3D8Metal/src/profile.cpp)
+    target_include_directories(visual_jobs_test PRIVATE Include
+        ${CMAKE_SOURCE_DIR}/Dependencies/D3D8Metal/include)
+    target_compile_definitions(visual_jobs_test PRIVATE RTS_POSIX_PORT)
+    target_compile_features(visual_jobs_test PRIVATE cxx_std_20)
+endif()
