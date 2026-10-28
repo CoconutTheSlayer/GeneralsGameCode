@@ -14,6 +14,8 @@ import math
 import os
 import sys
 
+from europe_style import AIRFRAME_LIGHT, AIRFRAME_SHADOW
+
 SIZE = 512
 # Islands: (left, top, right, bottom) in pixels of the texture.
 ISLANDS = {
@@ -79,6 +81,7 @@ class Layout:
 
 UP = 4
 W = SIZE * UP
+
 SEAM, LIT = (24, 27, 32), (214, 220, 226)
 NAVY, GOLD, HAZARD = (26, 34, 64), (232, 192, 52), (226, 184, 30)
 
@@ -200,12 +203,13 @@ def paint(data, damaged=False, occlusion=None, seed=7):
             if not sharp:
                 continue
             a, c = poly[i], poly[(i + 1) % len(poly)]
-            draw.line([a, c], fill=SEAM, width=2 * UP)
+            draw.line([a, c], fill=AIRFRAME_SHADOW, width=UP)
             mx, my = (a[0] + c[0]) / 2, (a[1] + c[1]) / 2
             dx, dy = cx - mx, cy - my
             d = math.hypot(dx, dy) or 1.0
             ox, oy = dx / d * 1.6 * UP, dy / d * 1.6 * UP
-            draw.line([(a[0] + ox, a[1] + oy), (c[0] + ox, c[1] + oy)], fill=LIT, width=UP)
+            if f["group"] != "bottom" and dy >= -abs(dx):
+                draw.line([(a[0] + ox, a[1] + oy), (c[0] + ox, c[1] + oy)], fill=AIRFRAME_LIGHT, width=UP)
 
     for mark in data["marks"]:
         paint_mark(draw, canvas, mark, P, rng)

@@ -1,0 +1,23 @@
+{
+  "sources": [
+    {
+      "file": "aircraft-panels.png",
+      "sha256": "6e56ebb94a0768f28db040e37a5e16772ae9fd4801322288c86d16fbfd4be522",
+      "origin": "Existing original project-generated Israel v2 art, reused as source material patches.",
+      "use": "Mapped onto original Ukraine geometry with separate UV projection, faction tint, digital camouflage, wear mixing and baked occlusion."
+    },
+    {
+      "file": "cloth-equipment.png",
+      "sha256": "4cd8fffa0e42526de5b79fd3d9f2d5df207d9b834779b828bce25a52ce1a297d",
+      "origin": "Existing original project-generated Israel v2 art, reused as source material patches.",
+      "use": "Mapped onto original Ukraine geometry with separate UV projection, faction tint, digital camouflage, wear mixing and baked occlusion."
+    },
+    {
+      "file": "industrial-surfaces.png",
+      "sha256": "18c7e041e450cf597ed51c927518b9e0c10b9f81fd008c10875ef36872775920",
+      "origin": "Existing original project-generated Israel v2 art, reused as source material patches.",
+      "use": "Mapped onto original Ukraine geometry with separate UV projection, faction tint, digital camouflage, wear mixing and baked occlusion."
+    }
+  ],
+  "stock_game_art_used": false
+}

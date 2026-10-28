@@ -40,6 +40,10 @@ class StealthDetectorUpdateModuleData : public UpdateModuleData
 {
 public:
 	UnsignedInt											m_updateRate;
+	Real m_counterBatteryRange;
+	Real m_counterBatteryRadius;
+	UnsignedInt m_counterBatteryCooldown;
+	AsciiString m_counterBatteryRevealObject;
 	Real														m_detectionRange;
 	Bool														m_initiallyDisabled;
 	AudioEventRTS										m_pingSound;
@@ -57,6 +61,9 @@ public:
 	StealthDetectorUpdateModuleData()
 	{
 		m_updateRate = 1;
+		m_counterBatteryRange = 0;
+		m_counterBatteryRadius = 60;
+		m_counterBatteryCooldown = 0;
 		m_detectionRange = 0.0f;
 		m_initiallyDisabled = false;
 		m_IRBeaconParticleSysTmpl = nullptr;
@@ -92,5 +99,7 @@ public:
 
 private:
 	Bool m_enabled;
+	UnsignedInt m_counterBatteryReadyFrame;
+	void updateCounterBattery();
 
 };

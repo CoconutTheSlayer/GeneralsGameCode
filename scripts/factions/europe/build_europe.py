@@ -1,5 +1,6 @@
-"""Writes the European faction, an add-on faction built on the game's USA units: a high-tech precision
-army whose units see and shoot further and hit harder, but cost more and take longer to build.
+"""Writes the European coalition, reusing the game's USA units and the existing EU artwork.
+The final roster, national contingents and gameplay changes are in coalition_roster.py;
+coalition_countries.json records each country's contribution and design origin.
 
 It is written entirely as changes to the game's own data (ChildObject, ChildWeapon, WeaponReplace,
 TextureReplace, SkirmishAISide; see GameEngine.cpp and ThingTemplate.cpp), so nothing of EA's data is
@@ -884,7 +885,7 @@ def label(text, key):
 def write(path, text):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", newline="\r\n") as f:
-        f.write(text)
+        f.write("\n".join(line.rstrip() for line in text.splitlines()) + "\n")
 
 
 def main():
@@ -976,7 +977,8 @@ def main():
         "  MedallionSelect = Euro_MedallionSelect",
         "  SkirmishAISide = America",
     ]
-    logic += [f"  SkirmishAIReplace = {o[1]} {o[0]}" for o in objects]
+    logic += [f"  SkirmishAIReplace = {o[4].get('ai_parent', o[1])} {o[0]}" for o in objects if o[4].get('ai', True)]
+    logic += [f"  SkirmishAIReplace = {parent} {target}" for parent, target in SKIRMISH_AI_ALIASES]
     # Researches the USA's scripts know nothing of (AISkirmishPlayer.cpp).
     logic += [f"  SkirmishAIUpgrade = {u} {o} {n}" for u, o, n in SKIRMISH_AI_UPGRADES]
     logic += ["End", ""]
@@ -1033,6 +1035,7 @@ def main():
         power_labels[name] = (text, description)
         return name
 
+    client += globals().get("EXTRA_CLIENT", [])
     used = {entry for slots in COMMAND_SETS.values() for entry in slots.values()}
     def power_image(power):
         return f"Euro_Power{power}"
@@ -1050,13 +1053,16 @@ def main():
     for menu, slots in PROMOTION_MENUS.items():
         menus[menu] = {slot: entry if entry.startswith("Command_") else
                        child_button(SCIENCES[entry][1], f"Euro_Command_PurchaseScience{entry}", *SCIENCES[entry][2:],
-                                    "Euro_PowerCoalition" if entry == "EuroCoalition" else "Euro_PowerArtilleryBarrage",
+                                    PROMOTION_PICTURES.get(entry, "Euro_PowerCoalition" if entry == "EuroCoalition" else "Euro_PowerArtilleryBarrage"),
                                     [f"Science = SCIENCE_{entry}"]) if entry in SCIENCES else
                        child_button(f"Command_PurchaseScience{entry}", f"Euro_Command_PurchaseScience{entry}", *PROMOTIONS[entry],
                                     PROMOTION_PICTURES.get(entry))
                        for slot, entry in slots.items()}
     for usa, image in USA_BUTTONS.items():
-        client += [f"ChildCommandButton Euro_{usa} {usa}", f"  ButtonImage = {image}", "End", ""]
+        if usa in BUTTON_LABELS:
+            child_button(usa, f"Euro_{usa}", *BUTTON_LABELS[usa], image)
+        else:
+            client += [f"ChildCommandButton Euro_{usa} {usa}", f"  ButtonImage = {image}", "End", ""]
         buttons[usa] = f"Euro_{usa}"
         for slots in menus.values():
             slots.update({slot: f"Euro_{usa}" for slot, entry in slots.items() if entry == usa})
@@ -1076,6 +1082,7 @@ def main():
         strings.extend([lbl, f'"{text}"', "END", ""])
 
     string("INI:FactionEurope", FACTION["name"])
+    string("SIDE:Europe", FACTION["name"])
     string("TOOLTIP:BioStrategyLong_Europe", FACTION["strategy"])
     string("GUI:BioFeatures_Europe", FACTION["features"])
     for name, parent, display, description, c in objects:
@@ -1102,6 +1109,12 @@ def main():
     write(os.path.join(DATA, "Data", "english", "Addon.str"), "\n".join(strings))
     print(f"Wrote {len(WEAPONS)} weapons, {len(objects)} objects, {len(buttons)} build buttons, {len(COMMAND_SETS)} build menus.")
 
+
+# The coalition roster extends the established art and data tables. Importing this
+# module (icons, texture installer, tournament runner) sees the same complete roster.
+from coalition_roster import apply as apply_coalition
+BUTTON_LABELS = {}
+apply_coalition(globals())
 
 if __name__ == "__main__":
     main()

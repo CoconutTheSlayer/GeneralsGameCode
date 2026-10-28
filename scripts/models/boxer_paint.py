@@ -14,12 +14,13 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from europe_style import ARMOUR, EDGE_LIGHT, EDGE_SHADOW  # noqa: E402
 from boxer_layout import SIZE, pixel  # noqa: E402
 
 UP = 4  # painted at four times the size, then shrunk: smooth lines
 W = SIZE * UP
 
-CAMO = [(124, 138, 150), (84, 97, 112), (166, 176, 184)]
+CAMO = ARMOUR
 SEAM, LIT = (22, 25, 30), (205, 212, 218)
 DUST = (156, 142, 118)
 
@@ -109,7 +110,7 @@ def paint_hull(layout, damaged=False, seed=11, occlusion=None):
             a, b = poly[i], poly[(i + 1) % len(poly)]
             # The turret is drawn smaller on the texture: finer seams, not lit.
             small = f.get("part") == "turret"
-            draw.line([a, b], fill=SEAM, width=UP if small else 3 * UP)
+            draw.line([a, b], fill=EDGE_SHADOW, width=UP if small else 2 * UP)
             if small:
                 continue
             # Light the edge on the face's side, nudged towards its middle.
@@ -118,7 +119,7 @@ def paint_hull(layout, damaged=False, seed=11, occlusion=None):
             d = math.hypot(dx, dy) or 1.0
             ox, oy = dx / d * 2.5 * UP, dy / d * 2.5 * UP
             if f["group"] in ("top", "side", "front", "back") and dy >= -abs(dx):
-                draw.line([(a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy)], fill=LIT, width=UP)
+                draw.line([(a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy)], fill=EDGE_LIGHT, width=UP)
 
     paint_details(draw, rng)
     canvas = weather(canvas, layout, rng)

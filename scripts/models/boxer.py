@@ -159,8 +159,8 @@ def turret():
     box(bm, (0.1, -1.55, 0.95), (1.25, -0.8, 1.85))            # sensor head
     cylinder(bm, (1.3, -1.18, 1.45), 0.22, 0.12, axis="X", segments=12)  # its lens
     box(bm, (0.6, -0.28, 1.05), (2.1, 0.28, 1.5))              # gun receiver
-    cylinder(bm, (3.6, 0, 1.25), 0.15, 3.1, axis="X", segments=10)
-    cylinder(bm, (5.1, 0, 1.25), 0.22, 0.35, axis="X", segments=10)    # muzzle brake
+    cylinder(bm, (3.6, 0, 1.25), 0.23, 3.1, axis="X", segments=10)
+    cylinder(bm, (5.1, 0, 1.25), 0.30, 0.35, axis="X", segments=10)    # muzzle brake
     # Smoke grenade launchers, four a side.
     for side in (1, -1):
         for k in range(4):
@@ -366,7 +366,7 @@ def export(parts, name, hull_texture):
     print(f"{name}: {len(model.meshes)} meshes, {sum(len(m[5]) for m in model.meshes)} triangles -> {out}")
 
 
-def main():
+def prototype_main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     os.makedirs(BUILD, exist_ok=True)
     parts = build()
@@ -375,6 +375,11 @@ def main():
     parts["flash"].hide_render = True
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(BUILD, NAME + ".blend"))
     render_previews(os.path.join(BUILD, NAME))
+
+
+def main():
+    from original_compacts import build as build_original
+    build_original('EUBOXER')
 
 
 if __name__ == "__main__":

@@ -51,7 +51,7 @@ BONES = [
 ]
 # Surfaces: (tile painted by armour_works_paint.py, units per tile) or a plain colour.
 SURFACES = {
-    "wall": ("tile_wall", 16.0), "trim": ("tile_trim", 12.0), "roof": ("tile_roof", 14.0),
+    "wall": ("tile_wall", 16.0), "trim": ("tile_trim", 12.0), "roof": ("tile_roof", 22.0),
     "shutter": ("tile_shutter", 10.0), "girder": ("tile_girder", 6.0), "inside": ("tile_interior", 14.0),
     "metal": ("tile_metal", 6.0), "crate": ("tile_crate", 4.0), "hazard": ("tile_hazard", 3.0),
     "grille": ("tile_grille", 3.0), "concrete": ("tile_concrete", 30.0), "light": ("tile_dome", 8.0),
@@ -131,7 +131,7 @@ def railing(b, a, c, z, surface="trim"):
         b.box(surface, (x - t, y - t, z), (x + t, y + t, z + 1.7))
 
 
-def sawtooth(b, x0, x1, y0, y1, top, tooth=12.0, rise=8.0):
+def sawtooth(b, x0, x1, y0, y1, top, tooth=18.0, rise=9.5):
     """A north-light roof: teeth along X, each a slope rising towards +X to a tall glazed face."""
     n = max(1, round((x1 - x0) / tooth))
     w = (x1 - x0) / n

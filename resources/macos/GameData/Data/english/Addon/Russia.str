@@ -1,0 +1,393 @@
+// Generated Russia faction names and tooltips.
+
+INI:FactionRussia
+"Russia"
+END
+
+SIDE:Russia
+"Russia"
+END
+
+TOOLTIP:BioStrategyLong_Russia
+"Subtlety has left the factory. Open the fight with overwhelming artillery salvos, then send in the armour. Concentrated fire is devastating, but long reload windows leave artillery vulnerable. Tanks and infantry must cover the gaps."
+END
+
+GUI:BioFeatures_Russia
+"Heavy armour, oversized firepower, explosive salvos, long reloads"
+END
+
+OBJECT:Russia_Tigr
+"Tigr Radar Scout"
+END
+
+CONTROLBAR:Russia_ConstructTigr
+"Tigr Radar Scout"
+END
+
+CONTROLBAR:Russia_DescriptionTigr
+"Light radar scout. Detects hidden enemies nearby. Nearby enemy artillery fire triggers a brief approximate radar contact, at most once every twelve seconds. Weak machine gun; no passengers."
+END
+
+OBJECT:Russia_T90
+"T-90"
+END
+
+CONTROLBAR:Russia_ConstructT90
+"T-90"
+END
+
+CONTROLBAR:Russia_DescriptionT90
+"Affordable assault tank. One powerful shell followed by a slow reload. Sluggish movement and turret handling leave it vulnerable to kiting."
+END
+
+OBJECT:Russia_BMP3
+"BMPT Assault Support"
+END
+
+CONTROLBAR:Russia_ConstructBMP3
+"BMPT Assault Support"
+END
+
+CONTROLBAR:Russia_DescriptionBMP3
+"Armoured infantry escort. Twin autocannons cut down exposed infantry and light vehicles. Cannot clear garrisons; bring assault engineers for buildings. No passengers, anti-air or anti-tank missiles."
+END
+
+OBJECT:Russia_Tunguska
+"Tunguska"
+END
+
+CONTROLBAR:Russia_ConstructTunguska
+"Tunguska"
+END
+
+CONTROLBAR:Russia_DescriptionTunguska
+"Burst air defence. Four heavy anti-air missiles fire rapidly, followed by a six-second reload. Short-range cannon provides limited self-defence; ineffective against tanks."
+END
+
+OBJECT:Russia_Msta
+"Msta-S"
+END
+
+CONTROLBAR:Russia_ConstructMsta
+"Msta-S"
+END
+
+CONTROLBAR:Russia_DescriptionMsta
+"Heavy siege howitzer. Automatically sets up to fire a powerful shell, then reloads for six seconds. Inaccurate against moving targets and vulnerable up close."
+END
+
+OBJECT:Russia_TOS
+"TOS-1A"
+END
+
+CONTROLBAR:Russia_ConstructTOS
+"TOS-1A"
+END
+
+CONTROLBAR:Russia_DescriptionTOS
+"Short-range assault launcher. Eight unguided rockets saturate a target area, followed by ten seconds reloading. Must close dangerously near the enemy."
+END
+
+OBJECT:Russia_Rifleman
+"Rifleman"
+END
+
+CONTROLBAR:Russia_ConstructRifleman
+"Rifleman"
+END
+
+CONTROLBAR:Russia_DescriptionRifleman
+"Cheap rifle infantry. Screens artillery and captures buildings after Capture Training. Individually weak; no horde bonus."
+END
+
+OBJECT:Russia_Kornet
+"Kornet Team"
+END
+
+CONTROLBAR:Russia_ConstructKornet
+"Kornet Team"
+END
+
+CONTROLBAR:Russia_DescriptionKornet
+"Heavy anti-tank team. Deploys for two seconds, fires one powerful missile, then reloads for 5.6 seconds. Packs before moving. Vulnerable to infantry and close attacks; cannot engage aircraft."
+END
+
+OBJECT:Russia_Commando
+"Assault Engineer"
+END
+
+CONTROLBAR:Russia_ConstructCommando
+"Assault Engineer"
+END
+
+CONTROLBAR:Russia_DescriptionCommando
+"Close assault engineer. Demolition grenades clear two garrisoned infantry per hit and damage structures. Short throwing range demands armoured cover. No stealth, hero limit or sniper ability."
+END
+
+OBJECT:Russia_Su35
+"Su-35"
+END
+
+CONTROLBAR:Russia_ConstructSu35
+"Su-35"
+END
+
+CONTROLBAR:Russia_DescriptionSu35
+"Retired from normal production. Preserved for custom scenarios."
+END
+
+OBJECT:Russia_Su25
+"Su-25"
+END
+
+CONTROLBAR:Russia_ConstructSu25
+"Su-25"
+END
+
+CONTROLBAR:Russia_DescriptionSu25
+"Slow armoured strike aircraft. Six unguided explosive rockets per sortie. Strong against stationary concentrations; cannot fight aircraft."
+END
+
+OBJECT:Russia_Mi28
+"Mi-28"
+END
+
+CONTROLBAR:Russia_ConstructMi28
+"Mi-28"
+END
+
+CONTROLBAR:Russia_DescriptionMi28
+"Retired from normal production. Preserved for custom scenarios."
+END
+
+OBJECT:Russia_Engineer
+"Armoured Engineer"
+END
+
+CONTROLBAR:Russia_ConstructEngineer
+"Armoured Engineer"
+END
+
+CONTROLBAR:Russia_DescriptionEngineer
+"Builds and repairs Russian structures and clears mines."
+END
+
+OBJECT:Russia_SupplyTruck
+"Supply Truck"
+END
+
+CONTROLBAR:Russia_ConstructSupplyTruck
+"Supply Truck"
+END
+
+CONTROLBAR:Russia_DescriptionSupplyTruck
+"Collects supply crates and delivers them to the Supply Depot."
+END
+
+OBJECT:Russia_CommandCenter
+"Command Centre"
+END
+
+CONTROLBAR:Russia_ConstructCommandCenter
+"Command Centre"
+END
+
+CONTROLBAR:Russia_DescriptionCommandCenter
+"Builds engineers, supplies radar and directs a clearly telegraphed artillery preparation."
+END
+
+OBJECT:Russia_PowerPlant
+"Power Station"
+END
+
+CONTROLBAR:Russia_ConstructPowerPlant
+"Power Station"
+END
+
+CONTROLBAR:Russia_DescriptionPowerPlant
+"Produces eight power. Improved Turbines add another five power at this plant."
+END
+
+OBJECT:Russia_Barracks
+"Barracks"
+END
+
+CONTROLBAR:Russia_ConstructBarracks
+"Barracks"
+END
+
+CONTROLBAR:Russia_DescriptionBarracks
+"Trains cheap riflemen, ground-only Kornet teams and assault engineers. Research Capture Training here."
+END
+
+OBJECT:Russia_SupplyCenter
+"Supply Centre"
+END
+
+CONTROLBAR:Russia_ConstructSupplyCenter
+"Supply Centre"
+END
+
+CONTROLBAR:Russia_DescriptionSupplyCenter
+"Collects resources from supply trucks. Includes one truck when completed."
+END
+
+OBJECT:Russia_WarFactory
+"War Factory"
+END
+
+CONTROLBAR:Russia_ConstructWarFactory
+"War Factory"
+END
+
+CONTROLBAR:Russia_DescriptionWarFactory
+"Builds six specialised ground vehicles. Fast T-90 production sustains the assault; no universal armour or veterancy upgrade."
+END
+
+OBJECT:Russia_Airfield
+"Airfield"
+END
+
+CONTROLBAR:Russia_ConstructAirfield
+"Airfield"
+END
+
+CONTROLBAR:Russia_DescriptionAirfield
+"Four runway spaces for Su-25 ground-attack aircraft. Russia has no buildable fighter or helicopter."
+END
+
+OBJECT:Russia_TechCenter
+"Military Institute"
+END
+
+CONTROLBAR:Russia_ConstructTechCenter
+"Military Institute"
+END
+
+CONTROLBAR:Russia_DescriptionTechCenter
+"Unlocks siege artillery and late-game structures. Research Siege Ammunition and Assault Equipment here."
+END
+
+OBJECT:Russia_Income
+"Logistics Ministry"
+END
+
+CONTROLBAR:Russia_ConstructIncome
+"Logistics Ministry"
+END
+
+CONTROLBAR:Russia_DescriptionIncome
+"Generates $20 every two seconds while powered. Protect it to sustain a late-game army."
+END
+
+OBJECT:Russia_GroundDefense
+"Cannon Emplacement"
+END
+
+CONTROLBAR:Russia_ConstructGroundDefense
+"Cannon Emplacement"
+END
+
+CONTROLBAR:Russia_DescriptionGroundDefense
+"Fixed anti-armour cannon. Requires power; cannot engage aircraft."
+END
+
+OBJECT:Russia_AirDefense
+"Radar Missile Defence"
+END
+
+CONTROLBAR:Russia_ConstructAirDefense
+"Radar Missile Defence"
+END
+
+CONTROLBAR:Russia_DescriptionAirDefense
+"Radar-guided missile battery fires four-shot anti-air salvos. Requires power; cannot engage ground units."
+END
+
+OBJECT:Russia_Superweapon
+"Strategic Missile Silo"
+END
+
+CONTROLBAR:Russia_ConstructSuperweapon
+"Strategic Missile Silo"
+END
+
+CONTROLBAR:Russia_DescriptionSuperweapon
+"Strategic missile silo. Launches a nuclear missile after the visible six-minute countdown. Requires ten power."
+END
+
+UPGRADE:RussiaTurbines
+"Improved Turbines"
+END
+
+CONTROLBAR:Russia_UpgradeTurbines
+"Improved Turbines"
+END
+
+CONTROLBAR:Russia_UpgradeTurbinesDescription
+"Adds five power at this plant."
+END
+
+UPGRADE:RussiaCapture
+"Capture Training"
+END
+
+CONTROLBAR:Russia_UpgradeCapture
+"Capture Training"
+END
+
+CONTROLBAR:Russia_UpgradeCaptureDescription
+"Riflemen can capture neutral and enemy buildings."
+END
+
+UPGRADE:RussiaSiegeAmmo
+"Siege Ammunition"
+END
+
+CONTROLBAR:Russia_UpgradeSiegeAmmo
+"Siege Ammunition"
+END
+
+CONTROLBAR:Russia_UpgradeSiegeAmmoDescription
+"Msta-S shells and TOS rockets deal 20% more damage. Reload windows remain unchanged."
+END
+
+UPGRADE:RussiaAssaultEquipment
+"Assault Equipment"
+END
+
+CONTROLBAR:Russia_UpgradeAssaultEquipment
+"Assault Equipment"
+END
+
+CONTROLBAR:Russia_UpgradeAssaultEquipmentDescription
+"Assault engineer demolition grenades deal 25% more damage. Garrison casualties remain two per hit."
+END
+
+CONTROLBAR:Russia_PowerBarrage
+"Artillery Preparation"
+END
+
+CONTROLBAR:RussiaBarrageDescription
+"Marks an area for everyone to see, then shells it after a warning delay. More promotion ranks add shells. Recharges in five minutes."
+END
+
+CONTROLBAR:Russia_PowerMissile
+"Strategic Missile"
+END
+
+CONTROLBAR:RussiaMissileDescription
+"Launches a nuclear missile at the selected target. Recharges in six minutes."
+END
+
+SCIENCE:RussiaBarrage1
+"Artillery Preparation 1"
+END
+
+SCIENCE:RussiaBarrage2
+"Artillery Preparation 2"
+END
+
+SCIENCE:RussiaBarrage3
+"Artillery Preparation 3"
+END

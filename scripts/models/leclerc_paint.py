@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from europe_style import EDGE_LIGHT, EDGE_SHADOW  # noqa: E402
 from leopard_paint import (GLASS, SEAM, UP, YELLOW, Painter, emblem, grille, hatch, hazard, light,  # noqa: E402
                            paint_tread, rivets, seam)
 
@@ -43,8 +44,8 @@ def leclerc_details(p, draw, rng):
     for x0, x1 in ((-14.5, -10.8), (-10.5, -6.8)):
         for y0, y1 in ((-5.3, -0.3), (0.3, 5.3)):
             grille(draw, p.box("hull", "top", (x0, y0, 6.25), (x1, y1, 6.25)), slats=9, vertical=False)
-    for x in (-4.0, 3.5, 9.5):
-        seam(draw, top(x, 8.0), top(x, -8.0))
+    for x in (-4.0, 9.5):
+        seam(draw, top(x, 8.0), top(x, -8.0), lit=False)
         rivets(draw, [top(x - 0.4, y) for y in np.arange(-7.6, 7.8, 1.4)])
     for y in (5.6, -5.6):
         seam(draw, top(-15.0, y), top(12.8, y), lit=False)
@@ -122,8 +123,9 @@ def main():
     out = sys.argv[2]
     occlusion = Image.open(sys.argv[3]) if len(sys.argv) > 3 and os.path.exists(sys.argv[3]) else None
     painter = Painter(sys.argv[1], occlusion)
-    painter.paint(leclerc_details, splinter, seed=21).save(os.path.join(out, "eulec.tga"))
-    painter.paint(leclerc_details, splinter, damaged=True, seed=21).save(os.path.join(out, "eulec_d.tga"))
+    style = dict(edge_colours=(EDGE_SHADOW, EDGE_LIGHT), smooth_parts=("barrel",))
+    painter.paint(leclerc_details, splinter, seed=21, **style).save(os.path.join(out, "eulec.tga"))
+    painter.paint(leclerc_details, splinter, damaged=True, seed=21, **style).save(os.path.join(out, "eulec_d.tga"))
     paint_tread(seed=5, pads=7).save(os.path.join(out, "eulec_tread.tga"))
     print("painted")
 

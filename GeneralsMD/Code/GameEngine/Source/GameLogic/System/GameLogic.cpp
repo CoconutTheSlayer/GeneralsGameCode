@@ -43,6 +43,7 @@
 #include "Common/INI.h"
 #include "Common/LatchRestore.h"
 #include "Common/MapObject.h"
+#include "Common/Money.h"
 #include "Common/MultiplayerSettings.h"
 #include "Common/OSDisplay.h"
 #include "Common/PerfTimer.h"
@@ -95,6 +96,9 @@
 #include "GameLogic/Module/OpenContain.h"
 #include "GameLogic/PartitionManager.h"
 #include "GameLogic/Module/PhysicsUpdate.h"
+#include "GameLogic/Module/SpecialPowerModule.h"
+#include "GameLogic/Module/ProductionUpdate.h"
+#include "Common/SpecialPower.h"
 #include "GameLogic/PolygonTrigger.h"
 #include "GameLogic/ScriptActions.h"
 #include "GameLogic/ScriptConditions.h"
@@ -3846,6 +3850,20 @@ void GameLogic::update()
 #endif
 
 #if defined(RTS_POSIX_PORT)
+	// Opt-in flight/targetability trace for guided drone counterplay tests.
+	if (getenv("GENERALS_DRONE_LOG") && isInGame() && getFrame() % 30 == 0)
+	{
+		for (Object *drone = getFirstObject(); drone; drone = drone->getNextObject())
+		{
+			if (!drone->isKindOf(KINDOF_DRONE) || !drone->isKindOf(KINDOF_PROJECTILE))
+				continue;
+			fprintf(stderr, "DRONE_FLIGHT frame %u drone %u airborne %d height %.1f dead %d\n", getFrame(), drone->getID(), drone->isAirborneTarget(), drone->getHeightAboveTerrain(), drone->isEffectivelyDead());
+			for (Object *aa = getFirstObject(); aa; aa = aa->getNextObject())
+				if (aa->getTemplate()->getName() == AsciiString("GLAVehicleQuadCannon"))
+					fprintf(stderr, "DRONE_TARGET drone %u quad %u result %d\n", drone->getID(), aa->getID(), aa->getAbleToAttackSpecificObject(ATTACK_NEW_TARGET, drone, CMD_FROM_AI));
+		}
+	}
+
 	// GENERALS_DUEL=A:n,B:m fights n of object A against m of object B, each for a player of the object's
 	// own side (Europe, China...), in the middle of the map, GENERALS_DUEL_DISTANCE
 	// (220) apart, attack-moving at each other. When one side is gone, or after GENERALS_DUEL_SECONDS
@@ -3967,11 +3985,20 @@ void GameLogic::update()
 					{
 						Object *obj = findObjectByID(id);
 						AIUpdateInterface *ai = obj ? obj->getAI() : nullptr;
-						if (ai && !obj->isEffectivelyDead() && ai->isIdle())
+						if (ai && !obj->isEffectivelyDead() && ai->isIdle() &&
+							!(getenv("GENERALS_DUEL_HOLD_SIDE") && atoi(getenv("GENERALS_DUEL_HOLD_SIDE")) == s))
 						{
 							Coord3D target = middle[1 - s];
 							target.z = TheTerrainLogic->getGroundHeight(target.x, target.y);
-							ai->aiAttackMoveToPosition(&target, NO_MAX_SHOTS_LIMIT, CMD_FROM_AI);
+							if (getenv("GENERALS_DUEL_DIRECT_ATTACK"))
+							{
+								for (ObjectID enemyID : sides[1 - s].ids)
+								{
+									Object *enemy = findObjectByID(enemyID);
+									if (enemy && !enemy->isEffectivelyDead()) { ai->aiAttackObject(enemy, NO_MAX_SHOTS_LIMIT, CMD_FROM_PLAYER); break; }
+								}
+							}
+							else ai->aiAttackMoveToPosition(&target, NO_MAX_SHOTS_LIMIT, CMD_FROM_AI);
 						}
 					}
 			}
@@ -4236,6 +4263,474 @@ void GameLogic::update()
 	// facing the camera, at 2 seconds, to compare how large units are drawn. GENERALS_LINEUP_SPACING sets
 	// the distance between them (45).
 	static const char *lineup = getenv("GENERALS_LINEUP");
+	// Build the roster through real production queues (costs, prerequisites,
+	// science, parking and exit doors), rather than only spawning its models.
+	static const char *rosterProduction = getenv("GENERALS_ROSTER_PRODUCTION");
+	static std::map<AsciiString, ObjectID> rosterFactories;
+	if (rosterProduction && ThePlayerList->getLocalPlayer())
+	{
+		Player *player = ThePlayerList->getLocalPlayer();
+		const char *factories[] = {"Euro_CommandCenter", "Euro_Barracks", "Euro_WarFactory", "Euro_Airfield", "Euro_SupplyCenter", "Euro_StrategyCenter", "Euro_PowerPlant", "Euro_PowerPlant", "Euro_PowerPlant"};
+		if (m_frame == 2 * LOGICFRAMES_PER_SECOND)
+		{
+			Region3D extent;
+			TheTerrainLogic->getExtent(&extent);
+			for (Int i = 0; i < 9; ++i)
+			{
+				const ThingTemplate *tmpl = TheThingFactory->findTemplate(factories[i]);
+				Object *obj = tmpl ? TheThingFactory->newObject(tmpl, player->getDefaultTeam()) : nullptr;
+				if (!obj) continue;
+				Coord3D pos = {(extent.lo.x + extent.hi.x) * 0.5f + (i % 3 - 1) * 240.0f,
+					(extent.lo.y + extent.hi.y) * 0.5f + (i / 3 - 1) * 220.0f, 0};
+				pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
+				obj->setPosition(&pos);
+				rosterFactories[factories[i]] = obj->getID();
+			}
+			for (const char *science : {"SCIENCE_PaladinTank", "SCIENCE_StealthFighter", "SCIENCE_Pathfinder"})
+				player->grantScience(TheScienceStore->getScienceFromInternalName(science));
+		}
+		if (m_frame == 3 * LOGICFRAMES_PER_SECOND)
+		{
+			const char *queues[] = {"Euro_Dozer", "Euro_Rifleman,Euro_Milan,Euro_Commando,Euro_Marksman,Euro_Mistral",
+				"Euro_Leopard,Euro_Puls,Euro_Boxer,Euro_Ambulance,Euro_Leclerc,Euro_ReconDrone,Euro_Skyranger,Euro_Wiesel,Euro_Dana",
+				"Euro_Typhoon,Euro_Rafale,Euro_Tornado,Euro_Tiger,Euro_Apache", "Euro_NH90"};
+			for (Int i = 0; i < 5; ++i)
+			{
+				Object *factory = findObjectByID(rosterFactories[factories[i]]);
+				ProductionUpdateInterface *production = factory ? factory->getProductionUpdateInterface() : nullptr;
+				AsciiString list(queues[i]), name;
+				while (list.nextToken(&name, ","))
+				{
+					const ThingTemplate *unit = TheThingFactory->findTemplate(name);
+					Bool ok = production && unit && production->queueCreateUnit(unit, production->requestUniqueUnitID());
+					fprintf(stderr, "ROSTER_PRODUCTION %s %s\n", ok ? "queued" : "FAILED", name.str());
+				}
+				if (factory && i == 2 && TheInGameUI && factory->getDrawable())
+				{
+					TheInGameUI->deselectAllDrawables();
+					TheInGameUI->selectDrawable(factory->getDrawable());
+					if (TheTacticalView) TheTacticalView->lookAt(factory->getPosition());
+				}
+			}
+		}
+		if (m_frame == 240 * LOGICFRAMES_PER_SECOND)
+		{
+			std::map<AsciiString, Int> counts;
+			for (Object *obj = getFirstObject(); obj; obj = obj->getNextObject())
+				if (obj->getControllingPlayer() == player && !obj->isEffectivelyDead()) ++counts[obj->getTemplate()->getName()];
+			for (const auto &entry : counts) fprintf(stderr, "ROSTER_PRODUCTION alive %s %d\n", entry.first.str(), entry.second);
+			fprintf(stderr, "ROSTER_PRODUCTION complete\n");
+			TheGameEngine->setQuitting(TRUE);
+		}
+	}
+	// A faction-neutral production fixture. Each line is a producer template followed
+	// by comma-separated units. Lines without units add prerequisite structures.
+	// This exercises the same queues and exit paths used in ordinary play.
+	static const char *productionSpec = getenv("GENERALS_PRODUCTION_SPEC");
+	static std::vector<std::pair<AsciiString, AsciiString>> productionRows;
+	static std::vector<ObjectID> productionSources;
+	if (productionSpec && ThePlayerList->getLocalPlayer())
+	{
+		Player *player = ThePlayerList->getLocalPlayer();
+		if (m_frame == 2 * LOGICFRAMES_PER_SECOND)
+		{
+			FILE *spec = fopen(productionSpec, "r");
+			if (spec)
+			{
+				char line[2048], factory[256], queue[1536];
+				while (fgets(line, sizeof(line), spec))
+				{
+					if (line[0] == '#') continue;
+					queue[0] = 0;
+					if (sscanf(line, "%255s %1535s", factory, queue) >= 1)
+						productionRows.push_back(std::make_pair(AsciiString(factory), AsciiString(queue)));
+				}
+				fclose(spec);
+			}
+			else fprintf(stderr, "FACTION_PRODUCTION FAILED opening %s\n", productionSpec);
+			Region3D extent;
+			TheTerrainLogic->getExtent(&extent);
+			for (UnsignedInt i = 0; i < productionRows.size(); ++i)
+			{
+				const ThingTemplate *tmpl = TheThingFactory->findTemplate(productionRows[i].first);
+				Object *obj = tmpl ? TheThingFactory->newObject(tmpl, player->getDefaultTeam()) : nullptr;
+				productionSources.push_back(obj ? obj->getID() : INVALID_ID);
+				if (!obj)
+				{
+					fprintf(stderr, "FACTION_PRODUCTION FAILED factory %s\n", productionRows[i].first.str());
+					continue;
+				}
+				Coord3D pos = {(extent.lo.x + extent.hi.x) * 0.5f + ((Int)(i % 3) - 1) * 270.0f,
+					(extent.lo.y + extent.hi.y) * 0.5f + ((Int)(i / 3) - 1) * 245.0f, 0};
+				pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
+				obj->setPosition(&pos);
+				fprintf(stderr, "FACTION_PRODUCTION factory %s\n", productionRows[i].first.str());
+			}
+		}
+		if (m_frame == 3 * LOGICFRAMES_PER_SECOND)
+		{
+			for (UnsignedInt i = 0; i < productionRows.size(); ++i)
+			{
+				Object *source = findObjectByID(productionSources[i]);
+				ProductionUpdateInterface *production = source ? source->getProductionUpdateInterface() : nullptr;
+				AsciiString list = productionRows[i].second, name;
+				while (list.nextToken(&name, ","))
+				{
+					const ThingTemplate *unit = TheThingFactory->findTemplate(name);
+					Bool ok = production && unit && production->queueCreateUnit(unit, production->requestUniqueUnitID());
+					fprintf(stderr, "FACTION_PRODUCTION %s %s\n", ok ? "queued" : "FAILED", name.str());
+				}
+			}
+		}
+		if (m_frame == 240 * LOGICFRAMES_PER_SECOND)
+		{
+			std::map<AsciiString, Int> counts;
+			for (Object *obj = getFirstObject(); obj; obj = obj->getNextObject())
+				if (obj->getControllingPlayer() == player && !obj->isEffectivelyDead())
+					++counts[obj->getTemplate()->getName()];
+			for (const auto &entry : counts)
+				fprintf(stderr, "FACTION_PRODUCTION alive %s %d\n", entry.first.str(), entry.second);
+			fprintf(stderr, "FACTION_PRODUCTION complete\n");
+			TheGameEngine->setQuitting(TRUE);
+		}
+	}
+	// Opt-in native regression for roster mechanics. Normal matches never enter this block.
+	if (getenv("GENERALS_ROSTER_MECHANICS_TEST") && isInGame())
+	{
+		enum FixtureObject { SMOKE_TARGET, DIRECT_SOURCE, AIR_SOURCE, SIEGE_SOURCE, SMOKE_FIELD,
+			HEAL_ONE, HEAL_MANY, SAPPER, TIGR, COUNTER_SIEGE, EARLY_MINE, PEREH, PEREH_TARGET, SPOTTER, FIXTURE_OBJECT_COUNT };
+		static ObjectID ids[FIXTURE_OBJECT_COUNT] = {};
+		static UnsignedInt start = 0, failed = 0, assertions = 0, firstContactFrame = 0;
+		static Real damagedHealth[2] = {}, resetHealth[2] = {};
+		static std::map<ObjectID, UnsignedInt> contacts;
+		static std::map<ObjectID, Coord3D> contactPositions;
+		static Bool active = FALSE;
+		auto check = [&](Bool good, const char *label) {
+			++assertions;
+			fprintf(stderr, "ROSTER_MECHANICS %s %s frame=%u\n", good ? "PASS" : "FAIL", label, m_frame);
+			if (!good) ++failed;
+		};
+		auto count = [&](const char *name) {
+			Int n = 0;
+			for (Object *obj = getFirstObject(); obj; obj = obj->getNextObject())
+				if (obj->getTemplate()->getName() == AsciiString(name) && !obj->isEffectivelyDead()) ++n;
+			return n;
+		};
+		auto damage = [](Object *obj, Real amount) {
+			DamageInfo info;
+			info.in.m_damageType = DAMAGE_UNRESISTABLE;
+			info.in.m_deathType = DEATH_NORMAL;
+			info.in.m_sourceID = INVALID_ID;
+			info.in.m_amount = amount;
+			obj->attemptDamage(&info);
+		};
+		if (!start && m_frame >= 3 * LOGICFRAMES_PER_SECOND)
+		{
+			start = m_frame;
+			Player *player = ThePlayerList->getLocalPlayer(), *enemy = nullptr;
+			for (Int i = 0; i < ThePlayerList->getPlayerCount(); ++i)
+			{
+				Player *p = ThePlayerList->getNthPlayer(i);
+				if (p != player && p->isPlayerActive() && !p->isPlayerObserver() && p->getSide() == AsciiString("Russia")) { enemy = p; break; }
+			}
+			check(player && enemy, "fixture_players");
+			Region3D extent; TheTerrainLogic->getExtent(&extent);
+			const Real cx = (extent.lo.x + extent.hi.x) * .5f, cy = (extent.lo.y + extent.hi.y) * .5f;
+			auto spawn = [&](const char *name, Player *owner, Real x, Real y, Bool hold) -> Object * {
+				const ThingTemplate *tmpl = TheThingFactory->findTemplate(name);
+				if (!tmpl || !owner) { check(FALSE, name); return nullptr; }
+				Object *obj = TheThingFactory->newObject(tmpl, owner->getDefaultTeam());
+				Coord3D pos = {cx + x, cy + y, 0}; pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
+				obj->setPosition(&pos);
+				if (hold) obj->setDisabled(DISABLED_HELD);
+				return obj;
+			};
+			auto save = [&](FixtureObject slot, const char *name, Player *owner, Real x, Real y, Bool hold) {
+				Object *obj = spawn(name, owner, x, y, hold);
+				if (obj) ids[slot] = obj->getID();
+			};
+			save(SMOKE_TARGET, "Euro_Leopard", player, 0, 0, TRUE);
+			save(DIRECT_SOURCE, "AmericaTankCrusader", enemy, 450, 0, TRUE);
+			save(AIR_SOURCE, "AmericaJetRaptor", enemy, 450, -100, TRUE);
+			save(SIEGE_SOURCE, "Russia_Msta", enemy, 450, 100, TRUE);
+			save(SMOKE_FIELD, "Euro_SmokeField", player, 0, 0, FALSE);
+			save(HEAL_ONE, "Euro_Leopard", player, -520, -520, TRUE);
+			save(HEAL_MANY, "Euro_Leopard", player, 0, -520, TRUE);
+			spawn("Euro_Ambulance", player, -520, -490, FALSE);
+			for (Int i = 0; i < 4; ++i) spawn("Euro_Ambulance", player, (i - 1.5f) * 20, -490, FALSE);
+			save(SAPPER, "Ukraine_Commando", player, 520, -520, FALSE);
+			save(TIGR, "Russia_Tigr", player, 450, 520, TRUE);
+			save(COUNTER_SIEGE, "Russia_Msta", enemy, 887, 523, TRUE);
+			save(EARLY_MINE, "Ukraine_ArmingMine", player, 520, -450, FALSE);
+			save(PEREH, "Israel_Pereh", player, 650, 0, TRUE);
+			save(PEREH_TARGET, "AmericaTankCrusader", enemy, 925, 0, TRUE);
+			active = failed == 0;
+			if (active)
+			{
+				findObjectByID(ids[TIGR])->getBodyModule()->setIndestructible(TRUE);
+				findObjectByID(ids[COUNTER_SIEGE])->getBodyModule()->setIndestructible(TRUE);
+				findObjectByID(ids[PEREH_TARGET])->getBodyModule()->setIndestructible(TRUE);
+				for (Int i = 0; i < 2; ++i)
+				{
+					Object *obj = findObjectByID(ids[i ? HEAL_MANY : HEAL_ONE]);
+					damage(obj, 240); damagedHealth[i] = obj->getBodyModule()->getHealth();
+				}
+			}
+			else TheGameEngine->setQuitting(TRUE);
+		}
+		if (active)
+		{
+			const UnsignedInt t = m_frame - start;
+			Player *player = ThePlayerList->getLocalPlayer();
+			Object *target = findObjectByID(ids[SMOKE_TARGET]);
+			Object *direct = findObjectByID(ids[DIRECT_SOURCE]);
+			Object *air = findObjectByID(ids[AIR_SOURCE]);
+			Object *siege = findObjectByID(ids[SIEGE_SOURCE]);
+			Object *sapper = findObjectByID(ids[SAPPER]);
+			const SpecialPowerTemplate *minePower = TheSpecialPowerStore->findSpecialPowerTemplate("Ukraine_LayMine");
+			SpecialPowerModuleInterface *mine = sapper && minePower ? sapper->getSpecialPowerModule(minePower) : nullptr;
+			if (t == 10)
+			{
+				check(mine != nullptr, "mine_module_exists");
+				if (mine)
+				{
+					mine->pauseCountdown(FALSE); mine->setReadyFrame(m_frame);
+					Money *money = player->getMoney(); money->withdraw(money->countMoney(), FALSE); money->deposit(50, FALSE, FALSE);
+					UnsignedInt ready = mine->getReadyFrame();
+					check(!mine->isReady(), "mine_unaffordable_not_ready");
+					mine->doSpecialPower(0);
+					check(money->countMoney() == 50 && mine->getReadyFrame() == ready && count("Ukraine_ArmingMine") == 1, "mine_rejection_no_cost_spawn_or_cooldown");
+					money->deposit(200, FALSE, FALSE);
+					mine->doSpecialPower(0);
+					check(money->countMoney() == 150 && count("Ukraine_ArmingMine") == 2 && !mine->isReady(), "mine_payment_once_and_cooldown");
+					mine->doSpecialPower(0);
+					check(money->countMoney() == 150 && count("Ukraine_ArmingMine") == 2, "mine_repeat_order_does_not_charge");
+				}
+			}
+			if (t == 30)
+			{
+				Weapon *gun = direct->getWeaponInWeaponSlot(PRIMARY_WEAPON), *jet = air->getWeaponInWeaponSlot(PRIMARY_WEAPON), *art = siege->getWeaponInWeaponSlot(PRIMARY_WEAPON);
+				check(target->testWeaponBonusCondition(WEAPONBONUSCONDITION_SMOKE_SCREEN), "smoke_field_applies_condition");
+				check(fabs(gun->getAttackRange(direct, target) - gun->getAttackRange(direct) * .75f) < .01f, "smoke_direct_fire_range_75_percent");
+				check(fabs(jet->getAttackRange(air, target) - jet->getAttackRange(air)) < .01f, "smoke_aircraft_attacker_unaffected");
+				check(fabs(art->getAttackRange(siege, target) - art->getAttackRange(siege)) < .01f, "smoke_artillery_unaffected");
+				// Friendly direct fire retains its normal range against the smoke target.
+				Object *ally = findObjectByID(ids[HEAL_ONE]);
+				Weapon *allyGun = ally->getWeaponInWeaponSlot(PRIMARY_WEAPON);
+				check(fabs(allyGun->getAttackRange(ally, target) - allyGun->getAttackRange(ally)) < .01f, "smoke_friendly_fire_range_unchanged");
+				// An airborne target remains targetable even if an unrelated effect set the flag.
+				air->setWeaponBonusCondition(WEAPONBONUSCONDITION_SMOKE_SCREEN);
+				check(fabs(allyGun->getAttackRange(ally, air) - allyGun->getAttackRange(ally)) < .01f, "smoke_aircraft_target_unaffected");
+				air->clearWeaponBonusCondition(WEAPONBONUSCONDITION_SMOKE_SCREEN);
+			}
+			// Allow the stock five-second fog grace after the observer withdraws at t90.
+			if (t == 50 || t == 80 || t == 270)
+			{
+				Object *launcher = findObjectByID(ids[PEREH]), *victim = findObjectByID(ids[PEREH_TARGET]);
+				Weapon *weapon = launcher->getWeaponInWeaponSlot(PRIMARY_WEAPON);
+				weapon->loadAmmoNow(launcher); weapon->setPossibleNextShotFrame(m_frame); weapon->setPreAttackFinishedFrame(m_frame); weapon->getStatus();
+				UnsignedInt ammo = weapon->getRemainingAmmo();
+				Bool vision = weapon->hasRequiredTargetVision(launcher, victim);
+				check(ammo > 0, "pereh_loaded_for_launch_check");
+				check(t == 80 ? vision : !vision, t == 80 ? "pereh_target_currently_visible" : "pereh_target_not_currently_visible");
+				ObjectID projectile = INVALID_ID;
+				weapon->fireWeapon(launcher, victim, &projectile);
+				if (t == 80)
+					check(vision && projectile != INVALID_ID && weapon->getLastShotFrame() == m_frame, "pereh_fires_when_target_currently_visible");
+				else
+				{
+					check(!vision && projectile == INVALID_ID && weapon->getRemainingAmmo() == ammo, t == 50 ? "pereh_fogged_object_launch_rejected_without_ammo_cost" : "pereh_lost_vision_launch_rejected_without_ammo_cost");
+					Object *forced = weapon->forceFireWeapon(launcher, victim->getPosition());
+					check(!forced && weapon->getRemainingAmmo() == ammo, "pereh_force_ground_does_not_bypass_vision");
+				}
+			}
+			if (t == 60)
+			{
+				const ThingTemplate *tmpl = TheThingFactory->findTemplate("Israel_Commando");
+				Object *spot = TheThingFactory->newObject(tmpl, player->getDefaultTeam());
+				spot->setPosition(findObjectByID(ids[PEREH_TARGET])->getPosition());
+				spot->setDisabled(DISABLED_HELD); spot->getBodyModule()->setIndestructible(TRUE); ids[SPOTTER] = spot->getID();
+			}
+			if (t == 90) { Object *spot = findObjectByID(ids[SPOTTER]); if (spot) spot->setPosition(findObjectByID(ids[HEAL_ONE])->getPosition()); }
+			if (t == 40) { Object *obj = findObjectByID(ids[EARLY_MINE]); if (obj) obj->kill(); }
+			if (t == 70) check(count("Ukraine_SapperMine") == 0 && count("Ukraine_ArmingMine") == 1, "mine_arming_delay_and_destroyed_mine_cancelled");
+			if (t == 110) check(count("Ukraine_SapperMine") == 1 && count("Ukraine_ArmingMine") == 0, "mine_arms_after_three_seconds");
+			if (t == 320 && mine) check(mine->isReady(), "mine_recharges_after_ten_seconds");
+			if (t == 300)
+			{
+				Weapon *gun = direct->getWeaponInWeaponSlot(PRIMARY_WEAPON);
+				check(!findObjectByID(ids[SMOKE_FIELD]) && !target->testWeaponBonusCondition(WEAPONBONUSCONDITION_SMOKE_SCREEN), "smoke_expires_and_clears_condition");
+				check(fabs(gun->getAttackRange(direct, target) - gun->getAttackRange(direct)) < .01f, "smoke_range_restored_after_expiry");
+			}
+			if (t == 60 || t == 150 || t == 235)
+				for (Int i = 0; i < 2; ++i)
+					check(fabs(findObjectByID(ids[i ? HEAL_MANY : HEAL_ONE])->getBodyModule()->getHealth() - damagedHealth[i]) < .01f, i ? "recovery_multiple_waits_eight_seconds" : "recovery_single_waits_eight_seconds");
+			if (t == 320)
+			{
+				Real one = findObjectByID(ids[HEAL_ONE])->getBodyModule()->getHealth() - damagedHealth[0];
+				Real many = findObjectByID(ids[HEAL_MANY])->getBodyModule()->getHealth() - damagedHealth[1];
+				fprintf(stderr, "ROSTER_MECHANICS healing single=%.1f multiple=%.1f\n", one, many);
+				check(one > 0 && many > 0, "recovery_resumes_after_damage_cooldown");
+				check(fabs(one - many) <= 7.01f && many <= 28.01f, "recovery_multiple_healers_do_not_stack");
+			}
+			if (t == 330)
+				for (Int i = 0; i < 2; ++i) { Object *obj = findObjectByID(ids[i ? HEAL_MANY : HEAL_ONE]); damage(obj, 50); resetHealth[i] = obj->getBodyModule()->getHealth(); }
+			if (t == 450 || t == 565)
+				for (Int i = 0; i < 2; ++i)
+					check(fabs(findObjectByID(ids[i ? HEAL_MANY : HEAL_ONE])->getBodyModule()->getHealth() - resetHealth[i]) < .01f, "recovery_new_damage_restarts_cooldown");
+			if (t == 14)
+			{
+				Coord3D pos = *findObjectByID(ids[COUNTER_SIEGE])->getPosition();
+				pos.x = floor(pos.x / 80) * 80 + 40; pos.y = floor(pos.y / 80) * 80 + 40;
+				check(ThePartitionManager->getShroudStatusForPlayer(player->getPlayerIndex(), &pos) != CELLSHROUD_CLEAR, "counterbattery_area_initially_not_visible");
+			}
+			if (t == 15 || t == 210 || t == 405)
+			{
+				Object *art = findObjectByID(ids[COUNTER_SIEGE]);
+				Coord3D pos = *art->getPosition(); pos.y += 250;
+				Weapon *weapon = art->getWeaponInWeaponSlot(PRIMARY_WEAPON); weapon->loadAmmoNow(art); weapon->setPossibleNextShotFrame(m_frame); weapon->setPreAttackFinishedFrame(m_frame); weapon->getStatus(); Object *shell = weapon->forceFireWeapon(art, &pos);
+				check(shell && art->getLastShotFiredFrame() == m_frame, "counterbattery_real_artillery_shot");
+			}
+			for (Object *obj = getFirstObject(); obj; obj = obj->getNextObject())
+			{
+				if (obj->getTemplate()->getName() != AsciiString("Russia_CounterBatteryContact") || contacts.count(obj->getID())) continue;
+				contacts[obj->getID()] = m_frame;
+				contactPositions[obj->getID()] = *obj->getPosition();
+				if (!firstContactFrame) firstContactFrame = m_frame;
+				else check(m_frame - firstContactFrame >= 12 * LOGICFRAMES_PER_SECOND, "counterbattery_cooldown_twelve_seconds");
+				const Coord3D *origin = findObjectByID(ids[COUNTER_SIEGE])->getPosition(), *pos = obj->getPosition();
+				Real dx = pos->x - origin->x, dy = pos->y - origin->y;
+				check(fabs(pos->x - (floor(origin->x / 80) * 80 + 40)) < .01f && fabs(pos->y - (floor(origin->y / 80) * 80 + 40)) < .01f && dx*dx + dy*dy > 1 && dx*dx + dy*dy <= 3201, "counterbattery_contact_is_approximate");
+				check(obj->getControllingPlayer() == player, "counterbattery_contact_owner_only");
+			}
+			if (t == 60) check(contacts.size() == 1, "counterbattery_detects_first_shot");
+			if (t == 350)
+			{
+				check(contacts.size() == 1 && count("Russia_CounterBatteryContact") == 0, "counterbattery_cooldown_suppresses_second_shot_and_contact_expires");
+			}
+			for (const auto &entry : contacts)
+			{
+				if (m_frame == entry.second + 4 * LOGICFRAMES_PER_SECOND + 1)
+					check(!findObjectByID(entry.first), "counterbattery_contact_deleted_after_four_seconds");
+				// Stock sight persists for five seconds after its source disappears.
+				if (m_frame == entry.second + 9 * LOGICFRAMES_PER_SECOND + 3)
+				{
+					const Coord3D &pos = contactPositions[entry.first];
+					check(ThePartitionManager->getShroudStatusForPlayer(player->getPlayerIndex(), &pos) != CELLSHROUD_CLEAR, "counterbattery_contact_vision_expires_after_fog_fade");
+				}
+			}
+			if (t == 450) check(contacts.size() == 2, "counterbattery_detects_after_cooldown");
+			if (t == 650)
+			{
+				for (Int i = 0; i < 2; ++i) check(findObjectByID(ids[i ? HEAL_MANY : HEAL_ONE])->getBodyModule()->getHealth() > resetHealth[i], "recovery_resumes_after_second_cooldown");
+				fprintf(stderr, "ROSTER_MECHANICS RESULT assertions=%u failed=%u\n", assertions, failed);
+				fflush(stderr); active = FALSE; TheGameEngine->setQuitting(TRUE);
+			}
+		}
+	}
+	// Opt-in integration check: use a real command-centre power, including its
+	// science gate, OCL upgrades, delivery aircraft and national payloads.
+	static const char *rosterPower = getenv("GENERALS_ROSTER_POWER");
+	static const char *powerSource = getenv("GENERALS_POWER_SOURCE");
+	static std::vector<ObjectID> powerTargets;
+	static ObjectID powerFixtureSource = INVALID_ID;
+	if (rosterPower && m_frame == 3 * LOGICFRAMES_PER_SECOND && ThePlayerList->getLocalPlayer())
+	{
+		Player *player = ThePlayerList->getLocalPlayer();
+		const SpecialPowerTemplate *power = TheSpecialPowerStore->findSpecialPowerTemplate(rosterPower);
+		const ThingTemplate *cc = TheThingFactory->findTemplate(powerSource ? powerSource : "Euro_CommandCenter");
+		if (power && cc)
+		{
+			player->grantScience(power->getRequiredScience());
+			Region3D extent;
+			TheTerrainLogic->getExtent(&extent);
+			Coord3D target = {(extent.lo.x + extent.hi.x) * 0.5f, (extent.lo.y + extent.hi.y) * 0.5f, 0};
+			target.z = TheTerrainLogic->getGroundHeight(target.x, target.y);
+			Object *source = TheThingFactory->newObject(cc, player->getDefaultTeam());
+			Coord3D origin = target;
+			origin.y -= 350;
+			origin.z = TheTerrainLogic->getGroundHeight(origin.x, origin.y);
+			source->setPosition(&origin);
+			powerFixtureSource = source->getID();
+			if (powerSource)
+			{
+				// The fixture skips the recharge wait, but supplies real power and
+				// immobile enemy targets to verify the complete delivery behavior.
+				const char *plantName = getenv("GENERALS_POWER_PLANT");
+				const ThingTemplate *plant = plantName ? TheThingFactory->findTemplate(plantName) : nullptr;
+				for (Int i = 0; plant && i < 4; ++i)
+				{
+					Object *powerPlant = TheThingFactory->newObject(plant, player->getDefaultTeam());
+					Coord3D pos = origin; pos.x += (i + 1) * 100;
+					pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
+					powerPlant->setPosition(&pos);
+				}
+				const ThingTemplate *victim = TheThingFactory->findTemplate("AmericaPowerPlant");
+				for (Int p = 0; victim && p < ThePlayerList->getPlayerCount(); ++p)
+				{
+					Player *enemy = ThePlayerList->getNthPlayer(p);
+					if (enemy == player || !enemy->isPlayerActive() || enemy->isPlayerObserver() || enemy->getSide() != AsciiString("America")) continue;
+					for (Int i = 0; i < 4; ++i)
+					{
+						Object *obj = TheThingFactory->newObject(victim, enemy->getDefaultTeam());
+						Coord3D pos = target; pos.x += (i % 2) * 35 - 17.5f; pos.y += (i / 2) * 35 - 17.5f;
+						pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
+						obj->setPosition(&pos); powerTargets.push_back(obj->getID());
+					}
+					break;
+				}
+			}
+			if (SpecialPowerModuleInterface *module = source->getSpecialPowerModule(power))
+			{
+				if (!powerSource)
+				{
+					module->doSpecialPowerAtLocation(&target, 0, 0);
+					fprintf(stderr, "ROSTER_POWER fired %s\n", rosterPower);
+				}
+			}
+			else
+				fprintf(stderr, "ROSTER_POWER error: missing module %s\n", rosterPower);
+		}
+		else
+			fprintf(stderr, "ROSTER_POWER error: unknown power %s\n", rosterPower);
+	}
+	if (rosterPower && powerSource && m_frame == 4 * LOGICFRAMES_PER_SECOND)
+	{
+		Object *source = findObjectByID(powerFixtureSource);
+		const SpecialPowerTemplate *power = TheSpecialPowerStore->findSpecialPowerTemplate(rosterPower);
+		SpecialPowerModuleInterface *module = source && power ? source->getSpecialPowerModule(power) : nullptr;
+		if (module)
+		{
+			// Launcher updates must get at least one update to cache their power
+			// module before accepting an order, just as in ordinary construction.
+			Region3D extent; TheTerrainLogic->getExtent(&extent);
+			Coord3D target = {(extent.lo.x + extent.hi.x) * 0.5f, (extent.lo.y + extent.hi.y) * 0.5f, 0};
+			target.z = TheTerrainLogic->getGroundHeight(target.x, target.y);
+			module->pauseCountdown(FALSE); module->setReadyFrame(getFrame());
+			module->doSpecialPowerAtLocation(&target, 0, 0);
+			fprintf(stderr, "ROSTER_POWER fired %s\n", rosterPower);
+		}
+	}
+	if (rosterPower && m_frame == 60 * LOGICFRAMES_PER_SECOND)
+	{
+		std::map<AsciiString, Int> counts;
+		for (Object *obj = getFirstObject(); obj; obj = obj->getNextObject())
+			if (obj->getControllingPlayer() == ThePlayerList->getLocalPlayer() && !obj->isEffectivelyDead())
+				++counts[obj->getTemplate()->getName()];
+		for (const auto &entry : counts)
+			fprintf(stderr, "ROSTER_POWER payload %s %d\n", entry.first.str(), entry.second);
+		fprintf(stderr, "ROSTER_POWER complete\n");
+		if (powerSource)
+		{
+			for (ObjectID id : powerTargets)
+			{
+				Object *obj = findObjectByID(id);
+				BodyModuleInterface *body = obj && !obj->isEffectivelyDead() ? obj->getBodyModule() : nullptr;
+				fprintf(stderr, "ROSTER_POWER target %u health %.1f\n", id, body ? body->getHealth() : 0.0f);
+			}
+			TheGameEngine->setQuitting(TRUE);
+		}
+	}
 	if (lineup && m_frame == 2 * LOGICFRAMES_PER_SECOND && ThePlayerList->getLocalPlayer())
 	{
 		Region3D extent;

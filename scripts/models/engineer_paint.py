@@ -23,6 +23,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+from europe_style import ARMOUR, EDGE_LIGHT, EDGE_SHADOW  # noqa: E402
 
 GROUPS = ("top", "side", "front", "back", "bottom")
 BOTTOM_SCALE = 0.3  # undersides are hardly ever seen: drawn small
@@ -131,7 +132,8 @@ except ImportError:  # inside Blender only the layout is used
     np = Image = ImageDraw = ImageFilter = None
 
 UP = 4  # painted at four times the size, then shrunk: smooth lines
-CAMO = [(124, 138, 150), (84, 97, 112), (166, 176, 184)]
+
+CAMO = ARMOUR
 SEAM, LIT = (22, 25, 30), (205, 212, 218)
 DUST, MUD = (156, 142, 118), (88, 72, 52)
 YELLOW, DARK_BLUE, GOLD = (226, 184, 40), (28, 34, 60), (235, 200, 40)
@@ -266,7 +268,7 @@ def paint_body(layout, faces, details=None, damaged=False, seed=11, occlusion=No
             if not sharp:
                 continue
             a, b = poly[i], poly[(i + 1) % len(poly)]
-            draw.line([a, b], fill=SEAM, width=UP if fine else 2 * UP)
+            draw.line([a, b], fill=EDGE_SHADOW, width=UP if fine else 2 * UP)
             if fine:
                 continue
             mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
@@ -274,7 +276,7 @@ def paint_body(layout, faces, details=None, damaged=False, seed=11, occlusion=No
             d = math.hypot(dx, dy) or 1.0
             ox, oy = dx / d * 2.0 * UP, dy / d * 2.0 * UP
             if dy >= -abs(dx):
-                draw.line([(a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy)], fill=LIT, width=UP)
+                draw.line([(a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy)], fill=EDGE_LIGHT, width=UP)
 
     if details:
         details(draw, painter, rng)

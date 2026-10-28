@@ -194,8 +194,8 @@ def hull():
     loft(bm, [(1.0, 15.3, 0, 0.55, 0.55, 2.0), (1.25, 15.3, 0, 0.95, 0.95, 2.0), (2.1, 15.3, 0, 1.0, 1.0, 2.0),
               (2.6, 15.3, 0, 0.75, 0.75, 2.0)], axis="Z", segments=10)
     box(bm, (15.0, -0.38, 1.45), (17.0, 0.38, 2.15))
-    cylinder(bm, (18.4, 0, MUZZLE[2]), 0.17, 3.0, axis="X", segments=6)
-    cylinder(bm, (19.75, 0, MUZZLE[2]), 0.26, 0.35, axis="X", segments=6)
+    cylinder(bm, (18.4, 0, MUZZLE[2]), 0.26, 3.0, axis="X", segments=6)
+    cylinder(bm, (19.75, 0, MUZZLE[2]), 0.34, 0.35, axis="X", segments=6)
     # Sensors: the nose's sight turret and a small radar warner on each side.
     loft(bm, [(18.0, 0, 3.2, 0.55, 0.45, 2.2), (19.4, 0, 3.1, 0.5, 0.4, 2.2), (19.8, 0, 3.1, 0.25, 0.2, 2.0)],
          segments=10)

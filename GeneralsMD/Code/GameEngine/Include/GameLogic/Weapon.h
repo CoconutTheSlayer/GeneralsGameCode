@@ -206,6 +206,7 @@ enum WeaponBonusConditionType CPP_11(: Int)
 	WEAPONBONUSCONDITION_FRENZY_ONE,
 	WEAPONBONUSCONDITION_FRENZY_TWO,
 	WEAPONBONUSCONDITION_FRENZY_THREE,
+	WEAPONBONUSCONDITION_SMOKE_SCREEN,
 
 	WEAPONBONUSCONDITION_COUNT
 };
@@ -244,6 +245,7 @@ static const char *const TheWeaponBonusNames[] =
 	"FRENZY_ONE",
 	"FRENZY_TWO",
 	"FRENZY_THREE",
+	"SMOKE_SCREEN",
 
 	nullptr
 };
@@ -460,6 +462,7 @@ public:
 	Int getAntiMask() const { return m_antiMask; }
 	Bool isLeechRangeWeapon() const { return m_leechRangeWeapon; }
 	Bool isCapableOfFollowingWaypoint() const { return m_capableOfFollowingWaypoint; }
+	Bool requiresTargetVision() const { return m_requiresTargetVision; }
 	Bool isShowsAmmoPips() const { return m_isShowsAmmoPips; }
 	Bool isPlayFXWhenStealthed() const { return m_playFXWhenStealthed; }
 	Bool getDieOnDetonate() const { return m_dieOnDetonate; }
@@ -553,6 +556,7 @@ private:
 	const WeaponTemplate* m_historicBonusWeapon;	///< see above
 	Bool m_leechRangeWeapon;								///< once the weapon has fired once at the proper range, the weapon gains unlimited range for the remainder of the attack cycle
 	Bool m_capableOfFollowingWaypoint;			///< determines if the weapon is capable of following a waypoint path.
+	Bool m_requiresTargetVision; ///< optional live visibility required to launch
 	Bool m_isShowsAmmoPips;									///< shows ammo pips
 	Bool m_allowAttackGarrisonedBldgs;			///< allow attacks on garrisoned bldgs, even if estimated damage would be zero
 	Bool m_playFXWhenStealthed;					///< Ignores rule about not playing FX when stealthed
@@ -680,6 +684,9 @@ public:
 	// Also note: you should RARELY need to call getAttackRange. If what you want is to
 	// determine if you are within attack range, please call isWithinAttackRange instead.
 	Real getAttackRange(const Object *source) const;
+	Real getAttackRange(const Object *source, const Object *target) const;
+	Bool isIndirectFireWeapon(const Object *source) const;
+	Bool hasRequiredTargetVision(const Object *source, const Object *target, const Coord3D *pos = nullptr) const;
 
 	// Returns the max distance between the centerpoints of source & victim	for victim to be in range.
 	Real getAttackDistance(const Object *source, const Object *victim, const Coord3D* victimPos) const;

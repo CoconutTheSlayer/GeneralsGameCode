@@ -1,0 +1,53 @@
+{
+  "tool": "Built-in image_gen",
+  "prompt_files": [
+    "scripts/models/israel/texture-polish-prompt.txt",
+    "scripts/models/israel/texture-polish-damage-prompt.txt",
+    "scripts/models/israel/infantry-atlas-v2-prompt.txt",
+    "scripts/models/israel/aviation-atlas-v2-prompt.txt",
+    "scripts/models/israel/portraits/rifleman-prompt.txt",
+    "scripts/models/israel/portraits/spike-prompt.txt",
+    "scripts/models/israel/portraits/commando-prompt.txt",
+    "scripts/models/israel/portraits/illustrated-prompts.json"
+  ],
+  "geometry": "Original authored Blender geometry with layered armour, sensors and stowage; EU mathematical primitives reused; no stock game art",
+  "polish_source": "scripts/models/israel/polish_geometry.py",
+  "bake_source": "scripts/models/israel/polished_bake.py",
+  "source_atlas": {
+    "atlas_polished.png": "18c7e041e450cf597ed51c927518b9e0c10b9f81fd008c10875ef36872775920",
+    "atlas_polished_d.png": "1fdf8b3edc67569970bc45d8b709fd15953526d84b60236b456e44c86eca6903",
+    "infantry_atlas_v2.png": "4cd8fffa0e42526de5b79fd3d9f2d5df207d9b834779b828bce25a52ce1a297d",
+    "aviation_atlas_v2.png": "6e56ebb94a0768f28db040e37a5e16772ae9fd4801322288c86d16fbfd4be522"
+  },
+  "illustrated_portraits": {
+    "f15i.png": "53d9bbdf213ff1721c0ad28f7e503113dc4c7bdea8bc99b961f0caa593c9a19a",
+    "puls.png": "6f46b55eb9962cc10a41e92df6598743807eec0a9605137a32fd6d3887de61fa",
+    "factory.png": "c665c028177a4b7ea0c64e8986d505f0b0d917da27bbd21a058b2039cbeea33b",
+    "supplycentre.png": "3d8b802bebc48e056f607dfeb8333a358fa5654f25210411029639cc08c52765",
+    "airdefence.png": "4a85989abf7b8984144b8f879843a80e73e7e8f51a7a1c397526f019285b3960",
+    "power.png": "eedb7dcd0965ac2bfdea45d0c8cf13e1aecb9e2e751c802b2763830de404676b",
+    "commando.png": "acce97f445ea2d9cff9b797c7ada4144572f5b3a3b4ba477e1510c54dd4d2d8b",
+    "techcentre.png": "efbce5dc85999208e2e1fe8f87e06082bea6210c4f4a157c64981edec8181362",
+    "namer.png": "4c05a6ede45b5d5877c414f554155d53bba8cc02ecac8a64309e7b70aed0c4ed",
+    "d9.png": "ff868cf44a0df9f35ec871e609c5be0ccff5f722b1c6321401f65fcc7f378508",
+    "spike.png": "c506a8b2544cecdb1bb7e77df44d59c8b3a6fb38f5c59c4455fbd2c8d2948a42",
+    "apache.png": "ef1605c9d183650ef2120bbcf45f5324cd2f8b7792d5d84be0ce4269e4188b19",
+    "spyder.png": "74a8211cb603597257d99b6f6f0d9e9a3a152436bfcc6c40abf6aa01335b03fd",
+    "merkava.png": "3259b319bbd787c154e2f44f10c815518fbf27350ad3c9ce8fe2a5c3fe572f19",
+    "grounddefence.png": "41c2a56d09a4cbff4baae4c984384852482e93687dbe09c6064faa43ab7a6907",
+    "pereh.png": "8eda5d8e1d0d72cb9378c4f3158e66bd71fabe128796074a02b0a95fbb46108a",
+    "rifleman.png": "c7d9e95982528ffcaaed032cb5c4772daa9d61aabe53bcfa4bff65615b2127ce",
+    "supplytruck.png": "32749cfb153d7a7e223aac120e4a56230a44b23d65cad228113947f1639d2598",
+    "barracks.png": "3521d495c0db1272231f34cef1a4f8f57f79ab9c2b3d57da63d80002f7844e10",
+    "airfield.png": "8795e1f7ba98307564058c0eb3e8be14b3a09dc0deb4025bf7f30c78e03e646a",
+    "income.png": "88d87d63ac280538f61574f1d7be1cd3af9d2fbc0c32510634b851234f503d2a",
+    "sandcat.png": "79b6850101c74b1ff52e331e073f12bb047b5e559def9283e4593d60c8c591c2",
+    "commandcentre.png": "02d38ccfb8a8cf01c4e89b712f9feb3e1dbdf30d340859fedbf6316760f576ac",
+    "superweapon.png": "21f05211ffe6177ef3f59622a53c6e64004c9827046ca4b2d3ea45d629036c5d",
+    "f16i.png": "a9beabf99bc9d5016ac9650ff259b49f3dc7a8f50e7020fd0f1a6f5c1fada27a"
+  },
+  "portrait_sources": "scripts/models/israel/portraits/illustrated-sources.json",
+  "infantry_geometry": "scripts/models/israel/infantry_v2.py",
+  "aircraft_geometry": "scripts/models/israel/aircraft_v2.py",
+  "icon_builder": "scripts/factions/israel/build_faction.py"
+}

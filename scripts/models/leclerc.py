@@ -116,11 +116,11 @@ def leclerc_barrel():
     """The 120 mm L52 gun: a plain tube in its thermal sleeve, no fume extractor."""
     bm = bmesh.new()
     cylinder(bm, (1.0, 0, 0), 0.6, 2.0, axis="X", segments=8)
-    cylinder(bm, (10.1, 0, 0), 0.4, 20.2, axis="X", segments=8)
+    cylinder(bm, (10.1, 0, 0), 0.54, 20.2, axis="X", segments=8)
     for x in (6.0, 12.5):
-        cylinder(bm, (x, 0, 0), 0.47, 0.5, axis="X", segments=8)
-    cylinder(bm, (19.6, 0, 0), 0.45, 1.2, axis="X", segments=8)      # the muzzle's thicker end
-    box(bm, (18.6, -0.14, 0.38), (19.2, 0.14, 0.64))
+        cylinder(bm, (x, 0, 0), 0.62, 0.5, axis="X", segments=8)
+    cylinder(bm, (19.6, 0, 0), 0.60, 1.2, axis="X", segments=8)      # the muzzle's thicker end
+    box(bm, (18.6, -0.14, 0.52), (19.2, 0.14, 0.68))
     location = [TURRET_AT[i] + BARREL_AT[i] for i in range(3)]
     return new_object("BARREL01", bm, location)
 

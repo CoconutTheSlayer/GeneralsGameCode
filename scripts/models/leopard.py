@@ -472,10 +472,12 @@ def leopard_barrel():
     """The long 120 mm L55 gun along +x from its trunnion, with its thermal sleeve."""
     bm = bmesh.new()
     cylinder(bm, (1.0, 0, 0), 0.62, 2.0, axis="X", segments=8)         # breech end in the mantlet
-    cylinder(bm, (10.8, 0, 0), 0.38, 21.6, axis="X", segments=8)
+    # Exaggerate the sleeve diameter for the RTS camera; keep the trunnion, length and
+    # muzzle bone fixed so recoil and projectile placement still match the model.
+    cylinder(bm, (10.8, 0, 0), 0.54, 21.6, axis="X", segments=8)
     for x in (4.3, 9.6, 14.9):
-        cylinder(bm, (x, 0, 0), 0.46, 0.6, axis="X", segments=8)       # sleeve clamps
-    box(bm, (20.6, -0.14, 0.34), (21.3, 0.14, 0.62))                   # muzzle reference sensor
+        cylinder(bm, (x, 0, 0), 0.62, 0.6, axis="X", segments=8)       # sleeve clamps
+    box(bm, (20.6, -0.14, 0.50), (21.3, 0.14, 0.68))                   # muzzle reference sensor
     location = [TURRET_AT[i] + BARREL_AT[i] for i in range(3)]
     return new_object("BARREL01", bm, location)
 

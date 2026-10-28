@@ -236,7 +236,7 @@ def mantlet(b):
 def barrel(b):
     """The barrel (BARREL01): a long tube, a bore evacuator, a muzzle brake."""
     hx, _, hz = TRUNNION
-    b.cylinder("steel", (hx + (4.5 + MUZZLE - 1.8) / 2, 0, hz), 0.55, MUZZLE - 1.8 - 4.5, axis="X", segments=12)
+    b.cylinder("steel", (hx + (4.5 + MUZZLE - 1.8) / 2, 0, hz), 0.78, MUZZLE - 1.8 - 4.5, axis="X", segments=12)
     b.cylinder("steel", (hx + 12.5, 0, hz), 0.85, 2.8, axis="X", segments=12)
     b.box("dark", (hx + MUZZLE - 2.0, -0.95, hz - 0.75), (hx + MUZZLE, 0.95, hz + 0.75))
     b.box("steel", (hx + MUZZLE - 1.9, -1.0, hz - 0.5), (hx + MUZZLE - 1.1, 1.0, hz + 0.5))

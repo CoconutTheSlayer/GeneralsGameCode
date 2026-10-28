@@ -31,6 +31,11 @@ COST = {
     "GLAInfantryRebel": 150, "GLAInfantryTunnelDefender": 300, "GLAVehicleTechnical": 500, "GLATankScorpion": 550,
     "GLATankMarauder": 800, "GLAVehicleQuadCannon": 650,
 }
+# Keep coalition prices aligned with the actual roster, including inherited costs.
+from build_europe import UNITS
+for name, _, _, _, changes in UNITS:
+    if 'cost' in changes:
+        COST[name] = changes['cost']
 SIDES = {"Euro": "FactionEurope", "America": "FactionAmerica", "China": "FactionChina", "GLA": "FactionGLA"}
 
 # European unit, its USA counterpart, the enemies both meet.
@@ -45,6 +50,14 @@ MATCHUPS = [
                                            "GLAInfantryTunnelDefender"]),
     ("Euro_Tiger", "AmericaVehicleComanche", ["ChinaTankBattleMaster", "GLATankScorpion", "ChinaTankGattling"]),
 ]
+MATCHUPS += [
+    ('Euro_Wiesel', 'AmericaInfantryMissileDefender', ['ChinaTankBattleMaster', 'GLAInfantryRebel']),
+    ('Euro_Mistral', 'AmericaInfantryMissileDefender', ['AmericaVehicleComanche', 'GLAInfantryRebel']),
+    ('Euro_Apache', 'AmericaVehicleComanche', ['ChinaTankBattleMaster', 'ChinaTankGattling']),
+    ('Euro_Skyranger', 'AmericaTankAvenger', ['AmericaVehicleComanche', 'ChinaTankBattleMaster']),
+    ('Euro_Dana', 'AmericaVehicleTomahawk', ['ChinaInfantryRedguard', 'GLATankScorpion']),
+]
+COST.update(AmericaTankAvenger=2000, AmericaVehicleTomahawk=1200)
 
 
 def faction(unit):

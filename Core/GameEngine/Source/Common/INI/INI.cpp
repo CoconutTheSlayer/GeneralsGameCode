@@ -440,6 +440,11 @@ UnsignedInt INI::load( AsciiString filename, INILoadType loadType, Xfer *pXfer )
 	}
 	catch (...)
 	{
+#if defined(RTS_POSIX_PORT)
+		// Preserve the useful parse location before unPrepFile resets it.
+		fprintf(stderr, "Error parsing INI %s at line %u (field %s)\n", m_filename.str(), m_lineNum, m_buffer);
+		fflush(stderr);
+#endif
 		unPrepFile();
 
 		// propagate the exception.

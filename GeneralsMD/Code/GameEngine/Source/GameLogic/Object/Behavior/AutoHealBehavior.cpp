@@ -286,7 +286,13 @@ void AutoHealBehavior::pulseHealObject( Object *obj )
 		return;
 
 	const AutoHealBehaviorModuleData *data = getAutoHealBehaviorModuleData();
-
+	// Radius healers must respect the patient's damage, not the healer's damage.
+	if (data->m_damageCooldown && obj->getBodyModule())
+	{
+		UnsignedInt lastDamage = obj->getBodyModule()->getLastDamageTimestamp();
+		if (lastDamage && TheGameLogic->getFrame() - lastDamage < data->m_damageCooldown)
+			return;
+	}
 
 	if ( data->m_radius == 0.0f )
 		obj->attemptHealing(data->m_healingAmount, getObject());

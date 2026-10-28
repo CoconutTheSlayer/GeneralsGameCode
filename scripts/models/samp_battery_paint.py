@@ -18,6 +18,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from europe_style import building_light  # noqa: E402
 import command_centre_paint as cc  # noqa: E402
 from command_centre_paint import UP, damage, grime, panels, tiling_noise  # noqa: E402
 
@@ -134,8 +135,7 @@ def compose(bake_dir, out, prefix):
     height = np.asarray(Image.open(os.path.join(bake_dir, "height.png")).convert("L"), float)[..., None] / 255.0
     h, w = ao.shape[:2]
     stains = (tiling_noise(w, h, 10, rng) * 0.6 + tiling_noise(w, h, 30, rng) * 0.4)[..., None]
-    lit = colour * (0.45 + 0.55 * ao) * (0.86 + 0.24 * stains) * (0.8 + 0.32 * np.sqrt(height))
-    lit *= np.array([1.16, 1.2, 1.3])
+    lit = building_light(colour, ao, height, stains)
     day = Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8))
     versions = {"": day, "_d": damage(day, rng, 1), "_e": damage(day, rng, 2)}
     for suffix, img in versions.items():

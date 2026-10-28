@@ -1,0 +1,230 @@
+[
+  {
+    "country": "Austria",
+    "contribution": "Austrian reservists and Pandur vehicle heritage",
+    "reference": "Euro_Command_Coalition",
+    "type": "crew flavour",
+    "origin": "Fictional coalition: reserves use the shared Legionnaire rules; Valuk retains its Austrian design heritage"
+  },
+  {
+    "country": "Belgium",
+    "contribution": "FN MINIMI support weapons",
+    "reference": "Upgrade_EuroMinimi",
+    "type": "upgrade",
+    "model": "EUMINIM",
+    "origin": "Belgian design; shared A400M operation with Luxembourg"
+  },
+  {
+    "country": "Bulgaria",
+    "contribution": "Bulgarian missile-team contingent",
+    "reference": "Euro_Milan",
+    "type": "crew flavour",
+    "origin": "Fictional shared missile-team role; no separate ATGL unit"
+  },
+  {
+    "country": "Croatia",
+    "contribution": "Mine-clearance specialists",
+    "reference": "Euro_Dozer",
+    "type": "crew flavour",
+    "origin": "Fictional engineering contingent; MV-4 prototype archived"
+  },
+  {
+    "country": "Cyprus",
+    "contribution": "Skyranger air-defence crews",
+    "reference": "Euro_Skyranger",
+    "type": "crew flavour",
+    "origin": "Cypriot crews serving alongside German and Swiss air-defence specialists"
+  },
+  {
+    "country": "Czechia",
+    "contribution": "DANA howitzer",
+    "reference": "Euro_Dana",
+    "type": "unit",
+    "model": "EUDANA",
+    "origin": "Czechoslovak design; Czech contingent"
+  },
+  {
+    "country": "Denmark",
+    "contribution": "Terma countermeasures",
+    "reference": "Command_UpgradeAmericaCountermeasures",
+    "type": "upgrade",
+    "origin": "Danish equipment identity for existing flare upgrade"
+  },
+  {
+    "country": "Estonia",
+    "contribution": "Carrier reconnaissance sensors",
+    "reference": "Euro_Boxer",
+    "type": "equipment",
+    "origin": "Fictional Estonian sensor contribution; THeMIS prototype archived"
+  },
+  {
+    "country": "Finland",
+    "contribution": "Sako TRG marksman",
+    "reference": "Euro_Marksman",
+    "type": "unit",
+    "model": "EUSAKO",
+    "origin": "Finnish weapon; Patria also supplies the Latvian contingent"
+  },
+  {
+    "country": "France",
+    "contribution": "Legionnaires and MILAN teams",
+    "reference": "Euro_Rifleman",
+    "type": "unit",
+    "origin": "French equipment; Leclerc and Rafale retained as archived prototypes"
+  },
+  {
+    "country": "Germany",
+    "contribution": "Leopard 2 and armoured engineers",
+    "reference": "Euro_Leopard",
+    "type": "unit",
+    "model": "EULEO",
+    "origin": "German designs; Wiesel prototype archived"
+  },
+  {
+    "country": "Greece",
+    "contribution": "THEON coalition fire-control optics",
+    "reference": "Upgrade_EuroFireControl",
+    "type": "upgrade",
+    "origin": "Greek optics contribute to the coalition range upgrade"
+  },
+  {
+    "country": "Hungary",
+    "contribution": "Fire-control electronics",
+    "reference": "Upgrade_EuroFireControl",
+    "type": "upgrade",
+    "origin": "Fictional Hungarian electronics contingent; GM6 prototype archived"
+  },
+  {
+    "country": "Ireland",
+    "contribution": "Carrier reconnaissance crews",
+    "reference": "Euro_Boxer",
+    "type": "crew flavour",
+    "origin": "Fictional joint reconnaissance contingent using the shared carrier"
+  },
+  {
+    "country": "Italy",
+    "contribution": "NH90 transport crews",
+    "reference": "Euro_NH90",
+    "type": "unit",
+    "model": "EUNH90",
+    "origin": "Multinational European helicopter; Italian contingent"
+  },
+  {
+    "country": "Latvia",
+    "contribution": "Coalition reinforcement coordination",
+    "reference": "Euro_Command_Coalition",
+    "type": "crew flavour",
+    "origin": "Fictional Latvian-led airlift; Patria prototype archived"
+  },
+  {
+    "country": "Lithuania",
+    "contribution": "Vilkas infantry fighting vehicle",
+    "reference": "Euro_Boxer",
+    "type": "unit",
+    "model": "EUBOXER",
+    "origin": "Lithuanian Boxer variant; existing model reused"
+  },
+  {
+    "country": "Luxembourg",
+    "contribution": "A400M Atlas airlift",
+    "reference": "Euro_A400M",
+    "type": "delivery aircraft",
+    "model": "EUA400M",
+    "origin": "Multinational aircraft in joint Belgian-Luxembourg operation"
+  },
+  {
+    "country": "Malta",
+    "contribution": "Explosive-ordnance specialists",
+    "reference": "Euro_Dozer",
+    "type": "crew flavour",
+    "origin": "Fictional engineering contingent sharing normal engineer controls"
+  },
+  {
+    "country": "Netherlands",
+    "contribution": "Artillery fire-control crews",
+    "reference": "Euro_Dana",
+    "type": "crew flavour",
+    "origin": "Fictional Dutch crews with Czech DANA batteries; PULS prototype archived"
+  },
+  {
+    "country": "Norway",
+    "contribution": "NASAMS battery",
+    "reference": "Euro_PatriotBattery",
+    "type": "defence",
+    "model": "EUSAMP",
+    "origin": "Norwegian-American system; six-canister conversion of the existing EU base"
+  },
+  {
+    "country": "Poland",
+    "contribution": "Reconnaissance and marksman crews",
+    "reference": "Euro_Marksman",
+    "type": "crew flavour",
+    "origin": "Polish specialists serve in shared reconnaissance roles; GROM prototype archived"
+  },
+  {
+    "country": "Portugal",
+    "contribution": "Airborne infantry",
+    "reference": "Euro_Command_Paradrop",
+    "type": "support power",
+    "origin": "Portuguese contingent represented by shared Legionnaire equipment and controls"
+  },
+  {
+    "country": "Romania",
+    "contribution": "Field rescue crews",
+    "reference": "Euro_Command_EmergencyRepair",
+    "type": "crew flavour",
+    "origin": "Fictional rescue contingent; IAR 330 prototype archived"
+  },
+  {
+    "country": "Slovakia",
+    "contribution": "Zuzana 2 artillery barrage",
+    "reference": "Euro_SuperweaponArtilleryBarrage",
+    "type": "off-map fire support",
+    "origin": "Slovak design; off-map battery represented through power name, tooltip and portrait"
+  },
+  {
+    "country": "Slovenia",
+    "contribution": "Valuk 6x6 recovery carrier",
+    "reference": "Euro_Ambulance",
+    "type": "unit",
+    "model": "EUVALUK",
+    "origin": "Slovenian Pandur-derived vehicle repurposed for the fictional coalition recovery role"
+  },
+  {
+    "country": "Spain",
+    "contribution": "Coalition interceptor aircrews",
+    "reference": "Euro_Typhoon",
+    "type": "crew flavour",
+    "origin": "Spanish Typhoon crews serve alongside the British contingent; Tiger prototype archived"
+  },
+  {
+    "country": "Sweden",
+    "contribution": "Gripen strike flights",
+    "reference": "Euro_Gripen",
+    "type": "strike aircraft",
+    "model": "EUGRIPEN",
+    "origin": "Swedish design"
+  },
+  {
+    "country": "United Kingdom",
+    "contribution": "Typhoon aircrews",
+    "reference": "Euro_Typhoon",
+    "type": "unit",
+    "origin": "European Typhoon programme; British contingent; Tornado and Apache prototypes archived"
+  },
+  {
+    "country": "Switzerland",
+    "contribution": "Oerlikon cannon and AHEAD ammunition",
+    "reference": "Upgrade_EuroAhead",
+    "type": "upgrade",
+    "model": "EUSKYR_G",
+    "origin": "Swiss air-defence gun technology on the reused Skyranger model"
+  },
+  {
+    "country": "Iceland",
+    "contribution": "Coast Guard rescue specialists",
+    "reference": "Euro_Command_EmergencyRepair",
+    "type": "crew flavour",
+    "origin": "Civil rescue contribution to the fictional coalition; no separate army unit"
+  }
+]

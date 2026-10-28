@@ -277,12 +277,12 @@ def turret(b):
 
 
 def launcher(b):
-    """Eight canisters, four across and two high, in a frame (TURRETEL), level and pointing +X."""
+    """NASAMS: six AMRAAM canisters, three across and two high, on the reused EU base."""
     hx, _, hz = HINGE
     x0, x1, half, row = LAUNCHER
     gap = 0.12
-    col = 2 * half / 4
-    for i in range(4):
+    col = 2 * half / 3
+    for i in range(3):
         y = -half + col * (i + 0.5)
         for j in range(2):
             z = hz + 0.35 + row * (j + 0.5)
@@ -549,8 +549,8 @@ def export(parts, version, night):
     hinge_rel = tuple(HINGE[i] - TURRET_AT[i] for i in range(3))
     el_bone = model.bone("TURRETEL", turret_bone, hinge_rel)
     x0, x1, half, row = LAUNCHER
-    col = 2 * half / 4
-    for k, (i, j) in enumerate(((0, 1), (3, 1), (0, 0), (3, 0))):
+    col = 2 * half / 3
+    for k, (i, j) in enumerate(((0, 1), (2, 1), (0, 0), (2, 0))):
         y = -half + col * (i + 0.5)
         z = 0.35 + row * (j + 0.5)
         model.bone(f"WEAPONA0{k + 1}", el_bone, (x1 + 0.4, y, z))

@@ -16,6 +16,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from europe_style import building_light  # noqa: E402
 from command_centre_paint import (UP, GLASS_LIT, damage, emblem, grime, pad, panels, tile_deck,  # noqa: E402
                                   tile_door, tile_grille, tile_hazard, tile_metal, tile_sandbag, tile_trim,
                                   tile_wall, tiling_noise)
@@ -189,8 +190,7 @@ def compose(bake_dir, out):
     height = load("height.png", "L")[..., None] / 255.0
     h, w = ao.shape[:2]
     stains = (tiling_noise(w, h, 10, rng) * 0.6 + tiling_noise(w, h, 30, rng) * 0.4)[..., None]
-    lit = colour * (0.42 + 0.58 * ao) * (0.86 + 0.24 * stains) * (0.78 + 0.36 * np.sqrt(height))
-    lit *= np.array([1.16, 1.2, 1.3])
+    lit = building_light(colour, ao, height, stains)
     day = Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8))
     # The wreck keeps a little more of its paint than the shared damage leaves, to read at a distance.
     versions = {"": day, "_d": damage(day, rng, 1), "_e": Image.blend(damage(day, rng, 2), day, 0.3)}

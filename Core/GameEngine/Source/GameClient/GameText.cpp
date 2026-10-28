@@ -1123,7 +1123,8 @@ quit:
 #if defined(RTS_POSIX_PORT)
 //============================================================================
 // TheSuperHackers @feature Add-on text, a new faction's names for example: the labels of
-// <extra data>/Data/<language>/Addon.str (in the .str format) come after the game's own.
+// Addon.str and Addon/*.str in <extra data>/Data/<language> come after the game's own.
+// Separate files let faction generators regenerate their text independently.
 //============================================================================
 
 void GameTextManager::appendAddonStrings()
@@ -1131,29 +1132,33 @@ void GameTextManager::appendAddonStrings()
 	const char *extraData = Win32Shim_GetExtraDataDirectory();
 	if (extraData == nullptr || !isAddonDataEnabled())
 		return;
-	AsciiString path;
+	AsciiString path, directory;
 	path.format("%s/Data/%s/Addon.str", extraData, GetRegistryLanguage().str());
-	Int count = 0;
-	if (!TheFileSystem->doesFileExist(path.str()) || !getStringCount(path.str(), count) || count <= 0)
+	directory.format("%s/Data/%s/Addon/", extraData, GetRegistryLanguage().str());
+	FilenameList files;
+	TheFileSystem->getFileListInDirectory(directory, "*.str", files, FALSE);
+	if (TheFileSystem->doesFileExist(path.str()))
+		files.insert(path);
+	for (const AsciiString &file : files)
 	{
-		fprintf(stderr, "Add-on data: no text in %s\n", path.str());
-		fflush(stderr);
-		return;
+		Int count = 0;
+		if (!getStringCount(file.str(), count) || count <= 0)
+			continue;
+		StringInfo *grown = NEW StringInfo[m_textCount + count];
+		for (Int i = 0; i < m_textCount; ++i)
+			grown[i] = m_stringInfo[i];
+		delete [] m_stringInfo;
+		m_stringInfo = grown;
+		m_parseStart = m_textCount;
+		parseStringFile(file.str());
+		m_parseStart = 0;
+		// getStringCount reserves 500 spare entries; count only the parsed labels.
+		Int parsed = 0;
+		while (parsed < count && m_stringInfo[m_textCount + parsed].label.isNotEmpty())
+			++parsed;
+		m_textCount += parsed;
+		fprintf(stderr, "Add-on data: loaded %d texts from %s\n", (int)parsed, file.str());
 	}
-	StringInfo *grown = NEW StringInfo[m_textCount + count];
-	for (Int i = 0; i < m_textCount; ++i)
-		grown[i] = m_stringInfo[i];
-	delete [] m_stringInfo;
-	m_stringInfo = grown;
-	m_parseStart = m_textCount;
-	parseStringFile(path.str());
-	m_parseStart = 0;
-	// getStringCount leaves room for 500 more than the file has; count only the parsed ones.
-	Int parsed = 0;
-	while (parsed < count && m_stringInfo[m_textCount + parsed].label.isNotEmpty())
-		++parsed;
-	m_textCount += parsed;
-	fprintf(stderr, "Add-on data: loaded %d texts from %s\n", (int)parsed, path.str());
 	fflush(stderr);
 }
 #endif

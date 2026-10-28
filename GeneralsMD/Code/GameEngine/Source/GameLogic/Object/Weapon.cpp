@@ -232,6 +232,7 @@ const FieldParse WeaponTemplate::TheWeaponTemplateFieldParseTable[] =
 	{ "ScatterTarget",						WeaponTemplate::parseScatterTarget,			nullptr,							0 },
 	{ "CapableOfFollowingWaypoints", INI::parseBool,											nullptr,							offsetof(WeaponTemplate, m_capableOfFollowingWaypoint) },
 	{ "ShowsAmmoPips",						INI::parseBool,													nullptr,							offsetof(WeaponTemplate, m_isShowsAmmoPips) },
+	{ "RequiresTargetVision", INI::parseBool, nullptr, offsetof(WeaponTemplate, m_requiresTargetVision) },
 	{ "AllowAttackGarrisonedBldgs", INI::parseBool,												nullptr,							offsetof(WeaponTemplate, m_allowAttackGarrisonedBldgs) },
 	{ "PlayFXWhenStealthed",			INI::parseBool,													nullptr,							offsetof(WeaponTemplate, m_playFXWhenStealthed) },
 	{ "PreAttackDelay",						INI::parseDurationUnsignedInt,					nullptr,							offsetof( WeaponTemplate, m_preAttackDelay ) },
@@ -315,6 +316,7 @@ WeaponTemplate::WeaponTemplate() : m_nextTemplate(nullptr)
 	m_leechRangeWeapon							= FALSE;
 	m_capableOfFollowingWaypoint		= FALSE;
 	m_isShowsAmmoPips								= FALSE;
+	m_requiresTargetVision = FALSE;
 	m_allowAttackGarrisonedBldgs		= FALSE;
 	m_playFXWhenStealthed						= FALSE;
 	m_preAttackDelay								= 0;
@@ -2149,7 +2151,7 @@ Bool Weapon::computeApproachTarget(const Object *source, const Object *target, c
 	if (minAttackRange > PATHFIND_CELL_SIZE_F && dist < minAttackRange)
 	{
 		// We aret too close, so move away from the target.
-		DEBUG_ASSERTCRASH((minAttackRange<0.9f*getAttackRange(source)), ("Min attack range is too near attack range."));
+		DEBUG_ASSERTCRASH((minAttackRange<0.9f*getAttackRange(source, target)), ("Min attack range is too near attack range."));
 		// Recompute dir, cause if the bounding spheres touch, it will be 0.
 		Coord3D srcPos = *source->getPosition();
 		dir.x = srcPos.x-targetPos->x;
@@ -2184,7 +2186,7 @@ Bool Weapon::computeApproachTarget(const Object *source, const Object *target, c
 		}
 
 		// select a spot along the line between us, halfway between the min & max range.
-		Real attackRange = (getAttackRange(source) + minAttackRange)/2.0f;
+		Real attackRange = (getAttackRange(source, target) + minAttackRange)/2.0f;
 #ifdef ATTACK_RANGE_IS_2D
 		if (target)
 			attackRange += target->getGeometryInfo().getBoundingCircleRadius();
@@ -2232,7 +2234,7 @@ Bool Weapon::computeApproachTarget(const Object *source, const Object *target, c
 
 		// select a spot along the line between us, in range of our weapon
 		const Real ATTACK_RANGE_APPROACH_FUDGE = 0.9f;
-		Real attackRange = getAttackRange(source) * ATTACK_RANGE_APPROACH_FUDGE;
+		Real attackRange = getAttackRange(source, target) * ATTACK_RANGE_APPROACH_FUDGE;
 		approachTargetPos.x = attackRange * dir.x + targetPos->x;
 		approachTargetPos.y = attackRange * dir.y + targetPos->y;
 		approachTargetPos.z = attackRange * dir.z + targetPos->z;
@@ -2262,7 +2264,7 @@ Bool Weapon::isSourceObjectWithGoalPositionWithinAttackRange( const Object *sour
 	else
 		return false;
 
-	Real attackRangeSqr = sqr( getAttackRange( source ) );
+	Real attackRangeSqr = sqr( getAttackRange( source, target ) );
 	Real minAttackRangeSqr = sqr(m_template->getMinimumAttackRange());
 #ifdef RATIONALIZE_ATTACK_RANGE
 	if (distSqr < minAttackRangeSqr)
@@ -2276,8 +2278,22 @@ Bool Weapon::isSourceObjectWithGoalPositionWithinAttackRange( const Object *sour
 }
 
 //-------------------------------------------------------------------------------------------------
+Bool Weapon::hasRequiredTargetVision(const Object *source, const Object *target, const Coord3D *pos) const
+{
+	if (!m_template->requiresTargetVision()) return true;
+	const Player* owner = source->getControllingPlayer();
+	if (!owner) return false;
+	if (target)
+	{
+		ObjectShroudStatus status = target->getShroudedStatus(owner->getPlayerIndex());
+		return status == OBJECTSHROUD_CLEAR || status == OBJECTSHROUD_PARTIAL_CLEAR;
+	}
+	return pos && ThePartitionManager->getShroudStatusForPlayer(owner->getPlayerIndex(), pos) == CELLSHROUD_CLEAR;
+}
+
 Bool Weapon::isWithinAttackRange(const Object *source, const Coord3D* pos) const
 {
+	if (!hasRequiredTargetVision(source, nullptr, pos)) return false;
 	Real distSqr = ThePartitionManager->getDistanceSquared( source, pos, ATTACK_RANGE_CALC_TYPE );
 	Real attackRangeSqr = sqr(getAttackRange(source));
 	Real minAttackRangeSqr = sqr(m_template->getMinimumAttackRange());
@@ -2295,8 +2311,9 @@ Bool Weapon::isWithinAttackRange(const Object *source, const Coord3D* pos) const
 //-------------------------------------------------------------------------------------------------
 Bool Weapon::isWithinAttackRange(const Object *source, const Object *target) const
 {
+	if (!hasRequiredTargetVision(source, target)) return false;
 	Real distSqr;
-	Real attackRangeSqr = sqr(getAttackRange(source));
+	Real attackRangeSqr = sqr(getAttackRange(source, target));
 
 	if( !target->isKindOf(KINDOF_BRIDGE) )
 	{
@@ -2389,7 +2406,7 @@ Bool Weapon::isGoalPosWithinAttackRange(const Object *source, const Coord3D* goa
 	// of firing range.  jba.
 	// Note 2 - even with RATIONALIZE_ATTACK_RANGE, we still need to subtract 1/4 of a pathfind cell,
 	// otherwise if it teters on the edge, attacks can fail.  jba.
-	Real attackRangeSqr = sqr(getAttackRange(source)-(PATHFIND_CELL_SIZE_F*0.25f));
+	Real attackRangeSqr = sqr(getAttackRange(source, target)-(PATHFIND_CELL_SIZE_F*0.25f));
 
 	if (target != nullptr)
 	{
@@ -2477,6 +2494,24 @@ Real Weapon::getPercentReadyToFire() const
 }
 
 //-------------------------------------------------------------------------------------------------
+// Indirect weapons use a deliberate dead zone. This includes stock siege weapons.
+Bool Weapon::isIndirectFireWeapon(const Object *source) const
+{
+	return !source->isKindOf(KINDOF_AIRCRAFT) && getAttackRange(source) >= 200.0f
+		&& m_template->getMinimumAttackRange() >= 40.0f;
+}
+
+Real Weapon::getAttackRange(const Object *source, const Object *target) const
+{
+	Real range = getAttackRange(source);
+	if (target && source->getRelationship(target) == ENEMIES
+		&& target->testWeaponBonusCondition(WEAPONBONUSCONDITION_SMOKE_SCREEN)
+		&& !target->isKindOf(KINDOF_AIRCRAFT) && !source->isKindOf(KINDOF_AIRCRAFT)
+		&& !isIndirectFireWeapon(source))
+		return max(m_template->getMinimumAttackRange() + 1.0f, range * 0.75f);
+	return range;
+}
+
 Real Weapon::getAttackRange(const Object *source) const
 {
 	WeaponBonus bonus;
@@ -2495,7 +2530,7 @@ Real Weapon::getAttackRange(const Object *source) const
 //-------------------------------------------------------------------------------------------------
 Real Weapon::getAttackDistance(const Object *source, const Object *victimObj, const Coord3D* victimPos) const
 {
-	Real range = getAttackRange(source);
+	Real range = getAttackRange(source, victimObj);
 
 	if (victimObj != nullptr)
 	{
@@ -2615,6 +2650,9 @@ Bool Weapon::privateFireWeapon(
 		*projectileID = INVALID_ID;
 
 	if (!m_template)
+		return false;
+	// Only gate launch: an already-fired missile can still detonate after vision is lost.
+	if (!isProjectileDetonation && !hasRequiredTargetVision(sourceObj, victimObj, victimPos))
 		return false;
 
 	// If we are a networked weapon, tell everyone nearby they might want to get in on this shot

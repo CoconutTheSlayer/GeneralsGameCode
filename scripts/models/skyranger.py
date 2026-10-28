@@ -74,8 +74,8 @@ def gun():
     box(bm, (-0.8, -1.6, -0.8), (0.9, -0.2, 0.8))                      # mantlet
     cylinder(bm, (0.0, 1.0, 0.0), 0.35, 5.4, axis="Y", segments=10)   # trunnion shaft out to the pod
     cylinder(bm, (1.5, -0.9, 0.0), 0.45, 1.4, axis="X", segments=12)  # revolver cannon
-    cylinder(bm, (4.6, -0.9, 0.0), 0.22, 4.8, axis="X", segments=8)   # barrel
-    cylinder(bm, (7.15, -0.9, 0.0), 0.34, 0.8, axis="X", segments=10) # muzzle device
+    cylinder(bm, (4.6, -0.9, 0.0), 0.32, 4.8, axis="X", segments=8)   # barrel
+    cylinder(bm, (7.15, -0.9, 0.0), 0.42, 0.8, axis="X", segments=10) # muzzle device
     box(bm, (-1.0, 2.85, -0.75), (2.2, 4.35, 0.75))                    # missile pod, two by two
     box(bm, (-0.6, 2.4, -0.3), (0.6, 2.85, 0.3))                       # its mount
     bmesh.ops.scale(bm, vec=(S, S, S), verts=bm.verts)

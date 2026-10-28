@@ -1,0 +1,30 @@
+{
+  "mode": "built-in image_gen",
+  "sources": {
+    "rifleman": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-74704bfd-67c6-4ed5-8cd1-cf10e1610c6d.png",
+    "tigr": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-093e0e33-e9b4-43f5-a32e-60622b0279ee.png",
+    "t90": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-9568a1e8-962f-4098-a0cd-b491eda4f936.png",
+    "tunguska": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-ea8bcf3a-ee90-4303-bafd-c080611b7d85.png",
+    "bmp3": "/Users/radimvajchr/.codex/generated_images/01a1370e-4cf6-7b02-8b1b-f39abd122ee5/exec-e3c0d274-ae7f-4c98-bd01-6b4439b27790.png",
+    "msta": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-315c3250-fe23-4ec9-b674-024993a0d338.png",
+    "tos": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-d3fbe075-60b2-441a-bd91-592a3b18936e.png",
+    "su35": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-9934f0e5-dcc5-4b4a-bc8f-2aac415f2569.png",
+    "kornet": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-b17ca613-66c3-4cf0-ad17-ae56b4ba16f6.png",
+    "commando": "/Users/radimvajchr/.codex/generated_images/01a1370e-4cf6-7b02-8b1b-f39abd122ee5/exec-f6acfe8b-4ff4-450f-ad6c-b83377c5221d.png",
+    "su25": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-4a3ce2e6-b30c-47d4-a463-e117e762028e.png",
+    "engineer": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-ecd88ee2-c4ca-4c2f-9b92-da93ed877805.png",
+    "mi28": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-cf341c63-05dc-4273-af35-42bd93927fde.png",
+    "supplytruck": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-107791aa-d96b-42c3-93f6-f00e4e0584ea.png",
+    "supplycenter": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-105d95bf-2b88-4618-8dc7-4a31895dd545.png",
+    "commandcenter": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-7098bd43-d332-4bbf-83f2-c89cc504d8bb.png",
+    "warfactory": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-68f6986a-43d0-4b62-af17-b632a3309131.png",
+    "powerplant": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-38733e2d-5656-4f59-ad36-c6953e8ee67c.png",
+    "airfield": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-6522d723-4e36-424c-9951-1705d214a3dc.png",
+    "barracks": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-1dc9fdf4-985d-4fef-ae79-f6213cefb4dd.png",
+    "techcenter": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-fd22393a-06ef-4284-83d8-a100ad951d1e.png",
+    "income": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-b698ca2e-639b-463b-ba37-c0c72593fd42.png",
+    "airdefense": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-e74ddc4e-5a4c-434c-920d-5b54d719a126.png",
+    "superweapon": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-cb693b2a-5ff3-455c-aa26-4e35a9c2ffac.png",
+    "grounddefense": "/Users/radimvajchr/.codex/generated_images/01a12f9d-57e2-7721-8a19-ccd31a0d12af/exec-4164e73b-3aee-4823-8cbb-881bd90364d5.png"
+  }
+}

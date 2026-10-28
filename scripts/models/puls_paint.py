@@ -11,6 +11,8 @@ import math
 import os
 import sys
 
+from europe_style import ARMOUR, EDGE_LIGHT, EDGE_SHADOW
+
 import numpy as np
 
 try:
@@ -19,7 +21,8 @@ except ImportError:  # inside Blender only the layout is needed
     Image = ImageDraw = ImageFilter = None
 
 UP = 4  # painted at four times the size, then shrunk: smooth lines
-CAMO = [(124, 138, 150), (84, 97, 112), (166, 176, 184)]
+
+CAMO = ARMOUR
 SEAM, LIT = (22, 25, 30), (205, 212, 218)
 DUST, MUD = (156, 142, 118), (88, 72, 52)
 GROUPS = ("top", "side", "front", "back", "bottom")
@@ -200,7 +203,7 @@ def paint(layout, faces, details=None, occlusion=None, damaged=False, seed=11, m
             if not sharp:
                 continue
             a, b = poly[i], poly[(i + 1) % len(poly)]
-            draw.line([a, b], fill=SEAM, width=UP if fine else 2 * UP)
+            draw.line([a, b], fill=EDGE_SHADOW, width=UP if fine else 2 * UP)
             if fine or f["group"] == "bottom":
                 continue
             mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
@@ -208,7 +211,7 @@ def paint(layout, faces, details=None, occlusion=None, damaged=False, seed=11, m
             d = math.hypot(dx, dy) or 1.0
             ox, oy = dx / d * 2.2 * UP, dy / d * 2.2 * UP
             if dy >= -abs(dx):
-                draw.line([(a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy)], fill=LIT, width=UP)
+                draw.line([(a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy)], fill=EDGE_LIGHT, width=UP)
 
     if details:
         details(c, draw, rng)

@@ -16,6 +16,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+from europe_style import AIRFRAME_LIGHT, AIRFRAME_SHADOW  # noqa: E402
 
 SIZE = 512
 
@@ -104,7 +105,7 @@ def base_canvas(layout, faces, rng, light=None, palette=None):
     return img, mask
 
 
-def seams_and_edges(draw, faces, rng, lit=(205, 212, 218), seam=(22, 25, 30)):
+def seams_and_edges(draw, faces, rng, lit=AIRFRAME_LIGHT, seam=AIRFRAME_SHADOW):
     """Dark seams along the model's sharp edges, lit on the face's side; small parts get fine lines."""
     from boxer_paint import UP
     for f in faces:
@@ -125,7 +126,8 @@ def seams_and_edges(draw, faces, rng, lit=(205, 212, 218), seam=(22, 25, 30)):
             dx, dy = cx - mx, cy - my
             d = math.hypot(dx, dy) or 1.0
             ox, oy = dx / d * 2.0 * UP, dy / d * 2.0 * UP
-            draw.line([(a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy)], fill=lit, width=UP)
+            if dy >= -abs(dx):
+                draw.line([(a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy)], fill=lit, width=UP)
 
 
 def finish(canvas, mask, occlusion, damaged, rng, soot_rows=None, brighten=1.22):

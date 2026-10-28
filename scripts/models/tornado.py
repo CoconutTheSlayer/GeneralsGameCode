@@ -21,7 +21,7 @@ class Tornado(Jet):
     name, texture = "EUTORN", "eutor"
     paint_script = "tornado_paint.py"
     extent = ((-20.5, 22.0), (-15.0, 15.0), (-3.2, 11.6))
-    scheme = dict(colours=[(132, 142, 150), (94, 106, 120), (74, 84, 84)], pattern="splinter", patches=110,
+    scheme = dict(colours=[(146, 158, 170), (100, 116, 132), (76, 90, 100)], pattern="splinter", patches=110,
                   under=(150, 156, 162))
     belly_blend = -0.6
 

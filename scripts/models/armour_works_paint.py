@@ -16,6 +16,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from europe_style import building_light  # noqa: E402
 import command_centre_paint as cc  # noqa: E402
 from command_centre_paint import UP, damage, grime, pad, tiling_noise  # noqa: E402
 
@@ -30,11 +31,11 @@ def tile_roof(rng):
     x = np.arange(w)
     seam = (x % (32 * UP)) < 3 * UP
     lit = ((x % (32 * UP)) >= 3 * UP) & ((x % (32 * UP)) < 5 * UP)
-    base = np.array([142, 156, 172], float)
-    row = np.where(seam[:, None], base * 0.62, np.where(lit[:, None], base * 1.25, base))
+    base = np.array([154, 172, 188], float)
+    row = np.where(seam[:, None], base * 0.76, np.where(lit[:, None], base * 1.12, base))
     arr = np.repeat(row[None, :, :], w, axis=0)
     img = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
-    return grime(img, rng, amount=0.28, streaks=20, streak_colour=(80, 88, 96)).resize((256, 256), Image.LANCZOS)
+    return grime(img, rng, amount=0.18, streaks=12, streak_colour=(100, 114, 128)).resize((256, 256), Image.LANCZOS)
 
 
 def tile_shutter(rng):
@@ -146,8 +147,7 @@ def compose(bake_dir, out, prefix, markings, extent, seed=7):
     height = np.asarray(Image.open(os.path.join(bake_dir, "height.png")).convert("L"), float)[..., None] / 255.0
     h, w = ao.shape[:2]
     stains = (tiling_noise(w, h, 10, rng) * 0.6 + tiling_noise(w, h, 30, rng) * 0.4)[..., None]
-    lit = colour * (0.42 + 0.58 * ao) * (0.86 + 0.24 * stains) * (0.78 + 0.36 * np.sqrt(height))
-    lit *= np.array([1.16, 1.2, 1.3])
+    lit = building_light(colour, ao, height, stains)
     day = Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8))
     versions = {"": day, "_d": damage(day, rng, 1), "_e": damage(day, rng, 2)}
     for suffix, img in versions.items():

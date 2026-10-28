@@ -17,6 +17,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from europe_style import building_light  # noqa: E402
 import command_centre_paint as cc  # noqa: E402
 
 UP = cc.UP
@@ -167,9 +168,7 @@ def compose(bake_dir, out, prefix=PREFIX, pad_painter=paint_pad):
     h, w = ao.shape[:2]
     stains = (cc.tiling_noise(w, h, 10, rng) * 0.6 + cc.tiling_noise(w, h, 30, rng) * 0.4)[..., None]
     # Darker towards the ground, as the game's buildings are painted.
-    lit = colour * (0.42 + 0.58 * ao) * (0.86 + 0.24 * stains) * (0.78 + 0.36 * np.sqrt(np.clip(height, 0, 1)))
-    # The game's light is warm and dim: paint a little lighter and cooler.
-    lit *= np.array([1.16, 1.2, 1.3])
+    lit = building_light(colour, ao, height, stains)
     day = Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8))
     versions = {"": day, "_d": cc.damage(day, rng, 1), "_e": cc.damage(day, rng, 2)}
     for suffix, img in versions.items():

@@ -42,22 +42,22 @@ def details(draw, p, rng):
     for y in (4.4, -4.4):
         light(draw, R("hull", "back", (0, y - 0.4, 2.3), (0, y + 0.4, 1.9)), (170, 30, 25))
     # The mast's head: two lenses, the radar panel's elements.
-    lens(draw, P("mast", "front", (0, -0.45, MAST_TOP + 0.35)), 0.3 * s("mast") * UP)
-    lens(draw, P("mast", "front", (0, 0.45, MAST_TOP + 0.35)), 0.22 * s("mast") * UP, (90, 40, 30))
+    lens(draw, P("mast", "front", (0, -0.65, MAST_TOP + 0.35)), 0.42 * s("mast") * UP)
+    lens(draw, P("mast", "front", (0, 0.65, MAST_TOP + 0.35)), 0.32 * s("mast") * UP, (90, 40, 30))
     x0, y0, x1, y1 = R("mast", "back", (0, -1.45, MAST_TOP + 1.25), (0, 1.45, MAST_TOP - 0.05))
     draw.rectangle([x0, y0, x1, y1], fill=(70, 78, 86), outline=SEAM, width=UP)
     for i in range(6):
         for j in range(4):
             cx, cy = x0 + (i + 0.5) * (x1 - x0) / 6, y0 + (j + 0.5) * (y1 - y0) / 4
             draw.rectangle([cx - UP * 2, cy - UP * 2, cx + UP * 2, cy + UP * 2], fill=(150, 160, 168))
-    for z in (DECK_Z + 6.4, DECK_Z + 2.0):
+    for z in (DECK_Z + 3.8, DECK_Z + 2.0):
         hazard(draw, R("mast", "side", (-5.4, 0, z + 0.3), (-4.6, 0, z)))
     # The weapon station's sight, the gun's receiver.
     vision_block(draw, R("turret", "front", (0, 1.05, 1.9), (0, 1.5, 1.1)))
     vision_block(draw, R("turret", "side", (0.2, 0, 1.8), (1.2, 0, 1.2)))
 
 
-MAST_TOP, DECK_Z = 13.0, 3.4  # recon_drone.py's
+MAST_TOP, DECK_Z = 9.0, 3.4  # recon_drone.py's
 
 
 def main():

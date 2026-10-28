@@ -1,0 +1,11 @@
+{
+  "mode": "Built-in image generation tool",
+  "purpose": "Shared original paint for the revised Vilkas, Wiesel and Valuk",
+  "geometry_sources": ["scripts/models/original_compacts.py", "scripts/models/compact_polish.py", "scripts/models/compact_polish_common.py", "scripts/models/wiesel_polish.py", "scripts/models/vilkas_polish.py", "scripts/models/valuk_polish.py"],
+  "game_models_used": false,
+  "game_textures_used": false,
+  "sources": ["eu_compact_atlas_v2.png", "eu_compact_atlas_v2_d.png"],
+  "prompts": ["polish-prompt.txt", "polish-colour-prompt.txt", "polish-damage-final-prompt.txt"],
+  "processing": "Power-of-two conversion, UV projection and Blender diffuse/occlusion baking. Double-sided decals use reduced occlusion to preserve their markings.",
+  "review": "Checked at the native game camera beside the USA Humvee. The initial warm palette was discarded after the desert-lighting comparison."
+}

@@ -414,6 +414,10 @@ void WeaponSet::updateWeaponSet(const Object* obj)
 //-------------------------------------------------------------------------------------------------
 static Int getVictimAntiMask(const Object* victim)
 {
+	// A flying attack drone uses projectile guidance but remains a valid target
+	// for ordinary anti-air weapons, as well as missile point defence.
+	if (victim->isKindOf(KINDOF_DRONE) && victim->isKindOf(KINDOF_PROJECTILE) && victim->isAirborneTarget())
+		return WEAPON_ANTI_AIRBORNE_VEHICLE | WEAPON_ANTI_SMALL_MISSILE;
 	if( victim->isKindOf( KINDOF_SMALL_MISSILE ) )
 	{
 		//All missiles are also projectiles!

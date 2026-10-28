@@ -333,9 +333,8 @@ void Drawable::saturateRGB(RGBColor& color, Real factor)
  * graphical side of a logical object, whereas GameLogic objects encapsulate
  * behaviors and physics.  */
 //-------------------------------------------------------------------------------------------------
-// TheSuperHackers @feature Some models are far out of proportion to the rest: the combat bike is as long
-// as a pickup truck, tanks are half their real length and jets a third. On macOS these are drawn at a
-// size closer to the trucks and infantry around them; Options.ini can change each group (ScaleInfantry,
+// TheSuperHackers @feature Models use the original game's proportions by default. On macOS,
+// Options.ini can optionally change each group (ScaleInfantry,
 // ScaleVehicles, ScaleTanks, ScaleBikes, ScaleJets, ScaleHelicopters, ScaleStructures). Only the model is
 // scaled; geometry, bone positions and everything else the game logic uses stay the same.
 //-------------------------------------------------------------------------------------------------
@@ -350,13 +349,13 @@ static Real modelScaleFor(const ThingTemplate *thingTemplate)
 		OptionPreferences prefs;
 		infantry = prefs.getModelScale("ScaleInfantry", 1.0f);
 		vehicles = prefs.getModelScale("ScaleVehicles", 1.0f);
-		tanks = prefs.getModelScale("ScaleTanks", 1.3f);
-		bikes = prefs.getModelScale("ScaleBikes", 0.7f);
-		jets = prefs.getModelScale("ScaleJets", 1.5f);
-		helicopters = prefs.getModelScale("ScaleHelicopters", 1.15f);
+		tanks = prefs.getModelScale("ScaleTanks", 1.0f);
+		bikes = prefs.getModelScale("ScaleBikes", 1.0f);
+		jets = prefs.getModelScale("ScaleJets", 1.0f);
+		helicopters = prefs.getModelScale("ScaleHelicopters", 1.0f);
 		structures = prefs.getModelScale("ScaleStructures", 1.0f);
-		// GENERALS_ORIGINAL_SCALE=1 draws everything at the original size, to compare. With RealScale (the
-		// default) W3DModelDraw sizes the models it knows the real size of instead.
+		// GENERALS_ORIGINAL_SCALE=1 ignores custom size preferences. With RealScale enabled,
+		// W3DModelDraw sizes the models it knows the real size of instead.
 		if (getenv("GENERALS_ORIGINAL_SCALE") || prefs.getRealScale())
 			infantry = vehicles = tanks = bikes = jets = helicopters = structures = 1.0f;
 	}

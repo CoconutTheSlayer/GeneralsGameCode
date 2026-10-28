@@ -1,4 +1,7 @@
-"""The European Recon Drone: a small tracked unmanned ground vehicle in the manner of the THeMIS, two track units
+"""The current scout exports through native_vehicles.py, preserving original Generals art.
+
+The earlier procedural prototype is retained below as a source of reusable parts:
+a small tracked unmanned ground vehicle in the manner of the THeMIS, two track units
 either side of a low payload deck, a telescopic sensor mast with a camera head and a radar panel, and a remote
 weapon station whose light machine gun appears with the upgrade. Made like the Engineer Vehicle (engineer.py,
 whose shared helpers it uses).
@@ -37,11 +40,11 @@ DECK_Z = 3.4
 TURRET_AT = (1.2, 0.0, DECK_Z)
 GUN_AT = (0.3, 0.0, 1.55)          # the recoil bone, in the turret's space
 MUZZLE = (5.0, 0.0, 0.0)           # in the gun's space
-MAST_X, MAST_TOP = -5.0, 13.0
+MAST_X, MAST_TOP = -5.0, 9.0
 
 PARTS = {
     "hull": (-8.2, 8.4, -6.1, 6.1, 0.0, DECK_Z + 1.0),
-    "mast": (-6.6, -3.4, -1.6, 1.6, DECK_Z, MAST_TOP + 1.4),
+    "mast": (-6.6, -3.2, -2.0, 2.0, DECK_Z, MAST_TOP + 1.6),
     "turret": (-1.8, 2.2, -1.6, 1.6, 0.0, 2.4),
     "gun": (-1.0, 5.4, -0.9, 0.9, -0.6, 0.7),
 }
@@ -63,6 +66,8 @@ def hull():
     box(bm, (-7.0, -2.8, DECK_Z), (-3.6, 2.8, DECK_Z + 0.9))
     box(bm, (3.2, -2.6, DECK_Z), (6.6, -0.8, DECK_Z + 0.6))
     box(bm, (3.2, 0.8, DECK_Z), (6.6, 2.6, DECK_Z + 0.6))
+    # A broad electronics housing gives the tiny scout weight at game zoom.
+    kit.prism_xz(bm,[(-3.3,DECK_Z),(-.5,DECK_Z),(-.1,DECK_Z+1.3),(-3.3,DECK_Z+1.3)],-2.6,2.6)
     for side in (1, -1):
         box(bm, (7.3, side * 4.4 - 0.5, 1.9), (7.8, side * 4.4 + 0.5, 2.4))
         box(bm, (-7.3, side * 4.4 - 0.4, 1.9), (-6.9, side * 4.4 + 0.4, 2.3))
@@ -87,13 +92,15 @@ def mast():
     bm = bmesh.new()
     x = MAST_X
     box(bm, (x - 1.1, -1.1, DECK_Z + 0.9), (x + 1.1, 1.1, DECK_Z + 1.6))
-    cylinder(bm, (x, 0, DECK_Z + 4.0), 0.36, 4.8, segments=10)
-    cylinder(bm, (x, 0, DECK_Z + 8.2), 0.26, 3.8, segments=10)
+    cylinder(bm, (x, 0, DECK_Z + 2.8), 0.52, 2.5, segments=10)
+    cylinder(bm, (x, 0, DECK_Z + 4.6), 0.35, 1.9, segments=10)
+    cylinder(bm, (x, 0, DECK_Z + 3.8), 0.63, .35, segments=10)
     # The head: a gimbal with two lenses, a radar panel behind it.
-    box(bm, (x - 0.7, -0.9, MAST_TOP - 0.2), (x + 0.9, 0.9, MAST_TOP + 0.9))
-    cylinder(bm, (x + 1.05, -0.45, MAST_TOP + 0.35), 0.3, 0.3, axis="X", segments=10)
-    cylinder(bm, (x + 1.05, 0.45, MAST_TOP + 0.35), 0.22, 0.3, axis="X", segments=10)
-    box(bm, (x - 1.2, -1.5, MAST_TOP - 0.1), (x - 0.9, 1.5, MAST_TOP + 1.3))
+    kit.prism_xz(bm,[(x-.9,MAST_TOP-.4),(x+1,MAST_TOP-.4),(x+1.3,MAST_TOP+.1),
+                    (x+1,MAST_TOP+1.2),(x-.9,MAST_TOP+1.2)],-1.4,1.4)
+    cylinder(bm, (x + 1.35, -0.65, MAST_TOP + 0.35), 0.42, 0.3, axis="X", segments=10)
+    cylinder(bm, (x + 1.35, 0.65, MAST_TOP + 0.35), 0.32, 0.3, axis="X", segments=10)
+    box(bm, (x - 1.3, -1.8, MAST_TOP - 0.1), (x - 1.05, 1.8, MAST_TOP + 1.3))
     cylinder(bm, (x, 0, MAST_TOP + 1.25), 0.05, 0.8, segments=6)
     return kit.finish("mast", bm)
 
@@ -119,7 +126,7 @@ def gun():
 
 
 def build():
-    layout = Layout(PARTS, 512, WEIGHTS)
+    layout = Layout(PARTS, 1024, WEIGHTS)
     print("layout scale", round(layout.scale, 2), "pixels per unit")
     body, gear, sensor, top, mg = hull(), running_gear(), mast(), turret(), gun()
     solid = [(body, "hull"), (gear, "hull"), (sensor, "mast"), (top, "turret"), (mg, "gun")]
@@ -152,7 +159,7 @@ BONES = [
 ]
 
 
-def main():
+def prototype_main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     p = build()
     for name, texture in ((NAME, HULL_TEXTURE), (NAME + "_D", DAMAGED_TEXTURE)):
@@ -173,6 +180,12 @@ def main():
     p["flash"].hide_render = True
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(kit.BUILD, NAME + ".blend"))
     kit.render_previews(os.path.join(kit.BUILD, NAME), distance=36.0, target=(0, 0, 4.5))
+
+
+def main():
+    """Export the original painted scout with its optional weapon upgrade."""
+    from original_compacts import build
+    build('EUDRONE')
 
 
 if __name__ == "__main__":

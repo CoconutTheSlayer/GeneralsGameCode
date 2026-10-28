@@ -1,0 +1,4943 @@
+{
+  "faction": "Ukraine",
+  "geometry_origin": "Original authored mathematical geometry; no stock visual models imported. Infantry and aircraft V2 retain original bone contracts.",
+  "paint_origin": "Original shared generated cloth/aviation/industrial atlas art, Ukraine-specific tint and restrained digital camouflage, material wear and baked diffuse contact shadows.",
+  "assets": [
+    {
+      "key": "Kozak",
+      "display_name": "Kozak",
+      "role": "Scout and early infantry transport",
+      "model": "UAKOZAK",
+      "variants": [
+        "UAKOZAK",
+        "UAKOZAK_D"
+      ],
+      "bones": [
+        "TIRE01",
+        "TIRE02",
+        "TIRE03",
+        "TIRE04",
+        "TURRET",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -10.25,
+          -5.159999847412109,
+          -0.09999990463256836
+        ],
+        "max": [
+          10.822884559631348,
+          5.159999847412109,
+          13.302695274353027
+        ],
+        "size": [
+          21.072884559631348,
+          10.319999694824219,
+          13.402695178985596
+        ]
+      },
+      "textures": [
+        "uakozak.tga",
+        "uakozak_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAKOZAK.png",
+      "portrait": "uaicon_uakozak.tga",
+      "triangles": 5304,
+      "meshes": 8,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 0.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UAKOZAK",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "vehicle",
+      "parent": "AmericaVehicleHumvee",
+      "bone_contract": [
+        {
+          "name": "TIRE01",
+          "parent": "CHASSIS",
+          "position": [
+            6,
+            4,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE02",
+          "parent": "CHASSIS",
+          "position": [
+            6,
+            -4,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE03",
+          "parent": "CHASSIS",
+          "position": [
+            -6,
+            4,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE04",
+          "parent": "CHASSIS",
+          "position": [
+            -6,
+            -4,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            8.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRET",
+          "position": [
+            4,
+            0,
+            1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "TURRET",
+          "position": [
+            4,
+            0,
+            1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/kozak.png"
+    },
+    {
+      "key": "Oplot",
+      "display_name": "Oplot",
+      "role": "Main battle tank",
+      "model": "UAOPLOT",
+      "variants": [
+        "UAOPLOT",
+        "UAOPLOT_D"
+      ],
+      "bones": [
+        "TURRET",
+        "BARREL",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "TURRETMS",
+        "TURRETFX",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -12.399999618530273,
+          -6.671999931335449,
+          0.3499999940395355
+        ],
+        "max": [
+          13.827500343322754,
+          6.671999931335449,
+          10.802695274353027
+        ],
+        "size": [
+          26.227499961853027,
+          13.343999862670898,
+          10.452695280313492
+        ]
+      },
+      "textures": [
+        "uaoplot.tga",
+        "uaoplot_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAOPLOT.png",
+      "portrait": "uaicon_uaoplot.tga",
+      "triangles": 5676,
+      "meshes": 5,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 120.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UAOPLOT",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "vehicle",
+      "parent": "AmericaTankCrusader",
+      "bone_contract": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            5.8
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            3,
+            0,
+            1.2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRET",
+          "position": [
+            13.9,
+            0,
+            1.2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "TURRET",
+          "position": [
+            13.9,
+            0,
+            1.2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TURRETMS",
+          "parent": "TURRET",
+          "position": [
+            13.9,
+            0,
+            1.2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TURRETFX",
+          "parent": "TURRET",
+          "position": [
+            13.9,
+            0,
+            1.2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/oplot.png"
+    },
+    {
+      "key": "BTR4",
+      "display_name": "BTR-4",
+      "role": "Autocannon infantry carrier",
+      "model": "UABTR4",
+      "variants": [
+        "UABTR4",
+        "UABTR4_D"
+      ],
+      "bones": [
+        "TIRE01",
+        "TIRE02",
+        "TIRE03",
+        "TIRE04",
+        "TIRE05",
+        "TIRE06",
+        "TIRE07",
+        "TIRE08",
+        "TURRET",
+        "BARREL",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "TURRETMS",
+        "TURRETFX",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -13.0,
+          -6.572000503540039,
+          -0.09999990463256836
+        ],
+        "max": [
+          13.050000190734863,
+          6.572000503540039,
+          13.302695274353027
+        ],
+        "size": [
+          26.050000190734863,
+          13.144001007080078,
+          13.402695178985596
+        ]
+      },
+      "textures": [
+        "uabtr4.tga",
+        "uabtr4_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UABTR4.png",
+      "portrait": "uaicon_uabtr4.tga",
+      "triangles": 7920,
+      "meshes": 12,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 84.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UABTR4",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "vehicle",
+      "parent": "AmericaVehicleHumvee",
+      "bone_contract": [
+        {
+          "name": "TIRE01",
+          "parent": "CHASSIS",
+          "position": [
+            8.8,
+            5.55,
+            2.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE02",
+          "parent": "CHASSIS",
+          "position": [
+            8.8,
+            -5.55,
+            2.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE03",
+          "parent": "CHASSIS",
+          "position": [
+            3,
+            5.55,
+            2.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE04",
+          "parent": "CHASSIS",
+          "position": [
+            3,
+            -5.55,
+            2.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE05",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            5.55,
+            2.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE06",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            -5.55,
+            2.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE07",
+          "parent": "CHASSIS",
+          "position": [
+            -10,
+            5.55,
+            2.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE08",
+          "parent": "CHASSIS",
+          "position": [
+            -10,
+            -5.55,
+            2.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -2,
+            0,
+            8.3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRET",
+          "position": [
+            9,
+            0,
+            1.2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "TURRET",
+          "position": [
+            9,
+            0,
+            1.2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TURRETMS",
+          "parent": "TURRET",
+          "position": [
+            9,
+            0,
+            1.2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TURRETFX",
+          "parent": "TURRET",
+          "position": [
+            9,
+            0,
+            1.2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/btr4.png"
+    },
+    {
+      "key": "Buk",
+      "display_name": "Buk",
+      "role": "Mobile missile air defence",
+      "model": "UABUK",
+      "variants": [
+        "UABUK",
+        "UABUK_D"
+      ],
+      "bones": [
+        "TURRET",
+        "MUZZLE01",
+        "MUZZLE02",
+        "MUZZLE03",
+        "MUZZLE04",
+        "MUZZLEFX01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -12.399999618530273,
+          -6.771999835968018,
+          0.3499999940395355
+        ],
+        "max": [
+          12.25,
+          6.771999835968018,
+          12.600000381469727
+        ],
+        "size": [
+          24.649999618530273,
+          13.543999671936035,
+          12.250000387430191
+        ]
+      },
+      "textures": [
+        "uabuk.tga",
+        "uabuk_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UABUK.png",
+      "portrait": "uaicon_uabuk.tga",
+      "triangles": 4652,
+      "meshes": 5,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 120.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UABUK",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "vehicle",
+      "parent": "ChinaVehicleGattlingTank",
+      "bone_contract": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -1,
+            0,
+            6.3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRET",
+          "position": [
+            7.5,
+            -3.6,
+            4.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE02",
+          "parent": "TURRET",
+          "position": [
+            7.5,
+            -1.2,
+            4.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE03",
+          "parent": "TURRET",
+          "position": [
+            7.5,
+            1.2,
+            4.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE04",
+          "parent": "TURRET",
+          "position": [
+            7.5,
+            3.6,
+            4.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "TURRET",
+          "position": [
+            7.5,
+            -3.6,
+            4.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/buk.png"
+    },
+    {
+      "key": "Bohdana",
+      "display_name": "Bohdana",
+      "role": "Mobile long-range howitzer",
+      "model": "UABOHD",
+      "variants": [
+        "UABOHD",
+        "UABOHD_D"
+      ],
+      "bones": [
+        "TIRE01",
+        "TIRE02",
+        "TIRE03",
+        "TIRE04",
+        "TIRE05",
+        "TIRE06",
+        "TIRE07",
+        "TIRE08",
+        "TURRET",
+        "BARREL",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "TURRETMS",
+        "TURRETFX",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -17.0,
+          -7.099999904632568,
+          -0.09999990463256836
+        ],
+        "max": [
+          17.729999542236328,
+          7.099999904632568,
+          8.850000381469727
+        ],
+        "size": [
+          34.72999954223633,
+          14.199999809265137,
+          8.950000286102295
+        ]
+      },
+      "textures": [
+        "uabohd.tga",
+        "uabohd_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UABOHD.png",
+      "portrait": "uaicon_uabohd.tga",
+      "triangles": 7180,
+      "meshes": 12,
+      "notes": [
+        "Gun is forward-facing in transport and turns automatically through TURRET; outriggers are compact static silhouette details.",
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 0.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UABOHD",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "vehicle",
+      "parent": "ChinaVehicleInfernoCannon",
+      "bone_contract": [
+        {
+          "name": "TIRE01",
+          "parent": "CHASSIS",
+          "position": [
+            12,
+            4.7,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE02",
+          "parent": "CHASSIS",
+          "position": [
+            12,
+            -4.7,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE03",
+          "parent": "CHASSIS",
+          "position": [
+            5,
+            4.7,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE04",
+          "parent": "CHASSIS",
+          "position": [
+            5,
+            -4.7,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE05",
+          "parent": "CHASSIS",
+          "position": [
+            -6,
+            4.7,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE06",
+          "parent": "CHASSIS",
+          "position": [
+            -6,
+            -4.7,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE07",
+          "parent": "CHASSIS",
+          "position": [
+            -13,
+            4.7,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE08",
+          "parent": "CHASSIS",
+          "position": [
+            -13,
+            -4.7,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -8,
+            0,
+            5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            0,
+            0,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRET",
+          "position": [
+            25,
+            0,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "TURRET",
+          "position": [
+            25,
+            0,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TURRETMS",
+          "parent": "TURRET",
+          "position": [
+            25,
+            0,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TURRETFX",
+          "parent": "TURRET",
+          "position": [
+            25,
+            0,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/bohdana.png"
+    },
+    {
+      "key": "DroneController",
+      "display_name": "Drone Controller",
+      "role": "Remote attack-drone support vehicle",
+      "model": "UADRONE",
+      "variants": [
+        "UADRONE",
+        "UADRONE_D"
+      ],
+      "bones": [
+        "TIRE01",
+        "TIRE02",
+        "TIRE03",
+        "TIRE04",
+        "TURRET",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -11.5,
+          -5.460000038146973,
+          -0.09999990463256836
+        ],
+        "max": [
+          12.322884559631348,
+          5.460000038146973,
+          16.5
+        ],
+        "size": [
+          23.822884559631348,
+          10.920000076293945,
+          16.59999990463257
+        ]
+      },
+      "textures": [
+        "uadrone.tga",
+        "uadrone_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UADRONE.png",
+      "portrait": "uaicon_uadrone.tga",
+      "triangles": 5828,
+      "meshes": 8,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 0.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UADRONE",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "vehicle",
+      "parent": "AmericaVehicleAvenger",
+      "bone_contract": [
+        {
+          "name": "TIRE01",
+          "parent": "CHASSIS",
+          "position": [
+            7,
+            4.3,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE02",
+          "parent": "CHASSIS",
+          "position": [
+            7,
+            -4.3,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE03",
+          "parent": "CHASSIS",
+          "position": [
+            -7,
+            4.3,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE04",
+          "parent": "CHASSIS",
+          "position": [
+            -7,
+            -4.3,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -2,
+            0,
+            9.2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRET",
+          "position": [
+            3,
+            0,
+            2.1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "TURRET",
+          "position": [
+            3,
+            0,
+            2.1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/dronecontroller.png"
+    },
+    {
+      "key": "Rifleman",
+      "display_name": "Rifleman",
+      "role": "Infantry",
+      "model": "UARIFL",
+      "variants": [
+        "UARIFL",
+        "UARIFL_D"
+      ],
+      "bones": [
+        "BODYROOT",
+        "PELVIS",
+        "TORSO",
+        "HEAD",
+        "LEGL",
+        "SHINL",
+        "ARML",
+        "FOREL",
+        "LEGR",
+        "SHINR",
+        "ARMR",
+        "FORER",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "MUZZLE",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [
+        "UARIFL.UARIFL_W",
+        "UARIFL.UARIFL_I",
+        "UARIFL.UARIFL_F",
+        "UARIFL.UARIFL_DIE"
+      ],
+      "dimensions": {
+        "min": [
+          -0.75,
+          -1.2650001049041748,
+          0.16999995708465576
+        ],
+        "max": [
+          3.5999999046325684,
+          1.2650001049041748,
+          6.53000020980835
+        ],
+        "size": [
+          4.349999904632568,
+          2.5300002098083496,
+          6.360000252723694
+        ]
+      },
+      "textures": [
+        "uarifl.tga",
+        "uarifl_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UARIFL.png",
+      "portrait": "uaicon_uarifl.tga",
+      "triangles": 5188,
+      "meshes": 12,
+      "notes": [
+        "Infantry V2 original shaped anatomy/face/helmet, cloth, plate carrier, pouches, gloves and original weapon geometry. Existing bones/local transforms retained; every clip explicitly resets all animated joints. Keep gameplay Scale=1.5.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UARIFL",
+      "art_revision": "ukraine-v2",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/infantry_v2.py",
+      "category": "infantry",
+      "parent": "AmericaInfantryRanger",
+      "bone_contract": [
+        {
+          "name": "BODYROOT",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "PELVIS",
+          "parent": "BODYROOT",
+          "position": [
+            0,
+            0,
+            3.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TORSO",
+          "parent": "PELVIS",
+          "position": [
+            0,
+            0,
+            0.45
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "HEAD",
+          "parent": "TORSO",
+          "position": [
+            0,
+            0,
+            2.1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "LEGL",
+          "parent": "PELVIS",
+          "position": [
+            0,
+            0.43,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SHINL",
+          "parent": "LEGL",
+          "position": [
+            0.12,
+            0,
+            -1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "ARML",
+          "parent": "TORSO",
+          "position": [
+            0,
+            0.86,
+            1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "FOREL",
+          "parent": "ARML",
+          "position": [
+            0.2,
+            0.2,
+            -0.8
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "LEGR",
+          "parent": "PELVIS",
+          "position": [
+            0,
+            -0.43,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SHINR",
+          "parent": "LEGR",
+          "position": [
+            0.12,
+            0,
+            -1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "ARMR",
+          "parent": "TORSO",
+          "position": [
+            0,
+            -0.86,
+            1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "FORER",
+          "parent": "ARMR",
+          "position": [
+            0.2,
+            -0.2,
+            -0.8
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            3.6,
+            0,
+            4.52
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "CHASSIS",
+          "position": [
+            3.6,
+            0,
+            4.52
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE",
+          "parent": "CHASSIS",
+          "position": [
+            3.6,
+            0,
+            4.52
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/rifleman.png"
+    },
+    {
+      "key": "Stugna",
+      "display_name": "Stugna Team",
+      "role": "Infantry",
+      "model": "UASTUG",
+      "variants": [
+        "UASTUG",
+        "UASTUG_D"
+      ],
+      "bones": [
+        "BODYROOT",
+        "PELVIS",
+        "TORSO",
+        "HEAD",
+        "LEGL",
+        "SHINL",
+        "ARML",
+        "FOREL",
+        "LEGR",
+        "SHINR",
+        "ARMR",
+        "FORER",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "MUZZLE",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [
+        "UASTUG.UASTUG_W",
+        "UASTUG.UASTUG_I",
+        "UASTUG.UASTUG_F",
+        "UASTUG.UASTUG_DIE"
+      ],
+      "dimensions": {
+        "min": [
+          -0.75,
+          -1.2650001049041748,
+          0.16999995708465576
+        ],
+        "max": [
+          3.265000104904175,
+          1.2650001049041748,
+          6.53000020980835
+        ],
+        "size": [
+          4.015000104904175,
+          2.5300002098083496,
+          6.360000252723694
+        ]
+      },
+      "textures": [
+        "uastug.tga",
+        "uastug_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UASTUG.png",
+      "portrait": "uaicon_uastug.tga",
+      "triangles": 5352,
+      "meshes": 12,
+      "notes": [
+        "Portable Stugna caricature preserves infantry gameplay; original detailed tube/CLU replaces redundant carried rifle.",
+        "Infantry V2 original shaped anatomy/face/helmet, cloth, plate carrier, pouches, gloves and original weapon geometry. Existing bones/local transforms retained; every clip explicitly resets all animated joints. Keep gameplay Scale=1.5.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UASTUG",
+      "art_revision": "ukraine-v2",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/infantry_v2.py",
+      "category": "infantry",
+      "parent": "AmericaInfantryMissileDefender",
+      "bone_contract": [
+        {
+          "name": "BODYROOT",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "PELVIS",
+          "parent": "BODYROOT",
+          "position": [
+            0,
+            0,
+            3.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TORSO",
+          "parent": "PELVIS",
+          "position": [
+            0,
+            0,
+            0.45
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "HEAD",
+          "parent": "TORSO",
+          "position": [
+            0,
+            0,
+            2.1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "LEGL",
+          "parent": "PELVIS",
+          "position": [
+            0,
+            0.43,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SHINL",
+          "parent": "LEGL",
+          "position": [
+            0.12,
+            0,
+            -1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "ARML",
+          "parent": "TORSO",
+          "position": [
+            0,
+            0.86,
+            1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "FOREL",
+          "parent": "ARML",
+          "position": [
+            0.2,
+            0.2,
+            -0.8
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "LEGR",
+          "parent": "PELVIS",
+          "position": [
+            0,
+            -0.43,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SHINR",
+          "parent": "LEGR",
+          "position": [
+            0.12,
+            0,
+            -1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "ARMR",
+          "parent": "TORSO",
+          "position": [
+            0,
+            -0.86,
+            1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "FORER",
+          "parent": "ARMR",
+          "position": [
+            0.2,
+            -0.2,
+            -0.8
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            3.3,
+            -0.65,
+            5.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "CHASSIS",
+          "position": [
+            3.3,
+            -0.65,
+            5.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE",
+          "parent": "CHASSIS",
+          "position": [
+            3.3,
+            -0.65,
+            5.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/stugna.png"
+    },
+    {
+      "key": "Commando",
+      "display_name": "Sapper",
+      "role": "Infantry",
+      "model": "UACOMM",
+      "variants": [
+        "UACOMM",
+        "UACOMM_D"
+      ],
+      "bones": [
+        "BODYROOT",
+        "PELVIS",
+        "TORSO",
+        "HEAD",
+        "LEGL",
+        "SHINL",
+        "ARML",
+        "FOREL",
+        "LEGR",
+        "SHINR",
+        "ARMR",
+        "FORER",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "MUZZLE",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [
+        "UACOMM.UACOMM_W",
+        "UACOMM.UACOMM_I",
+        "UACOMM.UACOMM_F",
+        "UACOMM.UACOMM_DIE"
+      ],
+      "dimensions": {
+        "min": [
+          -1.309999942779541,
+          -1.2650001049041748,
+          0.16999995708465576
+        ],
+        "max": [
+          3.5999999046325684,
+          1.2650001049041748,
+          6.53000020980835
+        ],
+        "size": [
+          4.909999847412109,
+          2.5300002098083496,
+          6.360000252723694
+        ]
+      },
+      "textures": [
+        "uacomm.tga",
+        "uacomm_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UACOMM.png",
+      "portrait": "uaicon_uacomm.tga",
+      "triangles": 5304,
+      "meshes": 12,
+      "notes": [
+        "Infantry V2 original shaped anatomy/face/helmet, cloth, plate carrier, pouches, gloves and original weapon geometry. Existing bones/local transforms retained; every clip explicitly resets all animated joints. Keep gameplay Scale=1.5.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UACOMM",
+      "art_revision": "ukraine-v2",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/infantry_v2.py",
+      "category": "infantry",
+      "parent": "AmericaInfantryRanger",
+      "bone_contract": [
+        {
+          "name": "BODYROOT",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "PELVIS",
+          "parent": "BODYROOT",
+          "position": [
+            0,
+            0,
+            3.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TORSO",
+          "parent": "PELVIS",
+          "position": [
+            0,
+            0,
+            0.45
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "HEAD",
+          "parent": "TORSO",
+          "position": [
+            0,
+            0,
+            2.1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "LEGL",
+          "parent": "PELVIS",
+          "position": [
+            0,
+            0.43,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SHINL",
+          "parent": "LEGL",
+          "position": [
+            0.12,
+            0,
+            -1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "ARML",
+          "parent": "TORSO",
+          "position": [
+            0,
+            0.86,
+            1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "FOREL",
+          "parent": "ARML",
+          "position": [
+            0.2,
+            0.2,
+            -0.8
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "LEGR",
+          "parent": "PELVIS",
+          "position": [
+            0,
+            -0.43,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SHINR",
+          "parent": "LEGR",
+          "position": [
+            0.12,
+            0,
+            -1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "ARMR",
+          "parent": "TORSO",
+          "position": [
+            0,
+            -0.86,
+            1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "FORER",
+          "parent": "ARMR",
+          "position": [
+            0.2,
+            -0.2,
+            -0.8
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            3.6,
+            0,
+            4.52
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "CHASSIS",
+          "position": [
+            3.6,
+            0,
+            4.52
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE",
+          "parent": "CHASSIS",
+          "position": [
+            3.6,
+            0,
+            4.52
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/commando.png"
+    },
+    {
+      "key": "F16",
+      "display_name": "F-16",
+      "role": "Multirole fighter",
+      "model": "UAF16",
+      "variants": [
+        "UAF16",
+        "UAF16_D"
+      ],
+      "bones": [
+        "MUZZLE02",
+        "MUZZLE01",
+        "ENGINE01",
+        "MUZZLEFX01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -14.0,
+          -12.510000228881836,
+          -1.25
+        ],
+        "max": [
+          15.979999542236328,
+          12.510000228881836,
+          7.949999809265137
+        ],
+        "size": [
+          29.979999542236328,
+          25.020000457763672,
+          9.199999809265137
+        ]
+      },
+      "textures": [
+        "uaf16.tga",
+        "uaf16_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAF16.png",
+      "portrait": "uaicon_uaf16.tga",
+      "triangles": 3408,
+      "meshes": 2,
+      "notes": [
+        "Aircraft V2 uses original shaped airframe geometry, projected panel/glass textures and contact-shadow diffuse bake. Existing muzzle and effect bone positions retained; no gameplay scale adjustment.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UAF16",
+      "art_revision": "ukraine-v2",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/aircraft_v2.py",
+      "category": "aircraft",
+      "parent": "AmericaJetRaptor",
+      "bone_contract": [
+        {
+          "name": "MUZZLE02",
+          "parent": "CHASSIS",
+          "position": [
+            0.5,
+            -9,
+            0.3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            0.5,
+            9,
+            0.3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "ENGINE01",
+          "parent": "CHASSIS",
+          "position": [
+            -14,
+            0,
+            1.9
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "CHASSIS",
+          "position": [
+            0.5,
+            9,
+            0.3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/f16.png"
+    },
+    {
+      "key": "TB2",
+      "display_name": "TB2",
+      "role": "Armed aerial scout",
+      "model": "UATB2",
+      "variants": [
+        "UATB2",
+        "UATB2_D"
+      ],
+      "bones": [
+        "PROPELLER",
+        "MUZZLE01",
+        "MUZZLE02",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [
+        "UATB2.UATB2",
+        "UATB2_D.UATB2_D"
+      ],
+      "dimensions": {
+        "min": [
+          -12.300000190734863,
+          -15.949999809265137,
+          -2.200000047683716
+        ],
+        "max": [
+          9.0,
+          15.949999809265137,
+          4.239999771118164
+        ],
+        "size": [
+          21.300000190734863,
+          31.899999618530273,
+          6.43999981880188
+        ]
+      },
+      "textures": [
+        "uatb2.tga",
+        "uatb2_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UATB2.png",
+      "portrait": "uaicon_uatb2.tga",
+      "triangles": 1692,
+      "meshes": 4,
+      "notes": [
+        "Original twin-boom inverted-V empennage, fuller airframe, articulated EO gimbal and pusher prop. Existing X-oriented propeller bone/clip retained.",
+        "Aircraft V2 uses original shaped airframe geometry, projected panel/glass textures and contact-shadow diffuse bake. Existing muzzle and effect bone positions retained; no gameplay scale adjustment.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UATB2",
+      "art_revision": "ukraine-v2",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/aircraft_v2.py",
+      "category": "aircraft",
+      "parent": "AmericaJetRaptor",
+      "bone_contract": [
+        {
+          "name": "PROPELLER",
+          "parent": "CHASSIS",
+          "position": [
+            -8.2,
+            0,
+            1
+          ],
+          "yaw": 0,
+          "quaternion_xyzw": [
+            0,
+            0.7071067811865476,
+            0,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            6,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -6,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/tb2.png"
+    },
+    {
+      "key": "Mi24",
+      "display_name": "Mi-24",
+      "role": "Heavy assault helicopter",
+      "model": "UAMI24",
+      "variants": [
+        "UAMI24",
+        "UAMI24_D"
+      ],
+      "bones": [
+        "ROTOR",
+        "TAILROTOR",
+        "MUZZLE01",
+        "MUZZLE02",
+        "MUZZLEFX01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [
+        "UAMI24.UAMI24",
+        "UAMI24_D.UAMI24_D"
+      ],
+      "dimensions": {
+        "min": [
+          -24.23186492919922,
+          -15.337420463562012,
+          -0.2199999988079071
+        ],
+        "max": [
+          16.0,
+          15.337420463562012,
+          10.100000381469727
+        ],
+        "size": [
+          40.23186492919922,
+          30.674840927124023,
+          10.320000380277634
+        ]
+      },
+      "textures": [
+        "uami24.tga",
+        "uami24_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAMI24.png",
+      "portrait": "uaicon_uami24.tga",
+      "triangles": 4880,
+      "meshes": 5,
+      "notes": [
+        "Mi-24 V2 original rounded fuselage, stepped tandem canopies, hollow engine intakes/exhausts, detailed rocket pods and rotor head; existing rotor pivots retained.",
+        "Aircraft V2 uses original shaped airframe geometry, projected panel/glass textures and contact-shadow diffuse bake. Existing muzzle and effect bone positions retained; no gameplay scale adjustment.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UAMI24",
+      "art_revision": "ukraine-v2",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/aircraft_v2.py",
+      "category": "aircraft",
+      "parent": "AmericaVehicleComanche",
+      "bone_contract": [
+        {
+          "name": "ROTOR",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            7.7
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TAILROTOR",
+          "parent": "CHASSIS",
+          "position": [
+            -22.5,
+            0.6,
+            7.2
+          ],
+          "yaw": 0,
+          "quaternion_xyzw": [
+            0.7071067811865476,
+            0,
+            0,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            6,
+            2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -6,
+            2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "CHASSIS",
+          "position": [
+            11,
+            0,
+            2
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/mi24.png"
+    },
+    {
+      "key": "EngineeringVehicle",
+      "display_name": "Engineering Vehicle",
+      "role": "Construction and repair",
+      "model": "UADOZR",
+      "variants": [
+        "UADOZR",
+        "UADOZR_D"
+      ],
+      "bones": [
+        "BLADE",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -9.399999618530273,
+          -7.0,
+          0.3499999940395355
+        ],
+        "max": [
+          11.0,
+          7.0,
+          9.399999618530273
+        ],
+        "size": [
+          20.399999618530273,
+          14.0,
+          9.049999624490738
+        ]
+      },
+      "textures": [
+        "uadozr.tga",
+        "uadozr_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UADOZR.png",
+      "portrait": "uaicon_uadozr.tga",
+      "triangles": 3740,
+      "meshes": 6,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 42.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UADOZR",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "vehicle",
+      "parent": "AmericaVehicleDozer",
+      "bone_contract": [
+        {
+          "name": "BLADE",
+          "parent": "CHASSIS",
+          "position": [
+            9,
+            0,
+            1.1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/engineeringvehicle.png"
+    },
+    {
+      "key": "SupplyTruck",
+      "display_name": "Supply Truck",
+      "role": "Resource collection",
+      "model": "UASUPLY",
+      "variants": [
+        "UASUPLY",
+        "UASUPLY_D"
+      ],
+      "bones": [
+        "TIRE01",
+        "TIRE02",
+        "TIRE03",
+        "TIRE04",
+        "TIRE05",
+        "TIRE06",
+        "SUPPLY01",
+        "SUPPLY02",
+        "SUPPLY03",
+        "DOCKPOINT",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -14.0,
+          -5.759999752044678,
+          -0.09999990463256836
+        ],
+        "max": [
+          14.730000495910645,
+          5.759999752044678,
+          8.100000381469727
+        ],
+        "size": [
+          28.730000495910645,
+          11.519999504089355,
+          8.200000286102295
+        ]
+      },
+      "textures": [
+        "uasuply.tga",
+        "uasuply_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UASUPLY.png",
+      "portrait": "uaicon_uasuply.tga",
+      "triangles": 5800,
+      "meshes": 9,
+      "notes": [
+        "SupplyTruckAIUpdate can inherit ChinaVehicleSupplyTruck; original SUPPLY01..03 bones locate cargo. Truck faces +X.",
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 68.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UASUPLY",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "vehicle",
+      "parent": "ChinaVehicleSupplyTruck",
+      "bone_contract": [
+        {
+          "name": "TIRE01",
+          "parent": "CHASSIS",
+          "position": [
+            9,
+            4.6,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE02",
+          "parent": "CHASSIS",
+          "position": [
+            9,
+            -4.6,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE03",
+          "parent": "CHASSIS",
+          "position": [
+            -5,
+            4.6,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE04",
+          "parent": "CHASSIS",
+          "position": [
+            -5,
+            -4.6,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE05",
+          "parent": "CHASSIS",
+          "position": [
+            -10,
+            4.6,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TIRE06",
+          "parent": "CHASSIS",
+          "position": [
+            -10,
+            -4.6,
+            2.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SUPPLY01",
+          "parent": "CHASSIS",
+          "position": [
+            -10,
+            0,
+            6
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SUPPLY02",
+          "parent": "CHASSIS",
+          "position": [
+            -5,
+            0,
+            6
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SUPPLY03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            6
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKPOINT",
+          "parent": "CHASSIS",
+          "position": [
+            -14,
+            0,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/supplytruck.png"
+    },
+    {
+      "key": "AttackDrone",
+      "display_name": "Attack Drone",
+      "role": "Drone controller projectile",
+      "model": "UAFPV",
+      "variants": [
+        "UAFPV",
+        "UAFPV_D"
+      ],
+      "bones": [
+        "MUZZLE01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -2.5,
+          -1.690000057220459,
+          -0.7800000905990601
+        ],
+        "max": [
+          2.5,
+          1.690000057220459,
+          0.4000000059604645
+        ],
+        "size": [
+          5.0,
+          3.380000114440918,
+          1.1800000965595245
+        ]
+      },
+      "textures": [
+        "uafpv.tga",
+        "uafpv_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAFPV.png",
+      "portrait": "uaicon_uafpv.tga",
+      "triangles": 424,
+      "meshes": 1,
+      "notes": [
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/ukraine/generate.py -- UAFPV",
+      "art_revision": "ukraine-v2",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "projectile",
+      "parent": "GenericTankShell",
+      "bone_contract": [
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            2,
+            0,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        128,
+        128
+      ]
+    },
+    {
+      "key": "CommandCenter",
+      "display_name": "Command Centre",
+      "role": "Building",
+      "model": "UACMD",
+      "variants": [
+        "UACMD",
+        "UACMD_D",
+        "UACMD_E",
+        "UACMD_N",
+        "UACMD_DN",
+        "UACMD_EN"
+      ],
+      "bones": [
+        "RALLYPOINT",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03",
+        "EXITSTART",
+        "EXITEND"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -58.0,
+          -58.0,
+          -0.25
+        ],
+        "max": [
+          58.0,
+          58.0,
+          60.80149841308594
+        ],
+        "size": [
+          116.0,
+          116.0,
+          61.05149841308594
+        ]
+      },
+      "textures": [
+        "uacmd.tga",
+        "uacmd_d.tga",
+        "uacmd_dn.tga",
+        "uacmd_n.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UACMD.png",
+      "portrait": "uaicon_uacmd.tga",
+      "triangles": 5120,
+      "meshes": 3,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 0.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UACMD",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "building",
+      "parent": "AmericaCommandCenter",
+      "bone_contract": [
+        {
+          "name": "RALLYPOINT",
+          "parent": "CHASSIS",
+          "position": [
+            83,
+            26.1,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -23.200000000000003,
+            0,
+            16
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -23.200000000000003,
+            12
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            -17.4,
+            17.4,
+            18
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            -10,
+            34.5,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            70,
+            34.5,
+            1
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/commandcenter.png"
+    },
+    {
+      "key": "PowerPlant",
+      "display_name": "Diesel Power Station",
+      "role": "Building",
+      "model": "UAPOWER",
+      "variants": [
+        "UAPOWER",
+        "UAPOWER_D",
+        "UAPOWER_E",
+        "UAPOWER_N",
+        "UAPOWER_DN",
+        "UAPOWER_EN"
+      ],
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "RALLYPOINT",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -28.0,
+          -28.0,
+          -0.25
+        ],
+        "max": [
+          28.0,
+          28.0,
+          39.400001525878906
+        ],
+        "size": [
+          56.0,
+          56.0,
+          39.650001525878906
+        ]
+      },
+      "textures": [
+        "uapower.tga",
+        "uapower_d.tga",
+        "uapower_dn.tga",
+        "uapower_n.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAPOWER.png",
+      "portrait": "uaicon_uapower.tga",
+      "triangles": 3692,
+      "meshes": 3,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 0.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UAPOWER",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "building",
+      "parent": "AmericaPowerPlant",
+      "bone_contract": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            1.4000000000000001,
+            12.6,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            40,
+            12.6,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "RALLYPOINT",
+          "parent": "CHASSIS",
+          "position": [
+            53,
+            12.6,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -11.200000000000001,
+            0,
+            16
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -11.200000000000001,
+            12
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            -8.4,
+            8.4,
+            18
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/powerplant.png"
+    },
+    {
+      "key": "Barracks",
+      "display_name": "Barracks",
+      "role": "Building",
+      "model": "UABARR",
+      "variants": [
+        "UABARR",
+        "UABARR_D",
+        "UABARR_E",
+        "UABARR_N",
+        "UABARR_DN",
+        "UABARR_EN"
+      ],
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "RALLYPOINT",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -42.0,
+          -32.0,
+          -0.25
+        ],
+        "max": [
+          42.0,
+          32.0,
+          20.0
+        ],
+        "size": [
+          84.0,
+          64.0,
+          20.25
+        ]
+      },
+      "textures": [
+        "uabarr.tga",
+        "uabarr_d.tga",
+        "uabarr_dn.tga",
+        "uabarr_n.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UABARR.png",
+      "portrait": "uaicon_uabarr.tga",
+      "triangles": 5028,
+      "meshes": 3,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 0.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UABARR",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "building",
+      "parent": "AmericaBarracks",
+      "bone_contract": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            2.1,
+            14.4,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            54,
+            14.4,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "RALLYPOINT",
+          "parent": "CHASSIS",
+          "position": [
+            67,
+            14.4,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -16.8,
+            0,
+            16
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -12.8,
+            12
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            -12.6,
+            9.6,
+            18
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/barracks.png"
+    },
+    {
+      "key": "SupplyCenter",
+      "display_name": "Supply Centre",
+      "role": "Building",
+      "model": "UASUPP",
+      "variants": [
+        "UASUPP",
+        "UASUPP_D",
+        "UASUPP_E",
+        "UASUPP_N",
+        "UASUPP_DN",
+        "UASUPP_EN"
+      ],
+      "bones": [
+        "RALLYPOINT",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03",
+        "EXITSTART",
+        "EXITEND",
+        "DOCKSTART",
+        "DOCKACTION",
+        "DOCKEND",
+        "DOCKWAITING01",
+        "DOCKWAITING02",
+        "DOCKWAITING03",
+        "DOCKWAITING04",
+        "DOCKWAITING05",
+        "DOCKWAITING06",
+        "DOCKWAITING07",
+        "DOCKWAITING08",
+        "DOCKWAITING09"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -48.0,
+          -42.0,
+          -0.25
+        ],
+        "max": [
+          48.0,
+          42.0,
+          23.0
+        ],
+        "size": [
+          96.0,
+          84.0,
+          23.25
+        ]
+      },
+      "textures": [
+        "uasupp.tga",
+        "uasupp_d.tga",
+        "uasupp_dn.tga",
+        "uasupp_n.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UASUPP.png",
+      "portrait": "uaicon_uasupp.tga",
+      "triangles": 4016,
+      "meshes": 3,
+      "notes": [
+        "China-style truck workflow: DOCKSTART=(65,20,0), DOCKACTION=(42,20,0), DOCKEND=(66,20,0), all outside the warehouse. Queue bones DOCKWAITING01..09. EXITSTART=(15,20,1), EXITEND=(60,20,1).",
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 0.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UASUPP",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "building",
+      "parent": "ChinaSupplyCenter",
+      "bone_contract": [
+        {
+          "name": "RALLYPOINT",
+          "parent": "CHASSIS",
+          "position": [
+            73,
+            18.900000000000002,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -19.200000000000003,
+            0,
+            16
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -16.8,
+            12
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            -14.399999999999999,
+            12.6,
+            18
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            15,
+            20,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            60,
+            20,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKSTART",
+          "parent": "CHASSIS",
+          "position": [
+            65,
+            20,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKACTION",
+          "parent": "CHASSIS",
+          "position": [
+            42,
+            20,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKEND",
+          "parent": "CHASSIS",
+          "position": [
+            66,
+            20,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING01",
+          "parent": "CHASSIS",
+          "position": [
+            85,
+            35,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING02",
+          "parent": "CHASSIS",
+          "position": [
+            85,
+            65,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING03",
+          "parent": "CHASSIS",
+          "position": [
+            50,
+            65,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING04",
+          "parent": "CHASSIS",
+          "position": [
+            15,
+            65,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING05",
+          "parent": "CHASSIS",
+          "position": [
+            -20,
+            65,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING06",
+          "parent": "CHASSIS",
+          "position": [
+            -60,
+            60,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING07",
+          "parent": "CHASSIS",
+          "position": [
+            -70,
+            20,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING08",
+          "parent": "CHASSIS",
+          "position": [
+            -70,
+            -20,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING09",
+          "parent": "CHASSIS",
+          "position": [
+            -50,
+            -65,
+            0
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/supplycenter.png"
+    },
+    {
+      "key": "WarFactory",
+      "display_name": "Vehicle Factory",
+      "role": "Building",
+      "model": "UAFACT",
+      "variants": [
+        "UAFACT",
+        "UAFACT_D",
+        "UAFACT_E",
+        "UAFACT_N",
+        "UAFACT_DN",
+        "UAFACT_EN"
+      ],
+      "bones": [
+        "RALLYPOINT",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03",
+        "EXITSTART",
+        "EXITEND",
+        "DOCKSTART",
+        "DOCKACTION",
+        "DOCKEND",
+        "DOCKWAITING01",
+        "DOCKWAITING02",
+        "DOCKWAITING03",
+        "DOCKWAITING04",
+        "DOCKWAITING05",
+        "DOCKWAITING06",
+        "DOCKWAITING07",
+        "DOCKWAITING08",
+        "DOCKWAITING09"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -62.0,
+          -50.0,
+          -0.25
+        ],
+        "max": [
+          62.0,
+          50.0,
+          28.346345901489258
+        ],
+        "size": [
+          124.0,
+          100.0,
+          28.596345901489258
+        ]
+      },
+      "textures": [
+        "uafact.tga",
+        "uafact_d.tga",
+        "uafact_dn.tga",
+        "uafact_n.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAFACT.png",
+      "portrait": "uaicon_uafact.tga",
+      "triangles": 4748,
+      "meshes": 3,
+      "notes": [
+        "Vehicle emergence EXITSTART (-12,-18,1) -> EXITEND (70,-18,1), open front bay. Separate repair dock at +X,+Y. No animated garage door is required.",
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 0.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UAFACT",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "building",
+      "parent": "AmericaWarFactory",
+      "bone_contract": [
+        {
+          "name": "RALLYPOINT",
+          "parent": "CHASSIS",
+          "position": [
+            87,
+            22.5,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -24.8,
+            0,
+            16
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -20.0,
+            12
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            -18.599999999999998,
+            15.0,
+            18
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            -12,
+            -18,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            70,
+            -18,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKSTART",
+          "parent": "CHASSIS",
+          "position": [
+            78,
+            22,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKACTION",
+          "parent": "CHASSIS",
+          "position": [
+            52,
+            22,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKEND",
+          "parent": "CHASSIS",
+          "position": [
+            82,
+            22,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING01",
+          "parent": "CHASSIS",
+          "position": [
+            95,
+            35,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING02",
+          "parent": "CHASSIS",
+          "position": [
+            95,
+            75,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING03",
+          "parent": "CHASSIS",
+          "position": [
+            50,
+            75,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING04",
+          "parent": "CHASSIS",
+          "position": [
+            5,
+            75,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING05",
+          "parent": "CHASSIS",
+          "position": [
+            -45,
+            75,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING06",
+          "parent": "CHASSIS",
+          "position": [
+            -85,
+            65,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING07",
+          "parent": "CHASSIS",
+          "position": [
+            -90,
+            15,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING08",
+          "parent": "CHASSIS",
+          "position": [
+            -90,
+            -35,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "DOCKWAITING09",
+          "parent": "CHASSIS",
+          "position": [
+            -55,
+            -75,
+            0
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/warfactory.png"
+    },
+    {
+      "key": "Airfield",
+      "display_name": "Drone Workshop",
+      "role": "Building",
+      "model": "UAAIR",
+      "variants": [
+        "UAAIR",
+        "UAAIR_D",
+        "UAAIR_E",
+        "UAAIR_N",
+        "UAAIR_DN",
+        "UAAIR_EN"
+      ],
+      "bones": [
+        "RALLYPOINT",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03",
+        "EXITSTART",
+        "EXITEND"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -45.0,
+          -34.0,
+          -0.25
+        ],
+        "max": [
+          45.0,
+          34.0,
+          32.0
+        ],
+        "size": [
+          90.0,
+          68.0,
+          32.25
+        ]
+      },
+      "textures": [
+        "uaair.tga",
+        "uaair_d.tga",
+        "uaair_dn.tga",
+        "uaair_n.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAAIR.png",
+      "portrait": "uaicon_uaair.tga",
+      "triangles": 4632,
+      "meshes": 3,
+      "notes": [
+        "Compact UAV workshop; default production exit launches persistent reconnaissance UAVs without runway reservations or rearming.",
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 1360.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UAAIR",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "building",
+      "parent": "AmericaBarracks",
+      "bone_contract": [
+        {
+          "name": "RALLYPOINT",
+          "parent": "CHASSIS",
+          "position": [
+            70,
+            15.3,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -18.0,
+            0,
+            16
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -13.600000000000001,
+            12
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            -13.5,
+            10.2,
+            18
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            18,
+            -14,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            60,
+            -14,
+            35
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/airfield.png"
+    },
+    {
+      "key": "TechCenter",
+      "display_name": "Signals Centre",
+      "role": "Building",
+      "model": "UATECH",
+      "variants": [
+        "UATECH",
+        "UATECH_D",
+        "UATECH_E",
+        "UATECH_N",
+        "UATECH_DN",
+        "UATECH_EN"
+      ],
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "RALLYPOINT",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -48.0,
+          -38.0,
+          -0.25
+        ],
+        "max": [
+          48.0,
+          38.0,
+          47.80149841308594
+        ],
+        "size": [
+          96.0,
+          76.0,
+          48.05149841308594
+        ]
+      },
+      "textures": [
+        "uatech.tga",
+        "uatech_d.tga",
+        "uatech_dn.tga",
+        "uatech_n.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UATECH.png",
+      "portrait": "uaicon_uatech.tga",
+      "triangles": 5356,
+      "meshes": 3,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 0.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UATECH",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "building",
+      "parent": "AmericaStrategyCenter",
+      "bone_contract": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            2.4000000000000004,
+            17.1,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            60,
+            17.1,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "RALLYPOINT",
+          "parent": "CHASSIS",
+          "position": [
+            73,
+            17.1,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -19.200000000000003,
+            0,
+            16
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -15.200000000000001,
+            12
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            -14.399999999999999,
+            11.4,
+            18
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/techcenter.png"
+    },
+    {
+      "key": "IncomeCenter",
+      "display_name": "Equipment Workshop",
+      "role": "Building",
+      "model": "UAINCOM",
+      "variants": [
+        "UAINCOM",
+        "UAINCOM_D",
+        "UAINCOM_E",
+        "UAINCOM_N",
+        "UAINCOM_DN",
+        "UAINCOM_EN"
+      ],
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "RALLYPOINT",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -38.0,
+          -32.0,
+          -0.25
+        ],
+        "max": [
+          38.0,
+          32.0,
+          20.0
+        ],
+        "size": [
+          76.0,
+          64.0,
+          20.25
+        ]
+      },
+      "textures": [
+        "uaincom.tga",
+        "uaincom_d.tga",
+        "uaincom_dn.tga",
+        "uaincom_n.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAINCOM.png",
+      "portrait": "uaicon_uaincom.tga",
+      "triangles": 3824,
+      "meshes": 3,
+      "notes": [
+        "Generic periodic-income workshop, no helicopter unloading animation contract. INI should implement SupplyDropZone-style income without stock delivery props.",
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 0.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UAINCOM",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "building",
+      "parent": "AmericaSupplyDropZone",
+      "bone_contract": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            1.9000000000000001,
+            14.4,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            50,
+            14.4,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "RALLYPOINT",
+          "parent": "CHASSIS",
+          "position": [
+            63,
+            14.4,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -15.200000000000001,
+            0,
+            16
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -12.8,
+            12
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            -11.4,
+            9.6,
+            18
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/incomecenter.png"
+    },
+    {
+      "key": "GroundDefense",
+      "display_name": "Autocannon Emplacement",
+      "role": "Building",
+      "model": "UAGUARD",
+      "variants": [
+        "UAGUARD",
+        "UAGUARD_D",
+        "UAGUARD_E",
+        "UAGUARD_N",
+        "UAGUARD_DN",
+        "UAGUARD_EN"
+      ],
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "RALLYPOINT",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03",
+        "TURRET",
+        "MUZZLE01",
+        "MUZZLE02",
+        "MUZZLEFX01"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -20.0,
+          -20.0,
+          -0.25
+        ],
+        "max": [
+          20.0,
+          20.0,
+          10.399999618530273
+        ],
+        "size": [
+          40.0,
+          40.0,
+          10.649999618530273
+        ]
+      },
+      "textures": [
+        "uaguard.tga",
+        "uaguard_d.tga",
+        "uaguard_dn.tga",
+        "uaguard_n.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAGUARD.png",
+      "portrait": "uaicon_uaguard.tga",
+      "triangles": 1328,
+      "meshes": 3,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 56.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UAGUARD",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "building",
+      "parent": "AmericaPatriotBattery",
+      "bone_contract": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            1.0,
+            9.0,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            32,
+            9.0,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "RALLYPOINT",
+          "parent": "CHASSIS",
+          "position": [
+            45,
+            9.0,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -8.0,
+            0,
+            16
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -8.0,
+            12
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            -6.0,
+            6.0,
+            18
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            6.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRET",
+          "position": [
+            14.5,
+            -1,
+            2.3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE02",
+          "parent": "TURRET",
+          "position": [
+            14.5,
+            1,
+            2.3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "TURRET",
+          "position": [
+            14,
+            0,
+            2.3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/grounddefense.png"
+    },
+    {
+      "key": "AADefense",
+      "display_name": "Air Defence Emplacement",
+      "role": "Building",
+      "model": "UAAA",
+      "variants": [
+        "UAAA",
+        "UAAA_D",
+        "UAAA_E",
+        "UAAA_N",
+        "UAAA_DN",
+        "UAAA_EN"
+      ],
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "RALLYPOINT",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03",
+        "TURRET",
+        "MUZZLE01",
+        "MUZZLE02",
+        "MUZZLEFX01"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -22.0,
+          -22.0,
+          -0.25
+        ],
+        "max": [
+          22.0,
+          22.0,
+          14.399999618530273
+        ],
+        "size": [
+          44.0,
+          44.0,
+          14.649999618530273
+        ]
+      },
+      "textures": [
+        "uaaa.tga",
+        "uaaa_d.tga",
+        "uaaa_dn.tga",
+        "uaaa_n.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAAA.png",
+      "portrait": "uaicon_uaaa.tga",
+      "triangles": 1536,
+      "meshes": 3,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 0.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UAAA",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "building",
+      "parent": "AmericaPatriotBattery",
+      "bone_contract": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            1.1,
+            9.9,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            34,
+            9.9,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "RALLYPOINT",
+          "parent": "CHASSIS",
+          "position": [
+            47,
+            9.9,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -8.8,
+            0,
+            16
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -8.8,
+            12
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            -6.6,
+            6.6,
+            18
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            6.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRET",
+          "position": [
+            7,
+            -4.6,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE02",
+          "parent": "TURRET",
+          "position": [
+            7,
+            4.6,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "TURRET",
+          "position": [
+            7,
+            0,
+            2.3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/aadefense.png"
+    },
+    {
+      "key": "Superweapon",
+      "display_name": "Long-Range Strike Complex",
+      "role": "Building",
+      "model": "UASUPER",
+      "variants": [
+        "UASUPER",
+        "UASUPER_D",
+        "UASUPER_E",
+        "UASUPER_N",
+        "UASUPER_DN",
+        "UASUPER_EN"
+      ],
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "RALLYPOINT",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03",
+        "WEAPONLAUNCH01",
+        "WEAPONLAUNCH02",
+        "PARTICLE01"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -53.0,
+          -45.0,
+          -0.25
+        ],
+        "max": [
+          53.0,
+          45.0,
+          53.80149841308594
+        ],
+        "size": [
+          106.0,
+          90.0,
+          54.05149841308594
+        ]
+      },
+      "textures": [
+        "uasuper.tga",
+        "uasuper_d.tga",
+        "uasuper_dn.tga",
+        "uasuper_n.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UASUPER.png",
+      "portrait": "uaicon_uasuper.tga",
+      "triangles": 4100,
+      "meshes": 3,
+      "notes": [
+        "Ground V3: original role-specific fittings, layered armour/optics/mechanical or industrial details. Added parts consolidated by material and existing bone. Original world bounds, bone transforms and pitched roof outlines preserved.",
+        "Detail geometry source scripts/models/ukraine/polish_ground.py; boundary-limited vertices 0.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UASUPER",
+      "art_revision": "ukraine-v3-ground",
+      "detail_source": "scripts/models/ukraine/polish_ground.py",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "building",
+      "parent": "AmericaParticleCannonUplink",
+      "bone_contract": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            2.6500000000000004,
+            20.25,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            65,
+            20.25,
+            1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "RALLYPOINT",
+          "parent": "CHASSIS",
+          "position": [
+            78,
+            20.25,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -21.200000000000003,
+            0,
+            16
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -18.0,
+            12
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            -15.899999999999999,
+            13.5,
+            18
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "WEAPONLAUNCH01",
+          "parent": "CHASSIS",
+          "position": [
+            10,
+            -20,
+            10
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "WEAPONLAUNCH02",
+          "parent": "CHASSIS",
+          "position": [
+            31,
+            16,
+            10
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "PARTICLE01",
+          "parent": "CHASSIS",
+          "position": [
+            10,
+            -20,
+            10
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/superweapon.png"
+    },
+    {
+      "key": "MANPADS",
+      "display_name": "MANPADS Team",
+      "role": "Infantry",
+      "model": "UAMANP",
+      "variants": [
+        "UAMANP",
+        "UAMANP_D"
+      ],
+      "bones": [
+        "BODYROOT",
+        "PELVIS",
+        "TORSO",
+        "HEAD",
+        "LEGL",
+        "SHINL",
+        "ARML",
+        "FOREL",
+        "LEGR",
+        "SHINR",
+        "ARMR",
+        "FORER",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "MUZZLE",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [
+        "UAMANP.UAMANP_W",
+        "UAMANP.UAMANP_I",
+        "UAMANP.UAMANP_F",
+        "UAMANP.UAMANP_DIE"
+      ],
+      "dimensions": {
+        "min": [
+          -0.75,
+          -1.2650001049041748,
+          0.16999995708465576
+        ],
+        "max": [
+          3.265000104904175,
+          1.2650001049041748,
+          6.53000020980835
+        ],
+        "size": [
+          4.015000104904175,
+          2.5300002098083496,
+          6.360000252723694
+        ]
+      },
+      "textures": [
+        "uamanp.tga",
+        "uamanp_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAMANP.png",
+      "portrait": "uaicon_uamanp.tga",
+      "triangles": 5352,
+      "meshes": 12,
+      "notes": [
+        "Portable Stugna caricature preserves infantry gameplay; original detailed tube/CLU replaces redundant carried rifle.",
+        "Infantry V2 original shaped anatomy/face/helmet, cloth, plate carrier, pouches, gloves and original weapon geometry. Existing bones/local transforms retained; every clip explicitly resets all animated joints. Keep gameplay Scale=1.5.",
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UAMANP",
+      "art_revision": "ukraine-v2",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/infantry_v2.py",
+      "category": "infantry",
+      "parent": "AmericaInfantryMissileDefender",
+      "bone_contract": [
+        {
+          "name": "BODYROOT",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "PELVIS",
+          "parent": "BODYROOT",
+          "position": [
+            0,
+            0,
+            3.25
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "TORSO",
+          "parent": "PELVIS",
+          "position": [
+            0,
+            0,
+            0.45
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "HEAD",
+          "parent": "TORSO",
+          "position": [
+            0,
+            0,
+            2.1
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "LEGL",
+          "parent": "PELVIS",
+          "position": [
+            0,
+            0.43,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SHINL",
+          "parent": "LEGL",
+          "position": [
+            0.12,
+            0,
+            -1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "ARML",
+          "parent": "TORSO",
+          "position": [
+            0,
+            0.86,
+            1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "FOREL",
+          "parent": "ARML",
+          "position": [
+            0.2,
+            0.2,
+            -0.8
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "LEGR",
+          "parent": "PELVIS",
+          "position": [
+            0,
+            -0.43,
+            0
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SHINR",
+          "parent": "LEGR",
+          "position": [
+            0.12,
+            0,
+            -1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "ARMR",
+          "parent": "TORSO",
+          "position": [
+            0,
+            -0.86,
+            1.5
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "FORER",
+          "parent": "ARMR",
+          "position": [
+            0.2,
+            -0.2,
+            -0.8
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            3.3,
+            -0.65,
+            5.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "CHASSIS",
+          "position": [
+            3.3,
+            -0.65,
+            5.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "MUZZLE",
+          "parent": "CHASSIS",
+          "position": [
+            3.3,
+            -0.65,
+            5.4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ],
+      "portrait_size": [
+        256,
+        256
+      ],
+      "portrait_source": "scripts/models/ukraine/portraits/manpads.png"
+    },
+    {
+      "key": "Mine",
+      "display_name": "Sapper Mine",
+      "role": "Projectile",
+      "model": "UAMINE",
+      "variants": [
+        "UAMINE",
+        "UAMINE_D"
+      ],
+      "bones": [
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": {
+        "min": [
+          -1.5,
+          -1.850000023841858,
+          0.07500001788139343
+        ],
+        "max": [
+          1.5,
+          1.5,
+          0.9200000166893005
+        ],
+        "size": [
+          3.0,
+          3.350000023841858,
+          0.8449999988079071
+        ]
+      },
+      "textures": [
+        "uamine.tga",
+        "uamine_d.tga",
+        "uahouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/ukraine/UAMINE.png",
+      "portrait": "uaicon_uamine.tga",
+      "triangles": 164,
+      "meshes": 1,
+      "notes": [
+        "V2 diffuse paint: our original shared atlas art, Ukraine olive/grey palette, restrained digital camouflage, material wear and baked contact shadows. AtlasUV retained in editable source."
+      ],
+      "source": "scripts/models/ukraine/generate.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/ukraine/generate.py -- UAMINE",
+      "art_revision": "ukraine-v2",
+      "material_source": "scripts/models/ukraine/materials_v2.py",
+      "geometry_source": "scripts/models/ukraine/generate.py",
+      "category": "projectile",
+      "parent": "ChinaStandardMine",
+      "bone_contract": [
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            4
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            2,
+            3
+          ],
+          "yaw": 0
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            -2,
+            3
+          ],
+          "yaw": 0
+        }
+      ]
+    }
+  ],
+  "runtime_contract_notes": [
+    "Unit orientation +X, Z up. Vehicle attachment and wheel bones are model-local.",
+    "Infantry original rigid skeletal animation hierarchy uses each intact model base name. For damaged infantry states use the same intact model and base animation hierarchy. Explicit idle clip resets every joint; Scale=1.5 remains appropriate.",
+    "Factory bay stays open. Truck supply centre and factory repair use separate DOCKSTART/DOCKACTION/DOCKEND and nine queue bones.",
+    "No gameplay, strings or stock files were modified by the asset generator."
+  ]
+}

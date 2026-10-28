@@ -21,7 +21,7 @@ class Rafale(Jet):
     name, texture = "EURAF", "euraf"
     paint_script = "rafale_paint.py"
     extent = ((-19.0, 21.0), (-13.0, 13.0), (-2.8, 10.0))
-    scheme = dict(colours=[(92, 100, 112), (78, 86, 98)], pattern="soft", under=(108, 116, 126))
+    scheme = dict(colours=[(114, 126, 140), (80, 94, 110)], pattern="soft", under=(108, 116, 126))
     belly_blend = -0.2
 
     FUSELAGE = [(20.6, 0, 0.75, 0.85, 2), (19.0, 0.3, 0.5, 1.1, 2), (16.0, 0.85, 0.05, 1.6, 2.2),

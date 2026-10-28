@@ -51,6 +51,10 @@
 #include "Common/BitFlagsIO.h"
 #include "Common/PlayerList.h"
 #include "Common/Player.h"
+#include "Common/ThingFactory.h"
+#include "GameLogic/GameLogic.h"
+#include "GameLogic/Weapon.h"
+#include "GameLogic/TerrainLogic.h"
 
 
 //-------------------------------------------------------------------------------------------------
@@ -60,6 +64,10 @@ void StealthDetectorUpdateModuleData::buildFieldParse(MultiIniFieldParse& p)
 
 	static const FieldParse dataFieldParse[] =
 	{
+		{ "CounterBatteryRange", INI::parseReal, nullptr, offsetof(StealthDetectorUpdateModuleData, m_counterBatteryRange) },
+		{ "CounterBatteryRadius", INI::parseReal, nullptr, offsetof(StealthDetectorUpdateModuleData, m_counterBatteryRadius) },
+		{ "CounterBatteryCooldown", INI::parseDurationUnsignedInt, nullptr, offsetof(StealthDetectorUpdateModuleData, m_counterBatteryCooldown) },
+		{ "CounterBatteryRevealObject", INI::parseAsciiString, nullptr, offsetof(StealthDetectorUpdateModuleData, m_counterBatteryRevealObject) },
 		{ "DetectionRate",							INI::parseDurationUnsignedInt,			nullptr, offsetof( StealthDetectorUpdateModuleData, m_updateRate ) },
 		{ "DetectionRange",							INI::parseReal,											nullptr, offsetof( StealthDetectorUpdateModuleData, m_detectionRange ) },
 		{ "InitiallyDisabled",					INI::parseBool,											nullptr, offsetof( StealthDetectorUpdateModuleData, m_initiallyDisabled ) },
@@ -85,6 +93,7 @@ StealthDetectorUpdate::StealthDetectorUpdate( Thing *thing, const ModuleData* mo
 {
 	const StealthDetectorUpdateModuleData *data = getStealthDetectorUpdateModuleData();
 	m_enabled = !data->m_initiallyDisabled;
+	m_counterBatteryReadyFrame = 0;
 	// start these guys with random phasings so that we don't
 	// have all of 'em check on the same frame.
 	setWakeFrame(getObject(), m_enabled ? UPDATE_SLEEP(GameLogicRandomValue(1, data->m_updateRate)) : UPDATE_SLEEP_FOREVER);
@@ -140,6 +149,42 @@ Bool PartitionFilterStealthedOrStealthGarrisoned::allow( Object *objOther)
 //-------------------------------------------------------------------------------------------------
 /** The update callback. */
 //-------------------------------------------------------------------------------------------------
+void StealthDetectorUpdate::updateCounterBattery()
+{
+	const StealthDetectorUpdateModuleData* data = getStealthDetectorUpdateModuleData();
+	UnsignedInt now = TheGameLogic->getFrame();
+	if (!m_enabled || data->m_counterBatteryRange <= 0 || now < m_counterBatteryReadyFrame) return;
+	Object* self = getObject();
+	PartitionFilterRelationship enemy(self, PartitionFilterRelationship::ALLOW_ENEMIES);
+	PartitionFilterSameMapStatus map(self);
+	PartitionFilter* filters[] = { &enemy, &map, nullptr };
+	SimpleObjectIterator* iter = ThePartitionManager->iterateObjectsInRange(self, data->m_counterBatteryRange, FROM_CENTER_2D, filters);
+	MemoryPoolObjectHolder hold(iter);
+	for (Object* other = iter->first(); other; other = iter->next())
+	{
+		UnsignedInt shot = other->getLastShotFiredFrame();
+		if (!shot || shot > now || now - shot > data->m_updateRate || other->isEffectivelyDead() || other->getContainedBy()) continue;
+		Weapon* weapon = other->getWeaponInWeaponSlot(PRIMARY_WEAPON);
+		if (!weapon || !weapon->isIndirectFireWeapon(other)) continue;
+		const ThingTemplate* contactTemplate = TheThingFactory->findTemplate(data->m_counterBatteryRevealObject);
+		if (!contactTemplate) return;
+		// Quantize the firing origin: this is a temporary search area, never a tracking lock.
+		Coord3D pos = *other->getPosition();
+		const Real cell = 80.0f;
+		pos.x = floor(pos.x / cell) * cell + cell * 0.5f;
+		pos.y = floor(pos.y / cell) * cell + cell * 0.5f;
+		pos.z = TheTerrainLogic->getGroundHeight(pos.x, pos.y);
+		Object* contact = TheThingFactory->newObject(contactTemplate, self->getTeam());
+		if (!contact) return;
+		contact->setPosition(&pos);
+		contact->setVisionRange(data->m_counterBatteryRadius);
+		contact->setShroudClearingRange(data->m_counterBatteryRadius);
+		m_counterBatteryReadyFrame = now + max(data->m_counterBatteryCooldown, data->m_updateRate + 1);
+		if (getenv("GENERALS_COUNTERBATTERY_LOG")) fprintf(stderr, "COUNTERBATTERY frame=%u source=%u target=%u x=%.0f y=%.0f\n", now, self->getID(), other->getID(), pos.x, pos.y);
+		break;
+	}
+}
+
 UpdateSleepTime StealthDetectorUpdate::update()
 {
 	const StealthDetectorUpdateModuleData *data = getStealthDetectorUpdateModuleData();
@@ -180,6 +225,8 @@ UpdateSleepTime StealthDetectorUpdate::update()
 			}
 		}
 	}
+
+	updateCounterBattery();
 
 	// only consider items that are currently stealthed.
 	PartitionFilterStealthedOrStealthGarrisoned		filterStealthOrStealthGarrisoned;
@@ -438,7 +485,7 @@ void StealthDetectorUpdate::xfer( Xfer *xfer )
 {
 
 	// version
-	XferVersion currentVersion = 1;
+	XferVersion currentVersion = 2;
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
 
@@ -447,6 +494,8 @@ void StealthDetectorUpdate::xfer( Xfer *xfer )
 
 	// enabled
 	xfer->xferBool( &m_enabled );
+	if (version >= 2) xfer->xferUnsignedInt(&m_counterBatteryReadyFrame);
+	else m_counterBatteryReadyFrame = 0;
 
 }
 

@@ -65,6 +65,10 @@ void RadiusDecalTemplate::createRadiusDecal(const Coord3D& pos, Real radius, con
 
 	// it is now considered nonEmpty, regardless of the state of m_decal, etc
 	result.m_empty = false;
+	// Headless simulation has no projected-shadow renderer. Keep the logical
+	// decal state (as for a hidden enemy decal) without allocating a visual.
+	if (TheProjectedShadowManager == nullptr)
+		return;
 
 	if (!m_onlyVisibleToOwningPlayer ||
 			owningPlayer->getPlayerIndex() == ThePlayerList->getLocalPlayer()->getPlayerIndex())

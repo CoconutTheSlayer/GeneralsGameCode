@@ -15,6 +15,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from europe_style import ARMOUR, EDGE_LIGHT, EDGE_SHADOW  # noqa: E402
 from leopard_layout import Layout  # noqa: E402
 
 UP = 2  # painted at twice the size, then shrunk: smooth lines
@@ -73,7 +74,8 @@ class Painter:
             left, top, right, bottom = self.layout.extent(part, grp)
             yield grp, (left * UP, top * UP, right * UP, bottom * UP)
 
-    def paint(self, details, camo, damaged=False, seed=11, lower=(("hull", 3.6),)):
+    def paint(self, details, camo, damaged=False, seed=11, lower=(("hull", 3.6),),
+              edge_colours=(SEAM, LIT), smooth_parts=()):
         """details(painter, draw, rng) paints the markings; camo(w, rng) the base; lower: parts whose lower
         islands get dust and mud, with the height (z) below which the mud lies."""
         rng = np.random.default_rng(seed)
@@ -124,7 +126,7 @@ class Painter:
                     y0 = t + rng.uniform(0, (b - t) * 0.4)
                     draw.line([(x, y0), (x + rng.uniform(-2, 2) * UP, y0 + rng.uniform(0.2, 0.6) * (b - t))],
                               fill=(70, 76, 84), width=UP)
-        self.seams(draw)
+        self.seams(draw, edge_colours, smooth_parts)
         details(self, draw, rng)
         canvas = self.weather(canvas, rng, lower)
 
@@ -150,9 +152,12 @@ class Painter:
         small = canvas.resize((self.size, self.size), Image.LANCZOS)
         return small.filter(ImageFilter.UnsharpMask(radius=1.2, percent=60, threshold=2))
 
-    def seams(self, draw):
+    def seams(self, draw, edge_colours=(SEAM, LIT), smooth_parts=()):
         """Dark seams along the model's edges, lit on the upper side of each face."""
+        shadow, highlight = edge_colours
         for f in self.faces:
+            if f["part"] in smooth_parts:
+                continue
             poly = [(x * UP, y * UP) for x, y in f["px"]]
             if len(poly) < 3:
                 continue
@@ -163,13 +168,13 @@ class Painter:
                 if not sharp:
                     continue
                 a, b = poly[i], poly[(i + 1) % len(poly)]
-                draw.line([a, b], fill=SEAM, width=UP * (1 if fine else 2))
+                draw.line([a, b], fill=shadow, width=UP * (1 if fine else 2))
                 mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
                 dx, dy = cx - mx, cy - my
                 d = math.hypot(dx, dy) or 1.0
                 ox, oy = dx / d * 2.0 * UP, dy / d * 2.0 * UP
                 if f["group"] != "bottom" and dy >= -abs(dx):
-                    draw.line([(a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy)], fill=LIT, width=UP)
+                    draw.line([(a[0] + ox, a[1] + oy), (b[0] + ox, b[1] + oy)], fill=highlight, width=UP)
 
     def weather(self, canvas, rng, lower):
         """Mud thrown up by the tracks on the lower side, front and back views, and worn paint on the edges."""
@@ -305,14 +310,14 @@ def leopard_details(p, draw, rng):
         for y0, y1 in ((-4.4, -0.3), (0.3, 4.4)):
             grille(draw, p.box("hull", "top", (x0, y0, 6.2), (x1, y1, 6.2)), slats=7)
     grille(draw, p.box("hull", "top", (-8.5, -4.4, 6.2), (-7.2, 4.4, 6.2)), slats=10, vertical=False)
-    for x in (-6.5, 1.0, 7.5):
-        seam(draw, top(x, 7.8), top(x, -7.8))
+    for x in (-6.5, 7.5):
+        seam(draw, top(x, 7.8), top(x, -7.8), lit=False)
         rivets(draw, [top(x + 0.4, y) for y in np.arange(-7.4, 7.6, 1.2)])
     for y in (5.2, -5.2):
         seam(draw, top(-14.2, y), top(10.8, y), lit=False)
         rivets(draw, [top(x, y + 0.5) for x in np.arange(-13.5, 10.5, 1.5)])
     hatch(draw, top(9.0, -2.4), 0.8 * 20 * UP)
-    seam(draw, top(11.0, 8.0), top(11.0, -8.0))
+    seam(draw, top(11.0, 8.0), top(11.0, -8.0), lit=False)
     for y in (6.8, -6.8):
         light(draw, p.box("hull", "top", (13.2, y - 0.4, 5.6), (13.8, y + 0.4, 5.6)))
     hazard(draw, p.box("hull", "top", (14.6, 7.6, 4.7), (15.2, 6.2, 4.7)), 3)
@@ -371,7 +376,7 @@ def leopard_details(p, draw, rng):
 
 def leopard_camo(w, rng):
     """The Leopard's dark scheme: dark steel blue-grey with mid and pale patches (the Leclerc is pale)."""
-    return blotches(w, rng, [(96, 110, 126), (134, 148, 162), (172, 182, 192)])
+    return blotches(w, rng, ARMOUR)
 
 
 def paint_tread(seed=3, pads=6, size=256):
@@ -405,8 +410,11 @@ def main():
     out = sys.argv[2]
     occlusion = Image.open(sys.argv[3]) if len(sys.argv) > 3 and os.path.exists(sys.argv[3]) else None
     painter = Painter(sys.argv[1], occlusion)
-    painter.paint(leopard_details, leopard_camo).save(os.path.join(out, "euleo.tga"))
-    painter.paint(leopard_details, leopard_camo, damaged=True).save(os.path.join(out, "euleo_d.tga"))
+    # Broad armour planes should read before fine edge wear at the game camera. The gun's
+    # polygon facets are a round sleeve, not separate panels to outline down its length.
+    style = dict(edge_colours=(EDGE_SHADOW, EDGE_LIGHT), smooth_parts=("barrel",))
+    painter.paint(leopard_details, leopard_camo, **style).save(os.path.join(out, "euleo.tga"))
+    painter.paint(leopard_details, leopard_camo, damaged=True, **style).save(os.path.join(out, "euleo_d.tga"))
     paint_tread().save(os.path.join(out, "euleo_tread.tga"))
     print("painted")
 

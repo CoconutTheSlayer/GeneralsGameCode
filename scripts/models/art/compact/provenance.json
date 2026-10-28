@@ -1,0 +1,18 @@
+{
+  "mode": "Built-in image generation tool",
+  "purpose": "Original diffuse artwork for five original EU vehicle meshes",
+  "geometry_source": "scripts/models/original_compacts.py",
+  "game_models_used": false,
+  "game_textures_used": false,
+  "prompts": [
+    "prompt.txt",
+    "refine-prompt.txt",
+    "damage-final-prompt.txt"
+  ],
+  "sources": [
+    "eu_compact_atlas.png",
+    "eu_compact_atlas_d.png"
+  ],
+  "processing": "Power-of-two resampling, UV mapping and Blender occlusion baking. No stock model import.",
+  "reference": "A game screenshot was supplied only as a visual style reference for the palette refinement."
+}
