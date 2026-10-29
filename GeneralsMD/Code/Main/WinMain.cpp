@@ -31,7 +31,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // SYSTEM INCLUDES ////////////////////////////////////////////////////////////
-#define WIN32_LEAN_AND_MEAN  // only bare bones windows stuff wanted
 #include <windows.h>
 #include <stdlib.h>
 #include <crtdbg.h>
@@ -67,7 +66,7 @@
 #include "resource.h"
 
 #ifdef RTS_ENABLE_CRASHDUMP
-#include "Common/MiniDumper.h"
+#include "MiniDumper/MiniDumper.h"
 #endif
 
 
@@ -770,7 +769,7 @@ static Bool initializeAppWindows( HINSTANCE hInstance, Int nCmdShow, Bool runWin
 }
 
 // Necessary to allow memory managers and such to have useful critical sections
-static CriticalSection critSec1, critSec2, critSec3, critSec4, critSec5;
+static CriticalSection critSec1, critSec2, critSec3, critSec4;
 
 // UnHandledExceptionFilter ===================================================
 /** Handler for unhandled win32 exceptions. */
@@ -819,7 +818,6 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		TheUnicodeStringCriticalSection = &critSec2;
 		TheDmaCriticalSection = &critSec3;
 		TheMemoryPoolCriticalSection = &critSec4;
-		TheDebugLogCriticalSection = &critSec5;
 #endif
 
 		// initialize the memory manager early
@@ -868,7 +866,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 #ifdef RTS_ENABLE_CRASHDUMP
 		// Initialize minidump facilities - requires TheGlobalData so performed after parseCommandLineForStartup
-		MiniDumper::initMiniDumper(TheGlobalData->getPath_UserData());
+		MiniDumper::initMiniDumper(TheGlobalData->getPath_UserData().str(), 'Z');
 #endif
 
 		// register windows class and create application window
@@ -981,12 +979,11 @@ GameEngine *CreateGameEngine()
 // process ends, including during static destruction.
 static void installCriticalSections()
 {
-	alignas(CriticalSection) static unsigned char storage[5][sizeof(CriticalSection)];
+	alignas(CriticalSection) static unsigned char storage[4][sizeof(CriticalSection)];
 	TheAsciiStringCriticalSection = new (storage[0]) CriticalSection;
 	TheUnicodeStringCriticalSection = new (storage[1]) CriticalSection;
 	TheDmaCriticalSection = new (storage[2]) CriticalSection;
 	TheMemoryPoolCriticalSection = new (storage[3]) CriticalSection;
-	TheDebugLogCriticalSection = new (storage[4]) CriticalSection;
 }
 
 int main(int argc, char** argv)

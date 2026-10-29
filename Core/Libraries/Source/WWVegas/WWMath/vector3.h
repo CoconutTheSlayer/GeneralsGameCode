@@ -340,9 +340,9 @@ WWINLINE bool operator != (const Vector3 &a,const Vector3 &b)
  *========================================================================*/
 WWINLINE bool Equal_Within_Epsilon(const Vector3 &a,const Vector3 &b,float epsilon)
 {
-   return(	(WWMath::Fabs(a.X - b.X) < epsilon) &&
-				(WWMath::Fabs(a.Y - b.Y) < epsilon) &&
-				(WWMath::Fabs(a.Z - b.Z) < epsilon)	);
+   return(	(WWMath::Fabsf_Legacy(a.X - b.X) < epsilon) &&
+				(WWMath::Fabsf_Legacy(a.Y - b.Y) < epsilon) &&
+				(WWMath::Fabsf_Legacy(a.Z - b.Z) < epsilon)	);
 }
 
 
@@ -416,7 +416,7 @@ WWINLINE void Vector3::Normalize()
 	float len2 = Length2();
 	if (len2 != 0.0f)
 	{
-		float oolen = WWMath::Inv_Sqrt(len2);
+		float oolen = WWMath::Inv_Sqrt_Legacy(len2);
 		X *= oolen;
 		Y *= oolen;
 		Z *= oolen;
@@ -429,7 +429,7 @@ WWINLINE Vector3 Normalize(const Vector3 & vec)
 	float len2 = vec.Length2();
 	if (len2 != 0.0f)
 	{
-		float oolen = WWMath::Inv_Sqrt(len2);
+		float oolen = WWMath::Inv_Sqrt_Legacy(len2);
 		return vec * oolen;
 	}
 	return vec;
@@ -485,9 +485,9 @@ WWINLINE float Vector3::Quick_Length() const
 {
 	// this method of approximating the length comes from Graphics Gems 1 and
 	// supposedly gives an error of +/- 8%
-	float max = WWMath::Fabs(X);
-	float mid = WWMath::Fabs(Y);
-	float min = WWMath::Fabs(Z);
+	float max = WWMath::Fabsf_Legacy(X);
+	float mid = WWMath::Fabsf_Legacy(Y);
+	float min = WWMath::Fabsf_Legacy(Z);
 	float tmp;
 
 	if (max < mid) { tmp = max; max = mid; mid = tmp; }
@@ -705,7 +705,7 @@ WWINLINE void Vector3::Scale(const Vector3 & scale)
  *=============================================================================================*/
 WWINLINE void Vector3::Rotate_X(float angle)
 {
-	Rotate_X(sinf(angle),cosf(angle));
+	Rotate_X(WWMath::Sinf(angle),WWMath::Cosf(angle));
 }
 
 
@@ -745,7 +745,7 @@ WWINLINE void Vector3::Rotate_X(float s_angle,float c_angle)
  *=============================================================================================*/
 WWINLINE void Vector3::Rotate_Y(float angle)
 {
-	Rotate_Y(sinf(angle),cosf(angle));
+	Rotate_Y(WWMath::Sinf(angle),WWMath::Cosf(angle));
 }
 
 
@@ -785,7 +785,7 @@ WWINLINE void Vector3::Rotate_Y(float s_angle,float c_angle)
  *=============================================================================================*/
 WWINLINE void Vector3::Rotate_Z(float angle)
 {
-	Rotate_Z(sinf(angle),cosf(angle));
+	Rotate_Z(WWMath::Sinf(angle),WWMath::Cosf(angle));
 }
 
 

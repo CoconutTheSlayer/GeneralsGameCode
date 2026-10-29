@@ -533,7 +533,7 @@ CMainFrame::OnCreateClient
 
 				TCHAR szFileName[MAX_PATH];
 				::GetModuleFileName (nullptr, szFileName, sizeof (szFileName));
-				LPTSTR pszPath = ::strrchr (szFileName, '\\');
+				LPTSTR pszPath = getLastPathSeparator (szFileName);
 				if (pszPath) {
 					pszPath[0] = 0;
 					::SetCurrentDirectory (szFileName);
@@ -587,7 +587,7 @@ CMainFrame::OnCreateClient
 					gamma=gamma/10.0f;
 					if (gamma<1.0) gamma=1.0;
 					if (gamma>3.0) gamma=3.0;
-					DX8Wrapper::Set_Gamma(gamma,0.0f,1.0f);
+					WW3D::Set_Gamma(gamma,0.0f,1.0f);
 				}
 			}
 		}
@@ -674,7 +674,7 @@ CMainFrame::WindowProc
 				::GetModuleFileName (nullptr, filename, sizeof (filename));
 
 				// Strip the filename from the path
-				LPTSTR ppath = ::strrchr (filename, '\\');
+				LPTSTR ppath = getLastPathSeparator (filename);
 				if (ppath != nullptr) {
 					ppath[0] = 0;
 				}
@@ -3090,7 +3090,7 @@ CMainFrame::OnSaveScreenshot ()
 	//
 	// Strip the filename from the path
 	//
-	LPTSTR ppath = ::strrchr (filename, '\\');
+	LPTSTR ppath = getLastPathSeparator (filename);
 	if (ppath != nullptr) {
 		ppath[0] = 0;
 	}
@@ -4206,9 +4206,9 @@ void CMainFrame::OnEnableGammaCorrection()
 		gamma=gamma/10.0f;
 		if (gamma<1.0) gamma=1.0;
 		if (gamma>3.0) gamma=3.0;
-		DX8Wrapper::Set_Gamma(gamma,0.0f,1.0f);
+		WW3D::Set_Gamma(gamma,0.0f,1.0f);
 	} else {
-		DX8Wrapper::Set_Gamma(1.0,0.0f,1.0f);
+		WW3D::Set_Gamma(1.0,0.0f,1.0f);
 	}
 }
 

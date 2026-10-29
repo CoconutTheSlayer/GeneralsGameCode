@@ -456,7 +456,7 @@ Int LocalFile::writeFormat( const WideChar* format, ... )
 Int LocalFile::writeChar( const Char* character )
 {
 	if ( write( character, sizeof(Char) ) == sizeof(Char) ) {
-		return (Int)(intptr_t)character;
+		return (UnsignedByte)*character;
 	}
 
 	return EOF;
@@ -468,9 +468,10 @@ Int LocalFile::writeChar( const Char* character )
 
 Int LocalFile::writeChar( const WideChar* character )
 {
-	UnsignedShort utf16 = (UnsignedShort)*character;
-	if ( write( &utf16, sizeof(utf16) ) == sizeof(utf16) ) {
-		return (Int)(intptr_t)character;
+	// Files store UTF-16 code units even when native wchar_t is 32 bits.
+	const UnsignedShort codeUnit = (UnsignedShort)*character;
+	if ( write( &codeUnit, sizeof(codeUnit) ) == sizeof(codeUnit) ) {
+		return codeUnit;
 	}
 
 	return WEOF;

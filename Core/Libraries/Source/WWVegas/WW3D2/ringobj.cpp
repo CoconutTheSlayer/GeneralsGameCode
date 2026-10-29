@@ -1221,12 +1221,7 @@ RingPrototypeClass::RingPrototypeClass(RingRenderObjClass *ring)
 	//
 	if (ring->RingTexture != nullptr) {
 		StringClass name = ring->RingTexture->Get_Full_Path();
-		const char *filename = ::strrchr (name, '\\');
-		if (filename != nullptr) {
-			filename ++;
-		} else {
-			filename = name;
-		}
+		const char *filename = getFileName (name);
 
 		strlcpy(Definition.TextureName, filename, ARRAY_SIZE(Definition.TextureName));
 	}
@@ -1536,8 +1531,8 @@ void RingMeshClass::Generate(float radius, int slices)
 
 	for (index = 0; index < Vertex_ct; index += 2) {
 
-		float x_pos = -WWMath::Sin (angle);
-		float y_pos = WWMath::Cos (angle);
+		float x_pos = -WWMath::Sinf_Legacy (angle);
+		float y_pos = WWMath::Cosf_Legacy (angle);
 
 		//
 		//	Place the inner index

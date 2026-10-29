@@ -42,6 +42,7 @@
 #include "render2d.h"
 #include "WWLib/mutex.h"
 #include "ww3d.h"
+#include "Renderer.h"
 #include "font3d.h"
 #include "WWMath/rect.h"
 #include "texture.h"
@@ -223,8 +224,8 @@ Vector2 Render2DClass::Convert_Vert( const Vector2 & v )
 	out.Y = (out.Y - 1.0f) * (Get_Screen_Resolution().Height() * -0.5f);
 
 	// Round to nearest pixel
-	out.X = WWMath::Floor( out.X + 0.5f );
-	out.Y = WWMath::Floor( out.Y + 0.5f );
+	out.X = WWMath::Floorf( out.X + 0.5f );
+	out.Y = WWMath::Floorf( out.Y + 0.5f );
 
 	// Bias
 	if ( WW3D::Is_Screen_UV_Biased() ) {
@@ -617,14 +618,14 @@ void Render2DClass::Render()
 	int width, height, bits;
 	bool windowed;
 	WW3D::Get_Device_Resolution( width, height, bits, windowed );
-	D3DVIEWPORT8 vp = { 0 };
-	vp.X			= 0;
-	vp.Y			= 0;
-	vp.Width		= width;
-	vp.Height	= height;
-	vp.MinZ		= 0;
-	vp.MaxZ		= 1;
-	DX8Wrapper::Set_Viewport(&vp);
+	RenderViewport vp;
+	vp.x			= 0;
+	vp.y			= 0;
+	vp.width		= width;
+	vp.height	= height;
+	vp.min_z		= 0;
+	vp.max_z		= 1;
+	Renderer::Set_Viewport(vp);
 	DX8Wrapper::Set_Texture(0,Texture);
 
 	VertexMaterialClass *vm=VertexMaterialClass::Get_Preset(VertexMaterialClass::PRELIT_DIFFUSE);

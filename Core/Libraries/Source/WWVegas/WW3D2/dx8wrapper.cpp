@@ -84,6 +84,7 @@
 #include "dx8texman.h"
 #include "WWLib/bound.h"
 #include "DbgHelpGuard.h"
+#include <Utility/bit_adapter.h>
 
 #include "shdlib.h"
 
@@ -203,7 +204,7 @@ void Log_DX8_ErrorCode(unsigned res)
 		sizeof(tmp));
 
 	if (new_res==D3D_OK) {
-		WWDEBUG_SAY((tmp));
+		WWDEBUG_SAY(("%s", tmp));
 	}
 
 	WWASSERT(0);
@@ -301,7 +302,11 @@ bool DX8Wrapper::Init(void * hwnd, bool lite)
 		if (D3D8Lib == nullptr) return false;	// Return false at this point if init failed
 
 		Direct3DCreate8Ptr = (Direct3DCreate8Type) GetProcAddress(D3D8Lib, "Direct3DCreate8");
-		if (Direct3DCreate8Ptr == nullptr) return false;
+		if (Direct3DCreate8Ptr == nullptr)
+		{
+			Shutdown();
+			return false;
+		}
 #endif
 
 		/*
@@ -316,6 +321,7 @@ bool DX8Wrapper::Init(void * hwnd, bool lite)
 			D3DInterface = Direct3DCreate8Ptr(D3D_SDK_VERSION);		// TODO: handle failure cases...
 		}
 		if (D3DInterface == nullptr) {
+			Shutdown();
 			return(false);
 		}
 		IsInitted = true;
@@ -345,16 +351,12 @@ void DX8Wrapper::Shutdown()
 
 	}
 
-	if (CurrentCaps)
+	for (size_t i = 0; i < ARRAY_SIZE(Textures); ++i)
 	{
-		int max=CurrentCaps->Get_Max_Textures_Per_Pass();
-		for (int i = 0; i < max; i++)
+		if (Textures[i])
 		{
-			if (Textures[i])
-			{
-				Textures[i]->Release();
-				Textures[i] = nullptr;
-			}
+			Textures[i]->Release();
+			Textures[i] = nullptr;
 		}
 	}
 
@@ -397,7 +399,6 @@ void DX8Wrapper::Do_Onetime_Device_Dependent_Inits()
 	Set_Default_Global_Render_States();
 }
 
-inline DWORD F2DW(float f) { return *((unsigned*)&f); }
 void DX8Wrapper::Set_Default_Global_Render_States()
 {
 	DX8_THREAD_ASSERT();
@@ -4075,7 +4076,7 @@ void DX8Wrapper::Get_DX8_Render_State_Value_Name(StringClass& name, D3DRENDERSTA
 	case D3DRS_PATCHSEGMENTS:
 	case D3DRS_POINTSIZE_MAX:
 	case D3DRS_TWEENFACTOR:
-		name.Format("%f",*(float*)&value);
+		name.Format("%f",std::bit_cast<float>(value));
 		break;
 
 	case D3DRS_ZBIAS:
@@ -4180,7 +4181,7 @@ void DX8Wrapper::Get_DX8_Texture_Stage_State_Value_Name(StringClass& name, D3DTE
 	case D3DTSS_BUMPENVMAT11:
 	case D3DTSS_BUMPENVLSCALE:
 	case D3DTSS_BUMPENVLOFFSET:
-		name.Format("%f",*(float*)&value);
+		name.Format("%f",std::bit_cast<float>(value));
 		break;
 
 	case D3DTSS_TEXCOORDINDEX:

@@ -289,12 +289,17 @@ void AutoHealBehavior::pulseHealObject( Object *obj )
 	// Radius healers must respect the patient's damage, not the healer's damage.
 	if (data->m_damageCooldown && obj->getBodyModule())
 	{
-		UnsignedInt lastDamage = obj->getBodyModule()->getLastDamageTimestamp();
-		if (lastDamage && TheGameLogic->getFrame() - lastDamage < data->m_damageCooldown)
+		const UnsignedInt *lastDamage = obj->getBodyModule()->getLastDamageTimestamp();
+		if (lastDamage && TheGameLogic->getFrame() - *lastDamage < data->m_damageCooldown)
 			return;
 	}
 
+#if RETAIL_COMPATIBLE_CRC
 	if ( data->m_radius == 0.0f )
+#else
+	// TheSuperHackers @bugfix arcticdolphin 25/10/2026 Allow instant repairs while an aura is active.
+	if ( data->m_radius == 0.0f || data->m_singleBurst )
+#endif
 		obj->attemptHealing(data->m_healingAmount, getObject());
 	else
 		obj->attemptHealingFromSoleBenefactor( data->m_healingAmount, getObject(), data->m_healingDelay );

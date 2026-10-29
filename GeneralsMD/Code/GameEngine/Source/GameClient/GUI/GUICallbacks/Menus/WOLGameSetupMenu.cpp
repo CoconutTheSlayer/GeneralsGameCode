@@ -759,7 +759,7 @@ static void handleStartingCashSelection()
     GadgetComboBoxGetSelectedPos(comboBoxStartingCash, &selIndex);
 
     Money startingCash;
-    startingCash.deposit( (UnsignedInt)(intptr_t)GadgetComboBoxGetItemData( comboBoxStartingCash, selIndex ), FALSE, FALSE );
+    startingCash.deposit( (UnsignedInt)(uintptr_t)GadgetComboBoxGetItemData( comboBoxStartingCash, selIndex ), FALSE, FALSE );
     myGame->setStartingCash( startingCash );
     myGame->resetAccepted();
 
@@ -970,13 +970,8 @@ void WOLDisplayGameOptions()
 	}
 	else
 	{
-		AsciiString s = TheGameSpyInfo->getCurrentStagingRoom()->getMap();
-		if (s.reverseFind('\\'))
-		{
-			s = s.reverseFind('\\') + 1;
-		}
 		UnicodeString mapDisplay;
-		mapDisplay.translate(s);
+		mapDisplay.translate(getFileName(TheGameSpyInfo->getCurrentStagingRoom()->getMap().str()));
 		GadgetStaticTextSetText(textEntryMapDisplay, mapDisplay);
 	}
 	WOLPositionStartSpots();

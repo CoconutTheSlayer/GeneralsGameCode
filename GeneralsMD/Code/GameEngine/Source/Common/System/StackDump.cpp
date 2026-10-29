@@ -235,7 +235,7 @@ static CONTEXT gsContext;
 //*****************************************************************************
 void StackDumpDefaultHandler(const char*line)
 {
-	DEBUG_LOG((line));
+	DEBUG_LOG(("%s", line));
 }
 
 
@@ -254,7 +254,7 @@ void StackDump(void (*callback)(const char*))
 	DWORD myeip,myesp,myebp;
 
 #if defined(_MSC_VER)
-_asm
+__asm
 {
 MYEIP1:
  mov eax, MYEIP1
@@ -514,7 +514,7 @@ void FillStackAddresses(void**addresses, unsigned int count, unsigned int skip)
 
 	DWORD myeip,myesp,myebp;
 #if defined(_MSC_VER)
-_asm
+__asm
 {
 MYEIP2:
  mov eax, MYEIP2

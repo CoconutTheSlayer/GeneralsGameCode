@@ -52,13 +52,8 @@
 #pragma warning(push, 3)
 #endif
 
-// this define should also be in the DSP just in case someone includes windows stuff directly
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
 #include	<windows.h>
-//#include <mmsystem.h>
+#include	<mmsystem.h> // for timeGetTime
 //#include	<windowsx.h>
 //#include	<winnt.h>
 //#include	<winuser.h>

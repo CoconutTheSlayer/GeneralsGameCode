@@ -530,7 +530,7 @@ Bool MapCache::loadMapsFromDisk( const AsciiString &mapDir, Bool isOfficial, Boo
 		AsciiString filepathLower = *filepathIt;
 		filepathLower.toLower();
 
-		const char *szFilenameLower = filepathLower.reverseFind('\\');
+		const char *szFilenameLower = getLastPathSeparator(filepathLower.str());
 		if (!szFilenameLower)
 		{
 			DEBUG_CRASH(("Couldn't find \\ in map name!"));
@@ -592,7 +592,7 @@ Bool MapCache::addMap(
 			{
 				// unofficial maps or maps without names
 				AsciiString tempdisplayname;
-				tempdisplayname = fname.reverseFind('\\') + 1;
+				tempdisplayname = getFileName(fname.str());
 				(*this)[lowerFname].m_displayName.translate(tempdisplayname);
 				if (md.m_numPlayers >= 2)
 				{
@@ -622,9 +622,6 @@ Bool MapCache::addMap(
 		DEBUG_LOG(("size: %d / %d", fileInfo.sizeLow, md.m_filesize));
 		DEBUG_LOG(("time1: %d / %d", fileInfo.timestampHigh, md.m_timestamp.m_highTimeStamp));
 		DEBUG_LOG(("time2: %d / %d", fileInfo.timestampLow, md.m_timestamp.m_lowTimeStamp));
-//		DEBUG_LOG(("size: %d / %d", filesize, md.m_filesize));
-//		DEBUG_LOG(("time1: %d / %d", timestamp.m_highTimeStamp, md.m_timestamp.m_highTimeStamp));
-//		DEBUG_LOG(("time2: %d / %d", timestamp.m_lowTimeStamp, md.m_timestamp.m_lowTimeStamp));
 	}
 
 	DEBUG_LOG(("MapCache::addMap(): caching '%s' because '%s' was not found", fname.str(), lowerFname.str()));
@@ -660,7 +657,7 @@ Bool MapCache::addMap(
 		if (forwardSlash && (!slash || forwardSlash > slash))
 			slash = forwardSlash;
 		AsciiString tempdisplayname;
-		tempdisplayname = slash ? slash + 1 : fname.str();
+		tempdisplayname = getFileName(fname.str());
 		md.m_displayName.translate(tempdisplayname);
 		if (md.m_numPlayers >= 2)
 		{
@@ -1096,53 +1093,38 @@ const MapMetaData *MapCache::findMap(AsciiString mapName)
 // ------------------------------------------------------------------------------------------------
 /** Embed the pristine map into the xfer stream */
 // ------------------------------------------------------------------------------------------------
-static void copyFromBigToDir( const AsciiString& infile, const AsciiString& outfile )
+static Bool copyFromBigToDir( const AsciiString& infile, const AsciiString& outfile )
 {
-	// open the map file
-
 	File *file = TheFileSystem->openFile( infile.str(), File::READ | File::BINARY );
 	if( file == nullptr )
 	{
 		DEBUG_CRASH(( "copyFromBigToDir - Error opening source file '%s'", infile.str() ));
-		throw SC_INVALID_DATA;
+		return FALSE;
 	}
 
-	// how big is the map file
-	Int fileSize = file->seek( 0, File::END );
-
-
-	// rewind to beginning of file
+	const Int fileSize = file->seek( 0, File::END );
 	file->seek( 0, File::START );
 
-	// allocate buffer big enough to hold the entire map file
 	char *buffer = NEW char[ fileSize ];
-	if( buffer == nullptr )
-	{
-		DEBUG_CRASH(( "copyFromBigToDir - Unable to allocate buffer for file '%s'", infile.str() ));
-		throw SC_INVALID_DATA;
-	}
-
-	// copy the file to the buffer
-	if( file->read( buffer, fileSize ) < fileSize )
-	{
-		DEBUG_CRASH(( "copyFromBigToDir - Error reading from file '%s'", infile.str() ));
-		throw SC_INVALID_DATA;
-	}
-	// close the BIG file
+	const Bool readOk = file->read( buffer, fileSize ) == fileSize;
 	file->close();
+	DEBUG_ASSERTCRASH( readOk, ( "copyFromBigToDir - Error reading from file '%s'", infile.str() ) );
 
-	File *filenew = TheFileSystem->openFile( outfile.str(), File::WRITE | File::CREATE | File::BINARY );
-
-	if( !filenew || filenew->write(buffer, fileSize) < fileSize)
+	Bool writeOk = FALSE;
+	if( readOk )
 	{
-		DEBUG_CRASH(( "copyFromBigToDir - Error writing to file '%s'", outfile.str() ));
-		throw SC_INVALID_DATA;
+		File *filenew = TheFileSystem->openFile( outfile.str(), File::WRITE | File::CREATE | File::BINARY );
+		if( filenew != nullptr )
+		{
+			writeOk = filenew->write( buffer, fileSize ) == fileSize;
+			filenew->close();
+		}
+		DEBUG_ASSERTCRASH( writeOk, ( "copyFromBigToDir - Error writing to file '%s'", outfile.str() ) );
 	}
 
-	filenew->close();
-
-	// delete the buffer
 	delete [] buffer;
+
+	return writeOk;
 }
 
 Image *getMapPreviewImage( AsciiString mapName )
@@ -1162,7 +1144,7 @@ Image *getMapPreviewImage( AsciiString mapName )
 	for(Int i = 0; i < portableName.getLength(); ++i)
 	{
 		char c = portableName.getCharAt(i);
-		if (c == '\\' || c == ':')
+		if (isPathSeparator(c) || c == ':')
 			tempName.concat('_');
 		else
 			tempName.concat(c);
@@ -1187,16 +1169,7 @@ Image *getMapPreviewImage( AsciiString mapName )
 
 		mapPreviewDir.concat(name);
 
-		Bool success = false;
-		try
-		{
-			copyFromBigToDir(tgaName, mapPreviewDir);
-			success = true;
-		}
-		catch (...)
-		{
-			success = false;	// no rethrow
-		}
+		const Bool success = copyFromBigToDir(tgaName, mapPreviewDir);
 
 		if (success)
 		{

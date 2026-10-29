@@ -494,7 +494,7 @@ Object *AIPlayer::buildStructureNow(const ThingTemplate *bldgPlan, BuildListInfo
 		{
 			Coord3D rallyPoint;
 			Bool gotOffset = false;
-			if (fabs(info->getRallyOffset()->x) > 1.0f || fabs(info->getRallyOffset()->y)>1.0f) {
+			if (WWMath::Fabs(info->getRallyOffset()->x) > 1.0f || WWMath::Fabs(info->getRallyOffset()->y)>1.0f) {
 				gotOffset;
 			}
 			if (!exitInterface->getNaturalRallyPoint(rallyPoint)) {
@@ -654,7 +654,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 		dx = dozer->getPosition()->x - pos.x;
 		dy = dozer->getPosition()->y - pos.y;
 
-		Int count = sqrt(dx*dx+dy*dy)/(PATHFIND_CELL_SIZE_F/2);
+		Int count = WWMath::Sqrt(dx*dx+dy*dy)/(PATHFIND_CELL_SIZE_F/2);
 		if (count<2) count = 2;
 		Int i;
 		color.green = 1;
@@ -676,7 +676,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 		{
 			Coord3D rallyPoint;
 			Bool gotOffset = false;
-			if (fabs(info->getRallyOffset()->x) > 1.0f || fabs(info->getRallyOffset()->y)>1.0f) {
+			if (WWMath::Fabs(info->getRallyOffset()->x) > 1.0f || WWMath::Fabs(info->getRallyOffset()->y)>1.0f) {
 				gotOffset;
 			}
 			if (!exitInterface->getNaturalRallyPoint(rallyPoint)) {
@@ -942,23 +942,27 @@ void AIPlayer::guardSupplyCenter( Team *team, Int minSupplies )
 //-------------------------------------------------------------------------------------------------
 Bool AIPlayer::isSupplySourceAttacked()
 {
-	const Int SCAN_RATE = 10; // don't scan more often than every 10 frames.
-	// Damage within this window counts as an attack. It was SCAN_RATE frames (a third of a second),
-	// so scripts that check on a timer missed most raids on supply gatherers.
-	const UnsignedInt ATTACKED_WINDOW = 10*LOGICFRAMES_PER_SECOND;
+	// TheSuperHackers @bugfix WebbontheWeb 27/09/2026 No longer scans for supply source attacks for just the last 10 frames.
+	// A prior EA comment indicated that the intent was to look for 10 seconds into the attack history.
+	const Int RefreshRate = 10;
+#if RETAIL_COMPATIBLE_CRC && !defined(RTS_POSIX_PORT) && !defined(_WIN64)
+	const Int ScanWindow = 10;
+#else
+	const Int ScanWindow = 10 * LOGICFRAMES_PER_SECOND;
+#endif
 	UnsignedInt curFrame = TheGameLogic->getFrame();
 	if (curFrame==0) {
-		m_supplySourceAttackCheckFrame = curFrame+SCAN_RATE;
+		m_supplySourceAttackCheckFrame = curFrame + RefreshRate;
 		return false; // can't be attacked on first frame.
 	}
 	m_attackedSupplyCenter = INVALID_ID;
 	if (curFrame < m_supplySourceAttackCheckFrame) {
 		return false;
 	}
-	if (m_player->getAttackedFrame()+ATTACKED_WINDOW < curFrame) {
+	if (m_player->getAttackedFrame() + ScanWindow < curFrame) {
 		return false; // haven't been attacked recently.
 	}
-	m_supplySourceAttackCheckFrame = curFrame+SCAN_RATE;
+	m_supplySourceAttackCheckFrame = curFrame + RefreshRate;
 
 	// Scan my units.
 	Player::PlayerTeamList::const_iterator it;
@@ -985,7 +989,8 @@ Bool AIPlayer::isSupplySourceAttacked()
 						if (info->out.m_noEffect) {
 							continue;
 						}
-						if (body->getLastDamageTimestamp() + ATTACKED_WINDOW > curFrame) {
+						const UnsignedInt *lastDamageTimestamp = body->getLastDamageTimestamp();
+						if (lastDamageTimestamp && *lastDamageTimestamp + ScanWindow > curFrame) {
 							// winner.
 							m_attackedSupplyCenter = obj->getID();
 							return true;
@@ -1382,7 +1387,7 @@ Int AIPlayer::getPlayerSuperweaponValue(Coord3D *center, Int playerNdx, Real rad
 				Real dy = center->y - pos.y;
 				if (dx*dx+dy*dy<radSqr)
 				{
-					Real dist = sqrt(dx*dx+dy*dy);
+					Real dist = WWMath::Sqrt(dx*dx+dy*dy);
 					Real factor = 1.0f - (dist/(2*radius)); // 1.0 in center, 0.5 on edges.
 					Real value = pObj->getTemplate()->calcCostToBuild(pPlayer);
 					if (pObj->isKindOf(KINDOF_COMMANDCENTER))
@@ -3170,7 +3175,7 @@ void AIPlayer::computeCenterAndRadiusOfBase(Coord3D *center, Real *radius)
 		Real radSqr = dx*dx+dy*dy;
 		if (radSqr>maxRadSqr) maxRadSqr=radSqr;
 	}
-	*radius = sqrt(maxRadSqr);
+	*radius = WWMath::Sqrt(maxRadSqr);
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -3830,19 +3835,24 @@ void WorkOrder::loadPostProcess()
 /**
  * Get the bounds for a player's structure.
  */
-void AIPlayer::getPlayerStructureBounds( Region2D *bounds, Int playerNdx, Bool conservative )
+void AIPlayer::getPlayerStructureBounds(Region2D *bounds, Int playerNdx, Bool conservative)
 {
-	Player::PlayerTeamList::const_iterator it;
-	Bool firstObject = true;
-	Bool firstStructure = true;
-	bounds->hi.x = bounds->lo.x = bounds->hi.y = bounds->lo.y = 0;
-	Region2D objBounds;
-	objBounds.hi.x = objBounds.lo.x = objBounds.hi.y = objBounds.lo.y = 0;
+#if RTS_GENERALS && RETAIL_COMPATIBLE_CRC
+	// TheSuperHackers @info In the Generals code, lo.y used to be uninitialized for both Region2D variables in this function.
+#endif
+	bounds->zero();
 
 	Player* pPlayer = ThePlayerList->getNthPlayer(playerNdx);
 	if (pPlayer == nullptr)
 		return;
-	for (it = pPlayer->getPlayerTeams()->begin(); it != pPlayer->getPlayerTeams()->end(); ++it)
+
+	Bool firstObject = true;
+	Bool firstStructure = true;
+	Region2D objBounds;
+	objBounds.zero();
+
+	const Player::PlayerTeamList& list = *pPlayer->getPlayerTeams();
+	for (Player::PlayerTeamList::const_iterator it = list.begin(); it != list.end(); ++it)
 	{
 		for (DLINK_ITERATOR<Team> iter = (*it)->iterate_TeamInstanceList(); !iter.done(); iter.advance())
 		{

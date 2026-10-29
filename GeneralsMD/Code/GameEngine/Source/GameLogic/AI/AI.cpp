@@ -742,8 +742,8 @@ Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifie
 			}
 		}
 
-		Real dist = sqrt(distSqr);
-		Int modifier = dist/getAiData()->m_attackPriorityDistanceModifier;
+		Real dist = WWMath::Sqrtf(distSqr);
+		Int modifier = (Int)WWMath::Div_Safe(dist, getAiData()->m_attackPriorityDistanceModifier);
 		Int modPriority = curPriority-modifier;
 		if (modPriority < 1)
 			modPriority = 1;

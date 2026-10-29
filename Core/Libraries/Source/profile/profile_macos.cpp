@@ -19,7 +19,7 @@
 // The legacy profiler depends on the Windows only debug library. On macOS the
 // profiler entry points the game calls are no-ops.
 
-#include "profile.h"
+#include "profile/profile.h"
 
 void Profile::StartRange(const char *) {}
 void Profile::AppendRange(const char *) {}

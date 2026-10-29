@@ -43,6 +43,8 @@
 // ----------------------------------------------------------------------------
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#ifndef DISABLE_GAMEMEMORY
+
 // SYSTEM INCLUDES
 
 // USER INCLUDES
@@ -112,7 +114,7 @@ void userMemoryManagerInitPools()
 	// we expect. so do it the hard way.
 	char buf[_MAX_PATH];
 	::GetModuleFileName(nullptr, buf, sizeof(buf));
-	if (char* pEnd = strrchr(buf, '\\'))
+	if (char* pEnd = getLastPathSeparator(buf))
 	{
 		*pEnd = 0;
 	}
@@ -145,3 +147,4 @@ void userMemoryManagerInitPools()
 	}
 }
 
+#endif // DISABLE_GAMEMEMORY

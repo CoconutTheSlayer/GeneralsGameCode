@@ -1130,13 +1130,14 @@ Real Drawable::getScale () const
 //-------------------------------------------------------------------------------------------------
 void Drawable::reactToBodyDamageStateChange(BodyDamageType newState)
 {
-	static const ModelConditionFlagType TheDamageMap[BODYDAMAGETYPE_COUNT] =
+	static const ModelConditionFlagType TheDamageMap[] =
 	{
 		MODELCONDITION_INVALID,
 		MODELCONDITION_DAMAGED,
 		MODELCONDITION_REALLY_DAMAGED,
 		MODELCONDITION_RUBBLE,
 	};
+	static_assert(ARRAY_SIZE(TheDamageMap) == BODYDAMAGETYPE_COUNT, "Incorrect array size");
 
 	ModelConditionFlags newDamage;
 	if (TheDamageMap[newState] != MODELCONDITION_INVALID)
@@ -1890,36 +1891,6 @@ void Drawable::calcPhysicsXformTreads( const Locomotor *locomotor, PhysicsXformI
 		Real lateralAccel = -dir->y * accel->x + dir->x * accel->y;
 		m_locoInfo->m_accelerationRollRate += -(LATERAL_ACCEL_COEFF * lateralAccel);
 	}
-
-#ifdef RECOIL_FROM_BEING_DAMAGED
-	// recoil from being hit
-	/// @todo Recoil needs to be based on sane damage amounts (MSB)
-	const DamageInfo *damageInfo = obj->getBodyModule()->getLastDamageInfo();
-	if (damageInfo)
-	{
-		if (obj->getBodyModule()->getLastDamageTimestamp() > m_lastDamageTimestamp && damageInfo->in.m_amount > RECOIL_DAMAGE)
-		{
-			Object *attacker = TheGameLogic->getObject( damageInfo->in.m_sourceID );
-			if (attacker)
-			{
-				Coord3D to;
-				ThePartitionManager->getVectorTo( obj, attacker, FROM_CENTER_2D, &to );
-
-				to.normalize();
-
-				Real forward = dir->x * to.x + dir->y * to.y;
-				Real lateral = perp.x * to.x + perp.y * to.y;
-
-				Real recoil = PI/16.0f * GameClientRandomValueReal( 0.5f, 1.0f );
-
-				m_locoInfo->m_accelerationPitchRate -= recoil * forward;
-				m_locoInfo->m_accelerationRollRate -= recoil * lateral;
-			}
-
-			m_lastDamageTimestamp = obj->getBodyModule()->getLastDamageTimestamp();
-		}
-	}
-#endif
 
 	// limit recoil pitch and roll
 
@@ -3272,8 +3243,10 @@ void Drawable::drawHealing(const IRegion2D* healthBarRegion)
 //		if( lastDamage != nullptr && lastDamage->in.m_damageType == DAMAGE_HEALING
 //			&&(TheGameLogic->getFrame() - body->getLastHealingTimestamp()) <= HEALING_ICON_DISPLAY_TIME
 //			)
+		const UnsignedInt *lastHealingTimestamp = body->getLastHealingTimestamp();
 		if ( TheGameLogic->getFrame() > HEALING_ICON_DISPLAY_TIME && // because so many things init health early in game
-			(TheGameLogic->getFrame() - body->getLastHealingTimestamp() <= HEALING_ICON_DISPLAY_TIME) )
+			lastHealingTimestamp != nullptr &&
+			(TheGameLogic->getFrame() - *lastHealingTimestamp <= HEALING_ICON_DISPLAY_TIME) )
 
 			showHealing = TRUE;
 	}

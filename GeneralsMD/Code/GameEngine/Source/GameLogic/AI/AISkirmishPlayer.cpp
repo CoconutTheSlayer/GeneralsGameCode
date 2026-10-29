@@ -632,7 +632,7 @@ void AISkirmishPlayer::buildAIBaseDefenseStructure(const AsciiString &thingName,
 
 		Real structureRadius = tTemplate->getTemplateGeometryInfo().getBoundingCircleRadius();
 		Real baseCircumference = 2*PI*defenseDistance;
-		Real angleOffset = 2*PI*(structureRadius*4/baseCircumference);
+		Real angleOffset = 2*PI*WWMath::Div_Safe(structureRadius*4, baseCircumference);
 
 		Int selector;
 		Real angle;
@@ -683,8 +683,8 @@ void AISkirmishPlayer::buildAIBaseDefenseStructure(const AsciiString &thingName,
 			}
 			continue;
 		}
-		Real s = sin(angle);
-		Real c = cos(angle);
+		Real s = WWMath::Sin(angle);
+		Real c = WWMath::Cos(angle);
 
 // TheSuperHackers @info helmutbuhler 21/04/2025 This debug mutates the code to become CRC incompatible
 #if defined(RTS_DEBUG) || !RETAIL_COMPATIBLE_CRC
@@ -1077,8 +1077,8 @@ void AISkirmishPlayer::adjustBuildList(BuildListInfo *list)
 	const Real facingAngle = angle;
 	angle += 3*PI/4;
 
-	Real s = sin(angle);
-	Real c = cos(angle);
+	Real s = WWMath::Sin(angle);
+	Real c = WWMath::Cos(angle);
 
 	if (!foundInBuildList) {
 		DEBUG_LOG(("No command center in the ai build list."));
