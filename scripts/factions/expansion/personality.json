@@ -1,0 +1,428 @@
+{
+  "schema_version": 1,
+  "title": "Generals faction personality and voice bible",
+  "status": "design_reference",
+  "vo_status": "unrecorded",
+  "scope": "Art direction and future voice recording for the seven existing factions. This document adds no units, abilities, statistics, production requirements or player actions.",
+  "premise": "Fictional RTS military personas: oversized engineering philosophies, professional rivalries and action-film swagger. These are not claims about real populations, militaries or equipment capabilities.",
+  "shared_direction": {
+    "humour": "The joke belongs to the machine, the procedure or the crew's confidence. Never to ethnicity, religion, civilian suffering or a current conflict.",
+    "performance": "Cast capable people with distinct jobs and temperaments. Natural regional accents may add colour, but never write phonetic accents or make pronunciation the punchline. Clear English and immediate command recognition come first.",
+    "line_length": "Aim for two to seven words and roughly one to two seconds. A few longer lines are suitable for occasional selection responses.",
+    "line_use": "The examples are candidate acknowledgements for existing selection, movement, attack, construction and collection events. Selection jokes should be occasional; routine orders should remain crisp. Do not introduce new commands merely to play a line.",
+    "mechanical_truth": "Swagger can exaggerate confidence, but must not promise invulnerability, undetectability, guaranteed hits or an ability the unit lacks. Decorative sensors do not imply detection. Armour motifs do not grant protection beyond current gameplay.",
+    "icon_readability": "Use the same three-quarter view, lighting and background treatment across factions. Read the chassis, weapon and one signature feature at 48 pixels. Preserve team-colour patches; flags and tiny text cannot carry unit identification.",
+    "model_readability": "Put exaggeration into the primary silhouette: barrel, armour slab, launcher pod, radar or cargo body. Use two broad surface values and restrained small details. Keep moving parts and weapon exits readable from the game camera.",
+    "implementation_boundary": "Visual motifs describe a polish target, not a request to regenerate assets. Voice direction is unrecorded and not wired into runtime audio. Existing gameplay, roster size and unit costs remain unchanged."
+  },
+  "factions": {
+    "USA": {
+      "slogan": "Air superiority. Camera ready.",
+      "playable_identity": "Confident, expensive combined arms backed by air power, reconnaissance and high-tech support. The player feels like the director of a blockbuster strike package.",
+      "counterplay": "Advanced equipment still needs money, escorts and safe air operations; swagger must not obscure losses or reloads.",
+      "visual_motifs": [
+        "Clean angular armour, broad team-colour panels and conspicuous high-tech weapon mounts.",
+        "Swept aircraft silhouettes, confident nose profiles and clear missile racks.",
+        "Large optics and polished mechanical housings rather than decorative screens everywhere."
+      ],
+      "icon_direction": "Sell the sleek weapon platform first: recognisable turret, aircraft planform or sensor head. One bright technological accent is enough.",
+      "voice_direction": {
+        "persona": "Action-film professionals who know the camera is on them.",
+        "delivery": "Relaxed confidence, clipped pilot rhythm and an occasional smiling punchline. Crews sound competent before they sound glamorous.",
+        "humour": "Expensive equipment, dramatic entrances and treating an operation like a movie production."
+      },
+      "generic_lines": [
+        { "event": "select", "text": "High tech. Higher confidence." },
+        { "event": "move", "text": "Taking the scenic flyover." },
+        { "event": "attack", "text": "Cue the air support." }
+      ],
+      "core_vehicles": []
+    },
+    "China": {
+      "slogan": "The assembly line advances.",
+      "playable_identity": "Industrial scale and disciplined combined arms. A battle feels like an entire production schedule arriving together: armour, infantry and supporting fire in weight.",
+      "counterplay": "Large formations still need room and support; concentrated forces remain vulnerable to positioning and area attacks.",
+      "visual_motifs": [
+        "Broad tracked hulls, repeated armour blocks and orderly banks of weapons.",
+        "Industrial stacks, heavy braces and structures with clear, monumental shapes.",
+        "Repetition across the army creates the impression of a coordinated production line."
+      ],
+      "icon_direction": "Emphasise mass and symmetry. Separate gun tanks, missile banks and artillery by their upper silhouette, not additional decoration.",
+      "voice_direction": {
+        "persona": "Proud production chiefs and disciplined crew leaders who consider overwhelming scale a well-run workplace.",
+        "delivery": "Firm, measured rhythm; purposeful collective confidence. Humour is delivered as a perfectly ordinary production report.",
+        "humour": "Quotas, punctuality, impressive output and the absurd efficiency of an enormous military machine."
+      },
+      "generic_lines": [
+        { "event": "select", "text": "Production targets exceeded." },
+        { "event": "move", "text": "The next column is already coming." },
+        { "event": "attack", "text": "Full output. On schedule." }
+      ],
+      "core_vehicles": []
+    },
+    "GLA": {
+      "slogan": "Your scrap. Our advantage.",
+      "playable_identity": "Cunning ambushes, salvage and cheap pressure. Crews turn discarded machinery and awkward approach routes into a dangerous, opportunistic army.",
+      "counterplay": "Light equipment and exposed operations can be punished when detected or caught in a straightforward fight.",
+      "visual_motifs": [
+        "Asymmetric weapon mounts, patched panels and recognisable civilian chassis converted for combat.",
+        "One oversized improvised attachment per vehicle, supported by believable braces and welds.",
+        "Dusty surfaces and mismatched paint in broad readable patches; avoid covering silhouettes with random junk."
+      ],
+      "icon_direction": "Show the original chassis and the audacious conversion in one glance. Keep improvised armour, rockets and cargo visually distinct.",
+      "voice_direction": {
+        "persona": "Shrewd salvage crews and ambush planners who enjoy getting more from less.",
+        "delivery": "Quick, conspiratorial confidence and dry bargaining humour. Fluent, direct speech; no religious cues or caricatured grammar.",
+        "humour": "Questionable warranties, inventive repairs, borrowed parts and arriving where the opponent forgot to look."
+      },
+      "generic_lines": [
+        { "event": "select", "text": "Warranty expired. Weapon works." },
+        { "event": "move", "text": "We know another way in." },
+        { "event": "attack", "text": "Mind if we borrow your flank?" }
+      ],
+      "core_vehicles": []
+    },
+    "Europe": {
+      "slogan": "Approved for decisive action.",
+      "playable_identity": "A coalition battlegroup winning measured exchanges with accurate guns, visible marksman escorts and steady anti-tank teams. Smoke and nearby recovery help preserve the formation between engagements; coalition procedure supplies the jokes.",
+      "counterplay": "Specialists need the correct escorts and targets. The voice joke about approval must never become a real delay, extra menu or base-return chore.",
+      "visual_motifs": [
+        "Precise panel breaks, tidy stowage, deliberate camouflage and premium industrial finishes.",
+        "Different national design lineages unified by consistent team-colour placement and interface treatment.",
+        "Purpose-built turrets, launchers and sensor masts with clean separation between components."
+      ],
+      "icon_direction": "Keep each existing vehicle's signature profile. Consistent presentation should unify the coalition without making every vehicle look like the same chassis.",
+      "voice_direction": {
+        "persona": "Supremely capable specialists who have survived an unreasonable number of procurement meetings.",
+        "delivery": "Understated confidence, precise terminology and deadpan irritation with procedure. An ensemble of natural European voices shares clear radio discipline.",
+        "humour": "Committees, certification and exceptional machinery finally being allowed to do its job. Never make one country's accent or competence the joke."
+      },
+      "generic_lines": [
+        { "event": "select", "text": "Consensus reached. Guns ready." },
+        { "event": "move", "text": "Route approved. Finally." },
+        { "event": "attack", "text": "A very firm joint statement." }
+      ],
+      "core_vehicles": []
+    },
+    "Israel": {
+      "slogan": "Armour for the backup plan.",
+      "playable_identity": "Protected crews and carefully supported heavy armour. Merkava and Namer deliver a close infantry assault while scouts enable precision missiles and SPYDER keeps up steady air-defence fire. Personal active protection buys a moment, not immunity.",
+      "counterplay": "Heavy vehicles are expensive; shells and concentrated missiles can overwhelm them. Light scouts, air defence and artillery still need protection.",
+      "visual_motifs": [
+        "Deep side skirts, thick layered armour and visibly sheltered crew spaces.",
+        "Paired optics, protected sensor recesses and compact equipment covers suggest redundant engineering.",
+        "Broad sand-coloured masses, dark recesses and a few high-contrast crew access points."
+      ],
+      "icon_direction": "Armour is the faction signature, but preserve the role: SandCat's wheels, Merkava's long gun, Namer's low troop box, Pereh's raised missile rack and SPYDER's tubes. Retired PULS art remains available for scenarios.",
+      "voice_direction": {
+        "persona": "Meticulous crew chiefs who treat survival engineering as a competitive sport.",
+        "delivery": "Calm, practical and brisk, with dry humour delivered after the useful information. A backup check sounds routine, not anxious.",
+        "humour": "Too much armour, redundant checklists, overprotected components and refusing to confuse expensive hardware with its valuable crew."
+      },
+      "generic_lines": [],
+      "core_vehicles": [
+        {
+          "key": "SandCat",
+          "runtime_object": "Israel_SandCat",
+          "role": "Light scout and hidden-unit detector; machine gun, no passengers.",
+          "silhouette": "Compact four-wheel armoured body, protected windscreen and one prominent roof optic above the gun mount.",
+          "voice_character": "An alert scout who checks a corner twice and enjoys finding a better route.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Eyes open. Backup eyes open." },
+            { "event": "move", "text": "Checking the next corner." },
+            { "event": "attack", "text": "Contact. Keeping our distance." }
+          ]
+        },
+        {
+          "key": "Merkava",
+          "runtime_object": "Israel_Merkava",
+          "role": "Heavy assault tank with personal missile interception and a conventional main gun.",
+          "silhouette": "Long cannon over a low wedge turret, wide tracks and deep side skirts; leave a clear gun-to-hull gap.",
+          "voice_character": "A reassuring tank commander who knows every layer between the crew and trouble.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "We armoured the armour." },
+            { "event": "move", "text": "Crew secure. Moving up." },
+            { "event": "attack", "text": "Main gun. Firm objection." }
+          ]
+        },
+        {
+          "key": "Namer",
+          "runtime_object": "Israel_Namer",
+          "role": "Heavy six-seat infantry carrier with a machine gun and personal missile interception; passengers dismount to fight.",
+          "silhouette": "Wide tracked troop box with thick flanks, a clear rear ramp and a small weapon station; no tank-sized gun.",
+          "voice_character": "A protective transport chief with the authority and patience of a very heavily armoured bus driver.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Six seats. Excessive upholstery." },
+            { "event": "move", "text": "Everyone inside? Moving." },
+            { "event": "attack", "text": "Covering the dismount." }
+          ]
+        },
+        {
+          "key": "Pereh",
+          "runtime_object": "Israel_Pereh",
+          "role": "Long-range precision missile tank hunter with a slow reload and minimum range.",
+          "silhouette": "Tank chassis with a conspicuous elevated missile rack; keep the rack readable above the turret and any decoy barrel.",
+          "voice_character": "A patient missile specialist who considers distance an excellent safety feature.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Distance is another layer of armour." },
+            { "event": "move", "text": "Finding a comfortable firing position." },
+            { "event": "attack", "text": "Missile away. Check the next target." }
+          ]
+        },
+        {
+          "key": "SPYDER",
+          "runtime_object": "Israel_SPYDER",
+          "role": "Responsive escort air defence with continuous missile fire and no deployment delay; shorter range than heavy batteries and no ground attack.",
+          "silhouette": "Raised missile tubes with strong gaps between them over a compact carrier; a clear sensor head supplies the secondary shape.",
+          "voice_character": "An exacting radar operator who gives incoming aircraft the tone reserved for failed inspections.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Radar checked. Then checked again." },
+            { "event": "move", "text": "Taking the next air cover position." },
+            { "event": "attack", "text": "Your flight plan has a problem." }
+          ]
+        },
+        {
+          "key": "PULS",
+          "roster_status": "retired_from_normal_production",
+          "runtime_object": "Israel_PULS",
+          "role": "Long-range four-rocket artillery salvo with a substantial reload and vulnerable minimum range.",
+          "silhouette": "Two broad rectangular rocket pods on a long wheeled chassis; separate pod faces with a strong central notch.",
+          "voice_character": "A methodical fire-support officer who has turned a loud event into a tidy checklist.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Four rockets. Checklist complete." },
+            { "event": "move", "text": "New position. Same precautions." },
+            { "event": "attack", "text": "Coordinates checked. Commencing salvo." }
+          ]
+        },
+        {
+          "key": "D9",
+          "runtime_object": "Israel_D9",
+          "role": "Armoured engineer that builds, repairs and clears mines.",
+          "silhouette": "Huge dozer blade, tall protected cab and squat tracks; the blade must dominate the icon.",
+          "voice_character": "A practical construction foreman delighted that the cab received as much attention as the blade.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Even the toolbox has armour." },
+            { "event": "move", "text": "Making room for progress." },
+            { "event": "build", "text": "Solid foundations. Reinforced everything." }
+          ]
+        },
+        {
+          "key": "SupplyTruck",
+          "runtime_object": "Israel_SupplyTruck",
+          "role": "Collects supply crates and delivers them to the Supply Centre.",
+          "silhouette": "Protected cab followed by a large unmistakable cargo body; visible wheel gaps distinguish it from a troop carrier.",
+          "voice_character": "A logistics driver who secured every crate and will tell you so without being asked.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Cargo secured. Twice." },
+            { "event": "move", "text": "Taking the sensible route." },
+            { "event": "collect", "text": "More supplies. More straps." }
+          ]
+        }
+      ]
+    },
+    "Russia": {
+      "slogan": "Excess is a specification.",
+      "playable_identity": "Industrial bravado delivered in visible, powerful salvos. Artillery opens an assault, armour pushes through the opening, and supporting units cover the substantial reload windows.",
+      "counterplay": "Exploit the pause after a salvo, close with exposed artillery and separate the advance from its support. No horde bonus or extra mass-production mechanic is implied.",
+      "visual_motifs": [
+        "Heavy cast-looking turrets, thick tracks, large recoil assemblies and broad practical armour blocks.",
+        "Oversized weapon presence: long howitzer barrel, packed rocket face or bristling air-defence turret.",
+        "Dark olive masses with contrasting worn metal at moving parts; engineering should look purposeful and maintained."
+      ],
+      "icon_direction": "Make the delivery system unmistakable: T90's gun wedge, BMPT's twin autocannons, Tunguska's radar and missiles, Msta's long gun, TOS's solid rocket grid. Size is concentrated in the weapon, not random bulk.",
+      "voice_direction": {
+        "persona": "Proud factory-test crews who consider excess firepower a sensible engineering margin.",
+        "delivery": "Resonant confidence, short declarations and matter-of-fact absurdity. Give the scout speed, the tank authority and artillery the patience of a heavy-machine operator.",
+        "humour": "Oversized specifications, impressive recoil, excessive ammunition and treating thunderous salvos as an ordinary product demonstration."
+      },
+      "generic_lines": [],
+      "core_vehicles": [
+        {
+          "key": "Tigr",
+          "runtime_object": "Russia_Tigr",
+          "role": "Fast radar scout with hidden-unit detection and brief approximate contacts from nearby artillery shots; weak machine gun and no passengers.",
+          "silhouette": "High four-wheel stance, square protected cab and a clear roof gun; retain a light scout footprint.",
+          "voice_character": "A fast-talking scout proudly operating the smallest machine in an oversized arsenal.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Small chassis. Large confidence." },
+            { "event": "move", "text": "Finding room for the big guns." },
+            { "event": "attack", "text": "A short, loud introduction." }
+          ]
+        },
+        {
+          "key": "T90",
+          "runtime_object": "Russia_T90",
+          "role": "Affordable slow tank firing one powerful shell followed by a substantial reload.",
+          "silhouette": "Low turret with a prominent long cannon, strong front armour wedges and broad track shoulders.",
+          "voice_character": "A tank commander with the unhurried confidence of a successful factory stress test.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Built to exceed the argument." },
+            { "event": "move", "text": "Heavy machinery coming through." },
+            { "event": "attack", "text": "One substantial objection." }
+          ]
+        },
+        {
+          "key": "BMP3",
+          "runtime_object": "Russia_BMP3",
+          "role": "BMPT assault support vehicle with twin autocannons against exposed infantry and light vehicles; no passengers or garrison-clearing weapon.",
+          "silhouette": "Armoured tracked hull with a prominent twin-autocannon turret; distinguish its short barrels from T90's long gun.",
+          "voice_character": "A practical escort commander proud of giving the tank column a very loud supporting argument.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "The column has company." },
+            { "event": "move", "text": "Keeping the tanks covered." },
+            { "event": "attack", "text": "Two barrels. Firm support." }
+          ]
+        },
+        {
+          "key": "Tunguska",
+          "runtime_object": "Russia_Tunguska",
+          "role": "Mobile air defence with a heavy four-missile burst, an exposed reload and short-range self-defence cannons.",
+          "silhouette": "Wide bristling turret with separated cannon barrels, missile racks and one dominant round radar shape.",
+          "voice_character": "An enthusiastic systems operator who thinks choosing between guns and missiles was an unnecessary compromise.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Guns, missiles. Why choose?" },
+            { "event": "move", "text": "Bringing a crowded turret." },
+            { "event": "attack", "text": "Several objections incoming." }
+          ]
+        },
+        {
+          "key": "Msta",
+          "runtime_object": "Russia_Msta",
+          "role": "Heavy deployed howitzer firing one large shell, followed by a six-second reload; slow to redeploy and vulnerable inside minimum range.",
+          "silhouette": "Tall box turret and an exceptionally long howitzer barrel above a heavy tracked hull; keep barrel and chassis visually separate.",
+          "voice_character": "A patient artillery chief who describes excessive recoil as a reassuring quality-control result.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Recoil within impressive limits." },
+            { "event": "move", "text": "Relocating the noise complaint." },
+            { "event": "attack", "text": "Heavy shell. Strong opinion." }
+          ]
+        },
+        {
+          "key": "TOS",
+          "runtime_object": "Russia_TOS",
+          "role": "Short-range assault launcher with an eight-rocket saturation salvo and ten-second reload.",
+          "silhouette": "Huge rectangular rocket grid on a compact tank chassis; the launcher face is the single dominant feature.",
+          "voice_character": "A cheerful heavy-equipment demonstrator with absolutely no interest in subtle product features.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Subtlety sold separately." },
+            { "event": "move", "text": "Getting closer. Bringing excess." },
+            { "event": "attack", "text": "Eight rockets. Full demonstration." }
+          ]
+        }
+      ]
+    },
+    "Ukraine": {
+      "slogan": "Workshop tested. Field adjusted.",
+      "playable_identity": "Resourceful light forces prepare ambushes with scouts, mines and concealed anti-tank teams. Carriers reposition infantry, Buk delivers a heavy air-defence salvo, and fragile wheeled artillery trades firepower for quick relocation. Attack drones reward scouting and can be intercepted.",
+      "counterplay": "Support vehicles are fragile. Close their minimum range, interrupt their positions or intercept the attack drones with appropriate defences. Repositioning uses ordinary movement orders.",
+      "visual_motifs": [
+        "Serviceable core vehicles with neatly fitted field brackets, replacement panels and accessible equipment racks.",
+        "Purposeful contrast between older chassis and newer optics, communications gear or weapon attachments.",
+        "Restrained workshop marks, spare-wheel silhouettes and a few readable tie-downs; ingenuity should look capable, not randomly broken."
+      ],
+      "icon_direction": "Prioritise role and mobility: BTR4's long carrier hull, Buk's exposed missile rails, Bohdana's tall cab and long gun, DroneController's van and antenna, and TB2's broad wings. Kozak and Oplot art remains archived for scenarios.",
+      "voice_direction": {
+        "persona": "Practical mechanics, drivers and operators who enjoy making a clever solution work.",
+        "delivery": "Conversational, quick and focused; a small grin when an improvised detail proves useful. Technical confidence without frantic chatter.",
+        "humour": "Workshop certification, well-placed brackets, labelled cables and getting an elegant result from an unlikely combination of parts."
+      },
+      "generic_lines": [],
+      "core_vehicles": [
+        {
+          "key": "Kozak",
+          "roster_status": "retired_from_normal_production",
+          "runtime_object": "Ukraine_Kozak",
+          "role": "Fast scout with a machine gun, hidden-unit detection and two passenger seats; passengers dismount to fight.",
+          "silhouette": "Tall protected cab over exposed wheel gaps, compact roof gun and one modest field-fitted sensor bracket.",
+          "voice_character": "An upbeat scout driver who remembers both the route and which bolt used to rattle.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Workshop certified. By us." },
+            { "event": "move", "text": "Let's test the shortcut." },
+            { "event": "attack", "text": "Small gun. Useful angle." }
+          ]
+        },
+        {
+          "key": "Oplot",
+          "roster_status": "retired_from_normal_production",
+          "runtime_object": "Ukraine_Oplot",
+          "role": "Mobile main battle tank with a reliable anti-vehicle cannon.",
+          "silhouette": "Low angular turret, long cannon and chunky front armour; organised add-on plates preserve a clean tank profile.",
+          "voice_character": "A practical tank commander who knows the machine personally and wastes neither words nor motion.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Know every bolt on this one." },
+            { "event": "move", "text": "Taking the better angle." },
+            { "event": "attack", "text": "One carefully placed argument." }
+          ]
+        },
+        {
+          "key": "BTR4",
+          "runtime_object": "Ukraine_BTR4",
+          "role": "Four-seat infantry carrier with an autocannon; passengers dismount to fight.",
+          "silhouette": "Long eight-wheel hull, distinct rear troop compartment and compact elevated autocannon turret.",
+          "voice_character": "A cheerful transport specialist whose personal project was making the rough ride slightly less rough.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Four seats. Suspension improved." },
+            { "event": "move", "text": "We'll take the side street." },
+            { "event": "attack", "text": "Covering fire. Then your stop." }
+          ]
+        },
+        {
+          "key": "Buk",
+          "runtime_object": "Ukraine_Buk",
+          "role": "Heavy air-ambush launcher with automatic deployment, two powerful missiles and a long exposed reload; cannot attack ground units.",
+          "silhouette": "Exposed parallel missiles on raised rails above a tracked hull, with one clear radar element.",
+          "voice_character": "A dry electronics specialist proud that an older machine now produces very clear answers.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Old chassis. Clear signal." },
+            { "event": "move", "text": "Finding a better view upstairs." },
+            { "event": "attack", "text": "Aircraft tracked. Sending our reply." }
+          ]
+        },
+        {
+          "key": "Bohdana",
+          "runtime_object": "Ukraine_Bohdana",
+          "role": "Fast wheeled artillery with quick setup and packing; lighter, less accurate shells trade firepower for relocation speed.",
+          "silhouette": "Tall truck cab, long exposed howitzer barrel and open rear gun bed; show the road wheels clearly.",
+          "voice_character": "A nimble artillery driver and gun crew who already have the next position in mind.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Big gun. Sensible wheels." },
+            { "event": "move", "text": "Next firing position looks better." },
+            { "event": "attack", "text": "One shell. Make it count." }
+          ]
+        },
+        {
+          "key": "DroneController",
+          "runtime_object": "Ukraine_DroneController",
+          "role": "Fragile long-range van launching one interceptable attack drone at a time on its existing reload cycle.",
+          "silhouette": "Work van with one raised antenna assembly and a recognisable drone launch fixture; keep the ordinary van shape visible.",
+          "voice_character": "An unflappable workshop electronics expert who labelled the important cable and probably built the bracket personally.",
+          "vo_status": "unrecorded",
+          "voice_lines": [
+            { "event": "select", "text": "Do not unplug the labelled cable." },
+            { "event": "move", "text": "Better parking. Better signal." },
+            { "event": "attack", "text": "Sending the little specialist." }
+          ]
+        }
+      ]
+    }
+  }
+}

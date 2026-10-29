@@ -1,0 +1,26 @@
+Use case: stylized-concept
+Asset type: ORIGINAL production diffuse texture atlas for low-poly European military vehicles in a 2003 RTS.
+Primary request: Paint a square 2048x2048 texture sheet divided into EXACTLY 4 columns and 4 rows of equal square tiles. Tiles touch edge to edge at 25%, 50%, 75% of image. No gaps, captions, numbers, outlines between tiles, perspective, or 3D objects. Each tile is a perfectly flat, straight-on material or vehicle surface. This will be UV-mapped onto original game models. All surfaces are original artwork.
+Style: richly hand-painted early Command & Conquer Generals era RTS diffuse texture craftsmanship. Strong baked ambient occlusion in cavities, broad worn pale edges, readable black seams, gritty desaturated blue-grey painted steel with warm dusty beige abrasion and oxidized brown seams. Not photorealistic PBR, no flat vector art, no soft camouflage blobs. High local contrast and confident painterly highlights. Simple and legible when shrunk. Dominant armor medium muted grey with a slight blue cast; not neon blue. Top left diffuse illumination consistently baked.
+Exact tiles left to right, top to bottom:
+Row 1:
+1. A plain solid armor plate with weathered grey-blue steel, subtly mottled and scuffed, sparse chipped paint; NO panel lines or bolts. This is a reusable base metal.
+2. A square armored access panel with a deeply dark recessed edge, four corner bolts and pale scraped bevel; wide solid center, subtle dirt.
+3. An engine deck: large dark horizontal recessed radiator slats filling the square, a heavy dusty grey-blue frame.
+4. A vehicle stowage locker with two vertical shallow ribs, chunky lid hinge and two strong metal clasps.
+Row 2:
+1. One round armored roof hatch viewed straight from above filling square; grey-blue lid, thick dark recessed rim, hinge and handle, no perspective.
+2. One armored wheel HUB, round concentric metal circles and eight bolts on very dark background. Steel grey blue and dusty tan edges. Fills square.
+3. Black rubber tire tread texture filling square, repeated chunky chevron blocks, warm tan dust in shallow grooves. No circular wheel.
+4. Continuous caterpillar track belt texture, repeated transverse rectangular steel shoes with black seams and warm dust. No circular wheel.
+Row 3:
+1. Dark steel machinery metal, oily gunmetal with a few long scratches, no panels or bolts.
+2. Recessed dark blue-black glass viewport with a thick worn steel edge and small restrained reflected sky highlight. No crosshair.
+3. Olive drab military missile launcher tube surface unwrapped as a flat rectangular sheet, two wide clamp bands across it, worn paint and small illegible stencil marks, no rendered cylinder.
+4. Tightly folded tan olive canvas vehicle stowage, shaded creases and two thick dark webbing straps.
+Row 4:
+1. A white medical equipment panel with one clear medium green cross centered, weathered pale grey edge, no red cross.
+2. Worn yellow and black diagonal warning stripes edge to edge, relatively restrained dirty ochre yellow.
+3. Warm white armored headlamp, front-on circular lamp with metallic reflector and pale glass, dark frame.
+4. Recessed steel rear loading door with a dark vertical center seam, two hinges at sides and two horizontal stiffening ribs.
+Constraints: entire canvas filled; strictly uniform 4x4 grid. All 16 tiles distinct. No letters or labels. No vehicle silhouettes, no logos, no emblems. This is a flat UV texture atlas, NOT a contact sheet of renders.

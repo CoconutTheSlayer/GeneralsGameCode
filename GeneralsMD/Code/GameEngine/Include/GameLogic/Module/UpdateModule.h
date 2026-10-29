@@ -260,6 +260,7 @@ public:
 	virtual void projectileFireAtObjectOrPosition( const Object *victim, const Coord3D *victimPos, const WeaponTemplate *detWeap, const ParticleSystemTemplate* exhaustSysOverride ) = 0;
 	virtual Bool projectileIsArmed() const = 0;													///< return true if the projectile is armed and ready to explode
 	virtual ObjectID projectileGetLauncherID() const = 0;								///< All projectiles need to keep track of their firer
+	virtual ObjectID projectileGetTargetID() const { return INVALID_ID; } ///< Positional or unsupported projectiles have no tracked target.
 	virtual Bool projectileHandleCollision(Object *other) = 0;
 	virtual void setFramesTillCountermeasureDiversionOccurs( UnsignedInt frames ) = 0; ///< Number of frames till missile diverts to countermeasures.
 	virtual void projectileNowJammed() = 0;

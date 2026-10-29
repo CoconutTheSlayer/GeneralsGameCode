@@ -1,0 +1,737 @@
+// The European faction (scripts/factions/europe/build_europe.py). Generated, do not edit.
+
+INI:FactionEurope
+"Europe"
+END
+
+SIDE:Europe
+"Europe"
+END
+
+TOOLTIP:BioStrategyLong_Europe
+"A professional coalition battlegroup: fight at range with Leopard tanks and DANA artillery, screen with Vilkas and Skyranger, and recover between engagements with Valuk. Expensive losses and scattered raids are dangerous."
+END
+
+GUI:BioFeatures_Europe
+"11 core units; range, smoke and recovery; 31 contributing countries"
+END
+
+OBJECT:Euro_CommandCenter
+"Command Centre"
+END
+
+CONTROLBAR:Euro_Command_ConstructCommandCenter
+"&Command Centre"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructCommandCenter
+"The heart of the European base. Builds engineer vehicles and directs the general's powers."
+END
+
+OBJECT:Euro_PowerPlant
+"Fusion Plant"
+END
+
+CONTROLBAR:Euro_Command_ConstructPowerPlant
+"Fusion &Plant"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructPowerPlant
+"Powers the base."
+END
+
+OBJECT:Euro_Barracks
+"Garrison"
+END
+
+CONTROLBAR:Euro_Command_ConstructBarracks
+"&Garrison"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructBarracks
+"Trains infantry."
+END
+
+OBJECT:Euro_SupplyCenter
+"Logistics Centre"
+END
+
+CONTROLBAR:Euro_Command_ConstructSupplyCenter
+"&Logistics Centre"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructSupplyCenter
+"Gathers supplies and builds NH90 helicopters."
+END
+
+OBJECT:Euro_WarFactory
+"Armour Works"
+END
+
+CONTROLBAR:Euro_Command_ConstructWarFactory
+"&Armour Works"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructWarFactory
+"Builds vehicles."
+END
+
+OBJECT:Euro_Airfield
+"Air Base"
+END
+
+CONTROLBAR:Euro_Command_ConstructAirfield
+"Ai&r Base"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructAirfield
+"Builds and rearms aircraft."
+END
+
+OBJECT:Euro_StrategyCenter
+"Joint Command"
+END
+
+CONTROLBAR:Euro_Command_ConstructStrategyCenter
+"&Joint Command"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructStrategyCenter
+"Coordinates Greek and Hungarian fire control, smoke screens and field recovery equipment."
+END
+
+OBJECT:Euro_PatriotBattery
+"NASAMS Battery"
+END
+
+CONTROLBAR:Euro_Command_ConstructPatriotBattery
+"NA&SAMS Battery"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructPatriotBattery
+"Norway: Kongsberg NASAMS with AMRAAM missiles. Powered, networked ground and air defence."
+END
+
+OBJECT:Euro_FireBase
+"Artillery Bastion"
+END
+
+CONTROLBAR:Euro_Command_ConstructFireBase
+"Artillery &Bastion"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructFireBase
+"A fortified howitzer that outranges ground attackers. Infantry can garrison it."
+END
+
+OBJECT:Euro_Outpost
+"Forward Outpost"
+END
+
+OBJECT:Euro_ParticleCannonUplink
+"Coalition Strike Command"
+END
+
+CONTROLBAR:Euro_Command_ConstructParticleCannonUplink
+"C&oalition Strike Command"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructParticleCannonUplink
+"Coordinates a five-aircraft conventional strike every six minutes. The marked approach is visible and aircraft can be intercepted. Requires power."
+END
+
+OBJECT:Euro_FundsOffice
+"EU Funds Office"
+END
+
+CONTROLBAR:Euro_Command_ConstructFundsOffice
+"EU &Funds Office"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructFundsOffice
+"Receives a steady grant from the Union's funds. Researches the Green Deal: subsidies for every Fusion Plant."
+END
+
+OBJECT:Euro_Dozer
+"Armoured Engineer"
+END
+
+CONTROLBAR:Euro_Command_ConstructDozer
+"Armour&ed Engineer"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructDozer
+"Germany: builds and repairs the base and clears mines. Croatian and Maltese ordnance crews support the engineers."
+END
+
+OBJECT:Euro_Rifleman
+"Legionnaire"
+END
+
+CONTROLBAR:Euro_Command_ConstructRifleman
+"Legionnai&re"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructRifleman
+"French line infantry with Belgian MINIMI support weapons. Research assault grenades to clear garrisons; Portuguese airborne troops use the same equipment."
+END
+
+OBJECT:Euro_Milan
+"MILAN Team"
+END
+
+CONTROLBAR:Euro_Command_ConstructMilan
+"&MILAN Team"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructMilan
+"France: ground anti-tank team with Bulgarian crews. Steady automatic missile fire at range. Cannot attack aircraft; needs protection from infantry."
+END
+
+OBJECT:Euro_Marksman
+"Sako Marksman"
+END
+
+CONTROLBAR:Euro_Command_ConstructMarksman
+"Sa&ko Marksman"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructMarksman
+"Finland: visible precision infantry escort with Polish reconnaissance crews. Quick aimed shots wear down exposed infantry. No concealment, stealth detection or anti-armour weapon."
+END
+
+OBJECT:Euro_Commando
+"GROM Commando"
+END
+
+OBJECT:Euro_Boxer
+"Vilkas IFV"
+END
+
+CONTROLBAR:Euro_Command_ConstructBoxer
+"&Vilkas IFV"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructBoxer
+"Lithuania: five-seat autocannon carrier with Estonian sensors and Irish scouts. Reveals nearby hidden enemies; passengers dismount to fight. Weak against heavy armour."
+END
+
+OBJECT:Euro_Leopard
+"Leopard 2"
+END
+
+CONTROLBAR:Euro_Command_ConstructLeopard
+"&Leopard 2"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructLeopard
+"Germany: accurate long-range tank with a measured firing rate. Needs Vilkas and Skyranger escorts when surrounded. Greek and Hungarian fire-control equipment."
+END
+
+OBJECT:Euro_Leclerc
+"Leclerc"
+END
+
+OBJECT:Euro_Puls
+"PULS Launcher"
+END
+
+OBJECT:Euro_Skyranger
+"Skyranger 30"
+END
+
+CONTROLBAR:Euro_Command_ConstructSkyranger
+"&Skyranger 30"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructSkyranger
+"Swiss Oerlikon air-defence gun with German and Cypriot crews. Close escort with rapid guns against aircraft and light infantry; ineffective against heavy armour. AHEAD adds 25% damage."
+END
+
+OBJECT:Euro_SkyrangerTurret
+"Oerlikon Cannon"
+END
+
+OBJECT:Euro_Wiesel
+"Wiesel TOW"
+END
+
+OBJECT:Euro_Ambulance
+"Valuk Recovery"
+END
+
+CONTROLBAR:Euro_Command_ConstructAmbulance
+"V&aluk Recovery"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructAmbulance
+"Slovenia: Austrian Pandur-derived recovery carrier with Romanian and Icelandic crews. Repairs nearby ground vehicles only after eight seconds without damage. Recovery auras do not stack."
+END
+
+OBJECT:Euro_ReconDrone
+"THeMIS Drone"
+END
+
+OBJECT:Euro_Typhoon
+"Typhoon Interceptor"
+END
+
+CONTROLBAR:Euro_Command_ConstructTyphoon
+"&Typhoon Interceptor"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructTyphoon
+"United Kingdom: air-superiority fighter with Spanish aircrews. Only attacks airborne targets. Danish countermeasures improve survival against missiles."
+END
+
+OBJECT:Euro_Rafale
+"Rafale"
+END
+
+OBJECT:Euro_Tornado
+"Tornado"
+END
+
+OBJECT:Euro_Tiger
+"Tiger HAD"
+END
+
+OBJECT:Euro_NH90
+"NH90 Transport"
+END
+
+CONTROLBAR:Euro_Command_ConstructNH90
+"&NH90 Transport"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructNH90
+"Italy: coalition utility helicopter. Collects supplies and transports troops."
+END
+
+OBJECT:Euro_Dana
+"DANA Howitzer"
+END
+
+CONTROLBAR:Euro_Command_ConstructDana
+"DANA &Howitzer"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ConstructDana
+"Czechia: precise shell artillery with Dutch fire-control crews. Accurate shots with narrow splash; automatically aims for 1.2 seconds before firing. Vulnerable inside minimum range."
+END
+
+OBJECT:Euro_Apache
+"Apache AH1"
+END
+
+OBJECT:Euro_Mistral
+"Mistral Team"
+END
+
+OBJECT:Euro_Reserve
+"AUG Reservist"
+END
+
+OBJECT:Euro_Paratrooper
+"Paraquedista"
+END
+
+OBJECT:Euro_Ranger
+"Army Ranger Wing"
+END
+
+OBJECT:Euro_EOD
+"EOD Specialist"
+END
+
+OBJECT:Euro_Rescuer
+"SAR Medic"
+END
+
+OBJECT:Euro_ATGL
+"ATGL Reservist"
+END
+
+OBJECT:Euro_MV4
+"MV-4 Robot"
+END
+
+OBJECT:Euro_Patria
+"Patria 6x6"
+END
+
+OBJECT:Euro_A400M
+"A400M Atlas"
+END
+
+OBJECT:Euro_Puma
+"IAR 330 Puma"
+END
+
+OBJECT:Euro_Gripen
+"Gripen Strike"
+END
+
+UPGRADE:Upgrade_EuroMinimi
+"FN MINIMI"
+END
+
+CONTROLBAR:Euro_Command_UpgradeMinimi
+"&FN MINIMI"
+END
+
+CONTROLBAR:ToolTipEuro_Command_UpgradeMinimi
+"Belgium: support weapons increase Legionnaire rifle damage by 25%."
+END
+
+UPGRADE:Upgrade_EuroAhead
+"AHEAD Ammunition"
+END
+
+CONTROLBAR:Euro_Command_UpgradeAhead
+"&AHEAD Ammunition"
+END
+
+CONTROLBAR:ToolTipEuro_Command_UpgradeAhead
+"Switzerland: Oerlikon programmable ammunition improves Skyranger cannon damage by 25%."
+END
+
+UPGRADE:Upgrade_EuroFireControl
+"Coalition Fire Control"
+END
+
+CONTROLBAR:Euro_Command_UpgradeFireControl
+"&Coalition Fire Control"
+END
+
+CONTROLBAR:ToolTipEuro_Command_UpgradeFireControl
+"Greek optics and Hungarian electronics increase Leopard and DANA range by 10%."
+END
+
+UPGRADE:Upgrade_EuroSmoke
+"Smoke Coordination"
+END
+
+CONTROLBAR:Euro_Command_UpgradeSmoke
+"&Smoke Coordination"
+END
+
+CONTROLBAR:ToolTipEuro_Command_UpgradeSmoke
+"Unlocks an eight-second smoke screen from the Command Centre. Enemy ground direct-fire range against troops in smoke is reduced by 25%; artillery and aircraft are unaffected."
+END
+
+UPGRADE:Upgrade_EuroRecovery
+"Armoured Recovery Kits"
+END
+
+CONTROLBAR:Euro_Command_UpgradeRecovery
+"&Armoured Recovery Kits"
+END
+
+CONTROLBAR:ToolTipEuro_Command_UpgradeRecovery
+"Romanian recovery crews add 150 health to Valuk carriers. Repair auras still do not stack."
+END
+
+SCIENCE:EuroArtilleryBarrage1
+"Zuzana Barrage 1"
+END
+
+SCIENCE:EuroArtilleryBarrage2
+"Zuzana Barrage 2"
+END
+
+SCIENCE:EuroArtilleryBarrage3
+"Zuzana Barrage 3"
+END
+
+SCIENCE:EuroCoalition
+"Coalition Reinforcements"
+END
+
+CONTROLBAR:Euro_Command_A10ThunderboltMissileStrike
+"&Gripen Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_A10ThunderboltMissileStrike
+"Sweden: Gripen strike aircraft attack the marked area."
+END
+
+CONTROLBAR:Euro_Command_Paradrop
+"&Portuguese Airborne"
+END
+
+CONTROLBAR:ToolTipEuro_Command_Paradrop
+"Portuguese airborne troops arrive aboard Luxembourg-crewed A400Ms. Uses the familiar Legionnaire equipment and controls."
+END
+
+CONTROLBAR:Euro_Command_SpyDrone
+"&Recon UAV"
+END
+
+CONTROLBAR:ToolTipEuro_Command_SpyDrone
+"A drone that watches an area and reveals stealthed units."
+END
+
+CONTROLBAR:Euro_Command_EmergencyRepair
+"&Field Rescue"
+END
+
+CONTROLBAR:ToolTipEuro_Command_EmergencyRepair
+"Romanian and Icelandic rescue services repair allied vehicles in the target area immediately."
+END
+
+CONTROLBAR:Euro_Command_SpySatelliteScan
+"&Galileo Scan"
+END
+
+CONTROLBAR:ToolTipEuro_Command_SpySatelliteScan
+"A satellite reveals any part of the map for a while."
+END
+
+CONTROLBAR:Euro_Command_FireParticleUplinkCannon
+"&Coalition Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_FireParticleUplinkCannon
+"Five Gripen aircraft deliver a conventional strike. Six-minute reload; interceptable aircraft and a visible target warning."
+END
+
+CONTROLBAR:Euro_Command_ArtilleryBarrage
+"&Zuzana Barrage"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ArtilleryBarrage
+"Slovakia: off-map Zuzana 2 batteries shell the marked area."
+END
+
+CONTROLBAR:Euro_Command_Coalition
+"&Coalition Reinforcements"
+END
+
+CONTROLBAR:ToolTipEuro_Command_Coalition
+"Latvian-led airlift brings two Vilkas carriers, six Legionnaires and four MILAN teams. Austrian reservists reinforce the same infantry units."
+END
+
+CONTROLBAR:Euro_Command_SmokeScreen
+"&Smoke Screen"
+END
+
+CONTROLBAR:ToolTipEuro_Command_SmokeScreen
+"Deploy an eight-second smoke screen. Enemy ground direct-fire range against units inside is reduced by 25%. Does not hide units; artillery, aircraft and close attackers remain effective."
+END
+
+CONTROLBAR:Euro_Command_ParadropFromShortcut
+"&Portuguese Airborne"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ParadropFromShortcut
+"Portuguese airborne troops arrive aboard Luxembourg-crewed A400Ms. Uses the familiar Legionnaire equipment and controls."
+END
+
+CONTROLBAR:Euro_Command_ArtilleryBarrageFromShortcut
+"&Zuzana Barrage"
+END
+
+CONTROLBAR:ToolTipEuro_Command_ArtilleryBarrageFromShortcut
+"Slovakia: off-map Zuzana 2 batteries shell the marked area."
+END
+
+CONTROLBAR:Euro_Command_CoalitionFromShortcut
+"&Coalition Reinforcements"
+END
+
+CONTROLBAR:ToolTipEuro_Command_CoalitionFromShortcut
+"Latvian-led airlift brings two Vilkas carriers, six Legionnaires and four MILAN teams. Austrian reservists reinforce the same infantry units."
+END
+
+CONTROLBAR:Euro_Command_EmergencyRepairFromShortcut
+"&Field Rescue"
+END
+
+CONTROLBAR:ToolTipEuro_Command_EmergencyRepairFromShortcut
+"Romanian and Icelandic rescue services repair allied vehicles in the target area immediately."
+END
+
+CONTROLBAR:Euro_Command_SpyDroneFromShortcut
+"&Recon UAV"
+END
+
+CONTROLBAR:ToolTipEuro_Command_SpyDroneFromShortcut
+"A drone that watches an area and reveals stealthed units."
+END
+
+CONTROLBAR:Euro_Command_FireParticleUplinkCannonFromShortcut
+"&Coalition Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_FireParticleUplinkCannonFromShortcut
+"Five Gripen aircraft deliver a conventional strike. Six-minute reload; interceptable aircraft and a visible target warning."
+END
+
+CONTROLBAR:Euro_Command_SpySatelliteScanFromShortcut
+"&Galileo Scan"
+END
+
+CONTROLBAR:ToolTipEuro_Command_SpySatelliteScanFromShortcut
+"A satellite reveals any part of the map for a while."
+END
+
+CONTROLBAR:Euro_Command_CIAIntelligenceFromShortcut
+"&Intelligence Report"
+END
+
+CONTROLBAR:ToolTipEuro_Command_CIAIntelligenceFromShortcut
+"Reveals what the enemy is building."
+END
+
+CONTROLBAR:Euro_Command_A10ThunderboltMissileStrikeFromShortcut
+"&Gripen Strike"
+END
+
+CONTROLBAR:ToolTipEuro_Command_A10ThunderboltMissileStrikeFromShortcut
+"Sweden: Gripen strike aircraft attack the marked area."
+END
+
+CONTROLBAR:Euro_Command_SmokeScreenFromShortcut
+"&Smoke Screen"
+END
+
+CONTROLBAR:ToolTipEuro_Command_SmokeScreenFromShortcut
+"Deploy an eight-second smoke screen. Enemy ground direct-fire range against units inside is reduced by 25%. Does not hide units; artillery, aircraft and close attackers remain effective."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceSpyDrone
+"&Recon UAV"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceSpyDrone
+"A drone that watches an area and reveals stealthed units."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceA10ThunderboltMissileStrike1
+"&Gripen Strike 1"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceA10ThunderboltMissileStrike1
+"Sweden: Gripen strike aircraft attack the marked area."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceParadrop1
+"&Portuguese Airborne 1"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceParadrop1
+"Portuguese airborne troops arrive aboard Luxembourg-crewed A400Ms. Uses the familiar Legionnaire equipment and controls."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceParadrop2
+"&Portuguese Airborne 2"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceParadrop2
+"Portuguese airborne troops arrive aboard Luxembourg-crewed A400Ms. Uses the familiar Legionnaire equipment and controls."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceParadrop3
+"&Portuguese Airborne 3"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceParadrop3
+"Portuguese airborne troops arrive aboard Luxembourg-crewed A400Ms. Uses the familiar Legionnaire equipment and controls."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceEuroArtilleryBarrage1
+"&Zuzana Barrage 1"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEuroArtilleryBarrage1
+"Slovakia: off-map Zuzana 2 batteries shell the marked area."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceEuroArtilleryBarrage2
+"&Zuzana Barrage 2"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEuroArtilleryBarrage2
+"Slovakia: off-map Zuzana 2 batteries shell the marked area."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceEuroArtilleryBarrage3
+"&Zuzana Barrage 3"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEuroArtilleryBarrage3
+"Slovakia: off-map Zuzana 2 batteries shell the marked area."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceEmergencyRepair1
+"&Field Rescue 1"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEmergencyRepair1
+"Romanian and Icelandic rescue services repair allied vehicles in the target area immediately."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceEmergencyRepair2
+"&Field Rescue 2"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEmergencyRepair2
+"Romanian and Icelandic rescue services repair allied vehicles in the target area immediately."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceEmergencyRepair3
+"&Field Rescue 3"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEmergencyRepair3
+"Romanian and Icelandic rescue services repair allied vehicles in the target area immediately."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceA10ThunderboltMissileStrike2
+"&Gripen Strike 2"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceA10ThunderboltMissileStrike2
+"Sweden: Gripen strike aircraft attack the marked area."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceA10ThunderboltMissileStrike3
+"&Gripen Strike 3"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceA10ThunderboltMissileStrike3
+"Sweden: Gripen strike aircraft attack the marked area."
+END
+
+CONTROLBAR:Euro_Command_PurchaseScienceEuroCoalition
+"&Coalition Reinforcements"
+END
+
+CONTROLBAR:ToolTipEuro_Command_PurchaseScienceEuroCoalition
+"Allied transports drop two Boxers and a company of riflemen at the target."
+END
+
+CONTROLBAR:Euro_Command_UpgradeAmericaRangerFlashBangGrenade
+"&Assault Grenades"
+END
+
+CONTROLBAR:ToolTipEuro_Command_UpgradeAmericaRangerFlashBangGrenade
+"French assault grenades clear enemy infantry from garrisoned buildings."
+END
+
+CONTROLBAR:Euro_Command_UpgradeAmericaCountermeasures
+"&Terma Countermeasures"
+END
+
+CONTROLBAR:ToolTipEuro_Command_UpgradeAmericaCountermeasures
+"Denmark: flare dispensers protect coalition aircraft against missiles."
+END
+
+CONTROLBAR:Euro_Command_InitiateBattlePlanSearchAndDestroy
+"&THEON Search and Destroy"
+END
+
+CONTROLBAR:ToolTipEuro_Command_InitiateBattlePlanSearchAndDestroy
+"Greece: coalition night-vision and targeting equipment. Improves weapon range and command-centre surveillance."
+END

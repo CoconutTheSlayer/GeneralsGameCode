@@ -1,0 +1,4802 @@
+{
+  "faction": "Israel",
+  "version": 2,
+  "style": "Layered grey-olive armour, redundant sensors, deep fittings, crew stowage, worn material detail and restrained team colour",
+  "axis_contract": "+X forward, +Z up; use Scale 1.0 unless gameplay deliberately changes silhouette",
+  "assets": [
+    {
+      "key": "SandCat",
+      "display_name": "SandCat",
+      "role": "Scout / light transport",
+      "category": "vehicle",
+      "model": "ILSAND",
+      "variants": [
+        "ILSAND",
+        "ILSAND_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILSAND",
+          "triangles": 3904
+        },
+        {
+          "model": "ILSAND_D",
+          "triangles": 3904
+        }
+      ],
+      "parent": "AmericaVehicleHumvee",
+      "suggested_inherited_object": "AmericaVehicleHumvee",
+      "dimensions": [
+        20.735000610351562,
+        10.5,
+        11.826800346374512
+      ],
+      "bounds": [
+        [
+          -9.9350004196167,
+          10.800000190734863
+        ],
+        [
+          -5.25,
+          5.25
+        ],
+        [
+          0.0,
+          11.826800346374512
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "TIRE01",
+        "TIRE02",
+        "TIRE03",
+        "TIRE04",
+        "TURRET",
+        "MUZZLE",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "TURRETMS",
+        "TURRETFX",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "TIRE01",
+          "parent": "CHASSIS",
+          "position": [
+            6.6,
+            4.3,
+            2.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE02",
+          "parent": "CHASSIS",
+          "position": [
+            6.6,
+            -4.3,
+            2.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE03",
+          "parent": "CHASSIS",
+          "position": [
+            -6,
+            4.3,
+            2.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE04",
+          "parent": "CHASSIS",
+          "position": [
+            -6,
+            -4.3,
+            2.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -1.7,
+            0,
+            9.1
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE",
+          "parent": "TURRET",
+          "position": [
+            5.2,
+            0,
+            1.25
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRET",
+          "position": [
+            5.2,
+            0,
+            1.25
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "TURRET",
+          "position": [
+            5.2,
+            0,
+            1.25
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRETMS",
+          "parent": "TURRET",
+          "position": [
+            5.2,
+            0,
+            1.25
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRETFX",
+          "parent": "TURRET",
+          "position": [
+            5.2,
+            0,
+            1.25
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "il_mark.tga",
+        "ilhouse.tga",
+        "ilsand_paint.tga",
+        "ilsand_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSAND.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSAND.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILSAND",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilsand_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSAND_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/sandcat.png"
+    },
+    {
+      "key": "Merkava",
+      "display_name": "Merkava",
+      "role": "Protected main battle tank",
+      "category": "vehicle",
+      "model": "ILMERK",
+      "variants": [
+        "ILMERK",
+        "ILMERK_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILMERK",
+          "triangles": 7592
+        },
+        {
+          "model": "ILMERK_D",
+          "triangles": 7592
+        }
+      ],
+      "parent": "AmericaTankCrusader",
+      "suggested_inherited_object": "AmericaTankCrusader",
+      "dimensions": [
+        32.22500038146973,
+        17.368000030517578,
+        12.449999809265137
+      ],
+      "bounds": [
+        [
+          -13.0,
+          19.225000381469727
+        ],
+        [
+          -8.684000015258789,
+          8.684000015258789
+        ],
+        [
+          0.25,
+          12.699999809265137
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "TURRET",
+        "BARREL",
+        "MUZZLE",
+        "MUZZLE01",
+        "TURRETMS",
+        "TURRETFX",
+        "MUZZLEFX01",
+        "LASER",
+        "APSFX",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -1,
+            0,
+            6.8
+          ],
+          "rotation": null
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            3,
+            0,
+            2.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE",
+          "parent": "BARREL",
+          "position": [
+            17.25,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "BARREL",
+          "position": [
+            17.25,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRETMS",
+          "parent": "BARREL",
+          "position": [
+            17.25,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRETFX",
+          "parent": "BARREL",
+          "position": [
+            17.25,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "BARREL",
+          "position": [
+            17.25,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "LASER",
+          "parent": "TURRET",
+          "position": [
+            0,
+            0,
+            4.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "APSFX",
+          "parent": "TURRET",
+          "position": [
+            0,
+            0,
+            4.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "il_mark.tga",
+        "il_track.tga",
+        "ilhouse.tga",
+        "ilmerk_paint.tga",
+        "ilmerk_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILMERK.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILMERK.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILMERK",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilmerk_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILMERK_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/merkava.png"
+    },
+    {
+      "key": "Namer",
+      "display_name": "Namer",
+      "role": "Heavy infantry transport",
+      "category": "vehicle",
+      "model": "ILNAMER",
+      "variants": [
+        "ILNAMER",
+        "ILNAMER_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILNAMER",
+          "triangles": 5772
+        },
+        {
+          "model": "ILNAMER_D",
+          "triangles": 5772
+        }
+      ],
+      "parent": "AmericaVehicleHumvee",
+      "suggested_inherited_object": "AmericaVehicleHumvee",
+      "dimensions": [
+        28.149999618530273,
+        17.368000030517578,
+        12.449999809265137
+      ],
+      "bounds": [
+        [
+          -14.149999618530273,
+          14.0
+        ],
+        [
+          -8.684000015258789,
+          8.684000015258789
+        ],
+        [
+          0.25,
+          12.699999809265137
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "TURRET",
+        "MUZZLE",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "TURRETMS",
+        "TURRETFX",
+        "EXITSTART",
+        "EXITEND",
+        "LASER",
+        "APSFX",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            1.2,
+            9.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE",
+          "parent": "TURRET",
+          "position": [
+            5.2,
+            0,
+            1.25
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRET",
+          "position": [
+            5.2,
+            0,
+            1.25
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "TURRET",
+          "position": [
+            5.2,
+            0,
+            1.25
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRETMS",
+          "parent": "TURRET",
+          "position": [
+            5.2,
+            0,
+            1.25
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRETFX",
+          "parent": "TURRET",
+          "position": [
+            5.2,
+            0,
+            1.25
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            -9,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            -19,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "LASER",
+          "parent": "TURRET",
+          "position": [
+            0,
+            0,
+            2.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "APSFX",
+          "parent": "TURRET",
+          "position": [
+            0,
+            0,
+            2.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "il_mark.tga",
+        "il_track.tga",
+        "ilhouse.tga",
+        "ilnamer_paint.tga",
+        "ilnamer_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILNAMER.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILNAMER.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILNAMER",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilnamer_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILNAMER_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/namer.png"
+    },
+    {
+      "key": "Pereh",
+      "display_name": "Pereh",
+      "role": "Long-range missile tank hunter",
+      "category": "vehicle",
+      "model": "ILPEREH",
+      "variants": [
+        "ILPEREH",
+        "ILPEREH_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILPEREH",
+          "triangles": 5940
+        },
+        {
+          "model": "ILPEREH_D",
+          "triangles": 5940
+        }
+      ],
+      "parent": "AmericaVehicleTomahawk",
+      "suggested_inherited_object": "AmericaVehicleTomahawk",
+      "dimensions": [
+        29.5,
+        17.368000030517578,
+        12.449999809265137
+      ],
+      "bounds": [
+        [
+          -13.0,
+          16.5
+        ],
+        [
+          -8.684000015258789,
+          8.684000015258789
+        ],
+        [
+          0.25,
+          12.699999809265137
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "TURRET",
+        "TURRETEL",
+        "WEAPONA01",
+        "MISSILE",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -2,
+            0,
+            6.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRETEL",
+          "parent": "TURRET",
+          "position": [
+            -4,
+            0,
+            1.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "TURRETEL",
+          "position": [
+            7.2,
+            2.5,
+            1.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MISSILE",
+          "parent": "TURRETEL",
+          "position": [
+            6,
+            0,
+            1
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "il_mark.tga",
+        "il_track.tga",
+        "ilhouse.tga",
+        "ilpereh_paint.tga",
+        "ilpereh_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILPEREH.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILPEREH.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILPEREH",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilpereh_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILPEREH_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/pereh.png"
+    },
+    {
+      "key": "SPYDER",
+      "display_name": "SPYDER",
+      "role": "Mobile air defence",
+      "category": "vehicle",
+      "model": "ILSPYDR",
+      "variants": [
+        "ILSPYDR",
+        "ILSPYDR_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILSPYDR",
+          "triangles": 4672
+        },
+        {
+          "model": "ILSPYDR_D",
+          "triangles": 4672
+        }
+      ],
+      "parent": "AmericaVehicleAvenger",
+      "suggested_inherited_object": "AmericaVehicleAvenger",
+      "dimensions": [
+        26.670000076293945,
+        11.899999618530273,
+        15.97599983215332
+      ],
+      "bounds": [
+        [
+          -13.0,
+          13.670000076293945
+        ],
+        [
+          -5.949999809265137,
+          5.949999809265137
+        ],
+        [
+          0.0,
+          15.97599983215332
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "TIRE01",
+        "TIRE02",
+        "TIRE03",
+        "TIRE04",
+        "TIRE05",
+        "TIRE06",
+        "TURRET",
+        "TURRETEL",
+        "WEAPONA01",
+        "MUZZLE01",
+        "MUZZLE02",
+        "MUZZLEFX01",
+        "MUZZLEFX02",
+        "MISSILE",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "TIRE01",
+          "parent": "CHASSIS",
+          "position": [
+            9,
+            5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE02",
+          "parent": "CHASSIS",
+          "position": [
+            9,
+            -5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE04",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE05",
+          "parent": "CHASSIS",
+          "position": [
+            -8,
+            5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE06",
+          "parent": "CHASSIS",
+          "position": [
+            -8,
+            -5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -5,
+            0,
+            4.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRETEL",
+          "parent": "TURRET",
+          "position": [
+            -3,
+            0,
+            2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "TURRETEL",
+          "position": [
+            10.3,
+            2.35,
+            1.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRETEL",
+          "position": [
+            10.3,
+            2.35,
+            1.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE02",
+          "parent": "TURRETEL",
+          "position": [
+            10.3,
+            2.35,
+            1.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "TURRETEL",
+          "position": [
+            10.3,
+            2.35,
+            1.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX02",
+          "parent": "TURRETEL",
+          "position": [
+            10.3,
+            2.35,
+            1.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MISSILE",
+          "parent": "TURRETEL",
+          "position": [
+            8,
+            0,
+            1.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilhouse.tga",
+        "ilspydr_paint.tga",
+        "ilspydr_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSPYDR.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSPYDR.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILSPYDR",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilspydr_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSPYDR_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/spyder.png"
+    },
+    {
+      "key": "PULS",
+      "display_name": "PULS",
+      "role": "Rocket artillery",
+      "category": "vehicle",
+      "model": "ILPULS",
+      "variants": [
+        "ILPULS",
+        "ILPULS_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILPULS",
+          "triangles": 4908
+        },
+        {
+          "model": "ILPULS_D",
+          "triangles": 4908
+        }
+      ],
+      "parent": "AmericaVehicleTomahawk",
+      "suggested_inherited_object": "AmericaVehicleTomahawk",
+      "dimensions": [
+        26.670000076293945,
+        11.899999618530273,
+        11.071000099182129
+      ],
+      "bounds": [
+        [
+          -13.0,
+          13.670000076293945
+        ],
+        [
+          -5.949999809265137,
+          5.949999809265137
+        ],
+        [
+          0.0,
+          11.071000099182129
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "TIRE01",
+        "TIRE02",
+        "TIRE03",
+        "TIRE04",
+        "TIRE05",
+        "TIRE06",
+        "TURRET",
+        "TURRETEL",
+        "WEAPONA01",
+        "MUZZLE01",
+        "MUZZLE02",
+        "MUZZLEFX01",
+        "MUZZLEFX02",
+        "MISSILE",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "TIRE01",
+          "parent": "CHASSIS",
+          "position": [
+            9,
+            5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE02",
+          "parent": "CHASSIS",
+          "position": [
+            9,
+            -5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE04",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE05",
+          "parent": "CHASSIS",
+          "position": [
+            -8,
+            5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE06",
+          "parent": "CHASSIS",
+          "position": [
+            -8,
+            -5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -5,
+            0,
+            4.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRETEL",
+          "parent": "TURRET",
+          "position": [
+            -3,
+            0,
+            2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "TURRETEL",
+          "position": [
+            10.3,
+            2.35,
+            1.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRETEL",
+          "position": [
+            10.3,
+            2.35,
+            1.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE02",
+          "parent": "TURRETEL",
+          "position": [
+            10.3,
+            2.35,
+            1.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "TURRETEL",
+          "position": [
+            10.3,
+            2.35,
+            1.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX02",
+          "parent": "TURRETEL",
+          "position": [
+            10.3,
+            2.35,
+            1.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MISSILE",
+          "parent": "TURRETEL",
+          "position": [
+            8,
+            0,
+            1.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilhouse.tga",
+        "ilpuls_paint.tga",
+        "ilpuls_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILPULS.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILPULS.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILPULS",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilpuls_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILPULS_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/puls.png"
+    },
+    {
+      "key": "D9",
+      "display_name": "Armoured D9",
+      "role": "Construction vehicle",
+      "category": "vehicle",
+      "model": "ILD9",
+      "variants": [
+        "ILD9",
+        "ILD9_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILD9",
+          "triangles": 3332
+        },
+        {
+          "model": "ILD9_D",
+          "triangles": 3332
+        }
+      ],
+      "parent": "AmericaVehicleDozer",
+      "suggested_inherited_object": "AmericaVehicleDozer",
+      "dimensions": [
+        25.350000381469727,
+        19.0,
+        13.670000195503235
+      ],
+      "bounds": [
+        [
+          -11.0,
+          14.350000381469727
+        ],
+        [
+          -9.5,
+          9.5
+        ],
+        [
+          0.12999999523162842,
+          13.800000190734863
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "DOZERBLADE",
+        "REPAIR",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "DOZERBLADE",
+          "parent": "CHASSIS",
+          "position": [
+            11,
+            0,
+            3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "REPAIR",
+          "parent": "CHASSIS",
+          "position": [
+            13,
+            0,
+            3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "il_track.tga",
+        "ild9_paint.tga",
+        "ild9_paint_d.tga",
+        "ilhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILD9.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILD9.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILD9",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ild9_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILD9_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/d9.png"
+    },
+    {
+      "key": "SupplyTruck",
+      "display_name": "Supply truck",
+      "role": "Resource collector",
+      "category": "vehicle",
+      "model": "ILSUPTR",
+      "variants": [
+        "ILSUPTR",
+        "ILSUPTR_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILSUPTR",
+          "triangles": 3688
+        },
+        {
+          "model": "ILSUPTR_D",
+          "triangles": 3688
+        }
+      ],
+      "parent": "ChinaVehicleSupplyTruck",
+      "suggested_inherited_object": "ChinaVehicleSupplyTruck",
+      "dimensions": [
+        27.47000026702881,
+        11.899999618530273,
+        11.071000099182129
+      ],
+      "bounds": [
+        [
+          -13.800000190734863,
+          13.670000076293945
+        ],
+        [
+          -5.949999809265137,
+          5.949999809265137
+        ],
+        [
+          0.0,
+          11.071000099182129
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "TIRE01",
+        "TIRE02",
+        "TIRE03",
+        "TIRE04",
+        "TIRE05",
+        "TIRE06",
+        "CARGO",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "TIRE01",
+          "parent": "CHASSIS",
+          "position": [
+            9,
+            5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE02",
+          "parent": "CHASSIS",
+          "position": [
+            9,
+            -5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE04",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE05",
+          "parent": "CHASSIS",
+          "position": [
+            -8,
+            5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE06",
+          "parent": "CHASSIS",
+          "position": [
+            -8,
+            -5,
+            2.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "CARGO",
+          "parent": "CHASSIS",
+          "position": [
+            -6,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilhouse.tga",
+        "ilsuptr_paint.tga",
+        "ilsuptr_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSUPTR.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSUPTR.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILSUPTR",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilsuptr_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSUPTR_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/supplytruck.png"
+    },
+    {
+      "key": "F16I",
+      "display_name": "F-16I Sufa",
+      "role": "Air-superiority fighter",
+      "category": "aircraft",
+      "model": "ILF16",
+      "variants": [
+        "ILF16",
+        "ILF16_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILF16",
+          "triangles": 3480
+        },
+        {
+          "model": "ILF16_D",
+          "triangles": 3480
+        }
+      ],
+      "parent": "AmericaJetRaptor",
+      "suggested_inherited_object": "AmericaJetRaptor",
+      "dimensions": [
+        45.0,
+        28.739999771118164,
+        11.630000188946724
+      ],
+      "bounds": [
+        [
+          -23.0,
+          22.0
+        ],
+        [
+          -14.369999885559082,
+          14.369999885559082
+        ],
+        [
+          0.17000000178813934,
+          11.800000190734863
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "ENGINE01",
+        "ENGINE02",
+        "WINGTIP01",
+        "WINGTIP02",
+        "WEAPONA01",
+        "WEAPONA02",
+        "MUZZLE01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "ENGINE01",
+          "parent": "CHASSIS",
+          "position": [
+            -22.2,
+            0,
+            3.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "ENGINE02",
+          "parent": "CHASSIS",
+          "position": [
+            -22.2,
+            0,
+            3.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WINGTIP01",
+          "parent": "CHASSIS",
+          "position": [
+            -8,
+            13.4,
+            4.0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WINGTIP02",
+          "parent": "CHASSIS",
+          "position": [
+            -8,
+            -13.4,
+            4.0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "CHASSIS",
+          "position": [
+            -1,
+            7,
+            1.45
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA02",
+          "parent": "CHASSIS",
+          "position": [
+            -1,
+            -7,
+            1.45
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            13,
+            1,
+            3.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilf16_paint.tga",
+        "ilf16_paint_d.tga",
+        "ilhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILF16.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILF16.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILF16",
+      "polish_source": "scripts/models/israel/aircraft_v2.py",
+      "material_source": "scripts/models/israel/aviation_atlas_v2.png",
+      "art_revision": "aircraft-v2",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilf16_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILF16_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/f16i.png"
+    },
+    {
+      "key": "F15I",
+      "display_name": "F-15I Raam",
+      "role": "Strike aircraft",
+      "category": "aircraft",
+      "model": "ILF15",
+      "variants": [
+        "ILF15",
+        "ILF15_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILF15",
+          "triangles": 3600
+        },
+        {
+          "model": "ILF15_D",
+          "triangles": 3600
+        }
+      ],
+      "parent": "AmericaJetRaptor",
+      "suggested_inherited_object": "AmericaJetRaptor",
+      "dimensions": [
+        51.400001525878906,
+        35.599998474121094,
+        12.029999807476997
+      ],
+      "bounds": [
+        [
+          -26.400001525878906,
+          25.0
+        ],
+        [
+          -17.799999237060547,
+          17.799999237060547
+        ],
+        [
+          0.17000000178813934,
+          12.199999809265137
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "ENGINE01",
+        "ENGINE02",
+        "WINGTIP01",
+        "WINGTIP02",
+        "WEAPONA01",
+        "WEAPONA02",
+        "MUZZLE01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "ENGINE01",
+          "parent": "CHASSIS",
+          "position": [
+            -25.8,
+            2.5,
+            3.25
+          ],
+          "rotation": null
+        },
+        {
+          "name": "ENGINE02",
+          "parent": "CHASSIS",
+          "position": [
+            -25.8,
+            -2.5,
+            3.25
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WINGTIP01",
+          "parent": "CHASSIS",
+          "position": [
+            -8,
+            17.8,
+            4.0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WINGTIP02",
+          "parent": "CHASSIS",
+          "position": [
+            -8,
+            -17.8,
+            4.0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "CHASSIS",
+          "position": [
+            -1,
+            7,
+            1.45
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA02",
+          "parent": "CHASSIS",
+          "position": [
+            -1,
+            -7,
+            1.45
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            13,
+            1,
+            3.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilf15_paint.tga",
+        "ilf15_paint_d.tga",
+        "ilhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILF15.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILF15.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILF15",
+      "polish_source": "scripts/models/israel/aircraft_v2.py",
+      "material_source": "scripts/models/israel/aviation_atlas_v2.png",
+      "art_revision": "aircraft-v2",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilf15_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILF15_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/f15i.png"
+    },
+    {
+      "key": "Apache",
+      "display_name": "AH-64 Apache",
+      "role": "Attack helicopter",
+      "category": "aircraft",
+      "model": "ILAPACH",
+      "variants": [
+        "ILAPACH",
+        "ILAPACH_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILAPACH",
+          "triangles": 1724
+        },
+        {
+          "model": "ILAPACH_D",
+          "triangles": 1724
+        }
+      ],
+      "parent": "AmericaVehicleComanche",
+      "suggested_inherited_object": "AmericaVehicleComanche",
+      "dimensions": [
+        42.0,
+        42.0,
+        12.124999821186066
+      ],
+      "bounds": [
+        [
+          -22.0,
+          20.0
+        ],
+        [
+          -21.0,
+          21.0
+        ],
+        [
+          -0.050000011920928955,
+          12.074999809265137
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "PROPELLER01",
+        "PROPELLER02",
+        "TURRET",
+        "MUZZLE01",
+        "WEAPONA01",
+        "WEAPONA02",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "PROPELLER01",
+          "parent": "CHASSIS",
+          "position": [
+            -1,
+            0,
+            9
+          ],
+          "rotation": null
+        },
+        {
+          "name": "PROPELLER02",
+          "parent": "CHASSIS",
+          "position": [
+            -17,
+            -0.7,
+            7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            12,
+            0,
+            1.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRET",
+          "position": [
+            4.3,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "CHASSIS",
+          "position": [
+            3,
+            7,
+            2.2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA02",
+          "parent": "CHASSIS",
+          "position": [
+            3,
+            -7,
+            2.2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilapach_paint.tga",
+        "ilapach_paint_d.tga",
+        "ilhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILAPACH.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILAPACH.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILAPACH",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/aviation_atlas_v2.png",
+      "art_revision": "armour-v1",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilapach_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILAPACH_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/apache.png"
+    },
+    {
+      "key": "Rifleman",
+      "display_name": "Rifleman",
+      "role": "Basic infantry",
+      "category": "infantry",
+      "model": "ILRIFLE",
+      "variants": [
+        "ILRIFLE",
+        "ILRIFLE_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILRIFLE",
+          "triangles": 4144
+        },
+        {
+          "model": "ILRIFLE_D",
+          "triangles": 4144
+        }
+      ],
+      "parent": "AmericaInfantryRanger",
+      "suggested_inherited_object": "AmericaInfantryRanger",
+      "dimensions": [
+        3.6799997687339783,
+        2.240000009536743,
+        6.730000257492065
+      ],
+      "bounds": [
+        [
+          -0.699999988079071,
+          2.9799997806549072
+        ],
+        [
+          -1.1200000047683716,
+          1.1200000047683716
+        ],
+        [
+          0.08999991416931152,
+          6.820000171661377
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "LEGL",
+        "KNEEL",
+        "FOOTL",
+        "LEGR",
+        "KNEER",
+        "FOOTR",
+        "ARMS",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "WEAPONA01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "LEGL",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0.43,
+            3.35
+          ],
+          "rotation": null
+        },
+        {
+          "name": "KNEEL",
+          "parent": "LEGL",
+          "position": [
+            0.1,
+            0,
+            -1.28
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FOOTL",
+          "parent": "KNEEL",
+          "position": [
+            -0.08,
+            0,
+            -1.48
+          ],
+          "rotation": null
+        },
+        {
+          "name": "LEGR",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -0.43,
+            3.35
+          ],
+          "rotation": null
+        },
+        {
+          "name": "KNEER",
+          "parent": "LEGR",
+          "position": [
+            0.1,
+            0,
+            -1.28
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FOOTR",
+          "parent": "KNEER",
+          "position": [
+            -0.08,
+            0,
+            -1.48
+          ],
+          "rotation": null
+        },
+        {
+          "name": "ARMS",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            5.13
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "ARMS",
+          "position": [
+            3.06,
+            -0.1,
+            -0.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "ARMS",
+          "position": [
+            3.06,
+            -0.1,
+            -0.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "ARMS",
+          "position": [
+            3.06,
+            -0.1,
+            -0.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {
+        "_I": "ILRIFLE.ILRIFLE_I",
+        "_R": "ILRIFLE.ILRIFLE_R",
+        "_F": "ILRIFLE.ILRIFLE_F",
+        "_X": "ILRIFLE.ILRIFLE_X"
+      },
+      "textures": [
+        "ilhouse.tga",
+        "ilrifle_paint.tga",
+        "ilrifle_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILRIFLE.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILRIFLE.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILRIFLE",
+      "polish_source": "scripts/models/israel/infantry_v2.py",
+      "material_source": "scripts/models/israel/infantry_atlas_v2.png",
+      "art_revision": "infantry-v2",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilrifle_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILRIFLE_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/rifleman.png"
+    },
+    {
+      "key": "Spike",
+      "display_name": "Spike team",
+      "role": "Anti-tank infantry",
+      "category": "infantry",
+      "model": "ILSPIKE",
+      "variants": [
+        "ILSPIKE",
+        "ILSPIKE_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILSPIKE",
+          "triangles": 4148
+        },
+        {
+          "model": "ILSPIKE_D",
+          "triangles": 4148
+        }
+      ],
+      "parent": "AmericaInfantryMissileDefender",
+      "suggested_inherited_object": "AmericaInfantryMissileDefender",
+      "dimensions": [
+        3.5949999690055847,
+        2.240000009536743,
+        6.730000257492065
+      ],
+      "bounds": [
+        [
+          -0.699999988079071,
+          2.8949999809265137
+        ],
+        [
+          -1.1200000047683716,
+          1.1200000047683716
+        ],
+        [
+          0.08999991416931152,
+          6.820000171661377
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "LEGL",
+        "KNEEL",
+        "FOOTL",
+        "LEGR",
+        "KNEER",
+        "FOOTR",
+        "ARMS",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "WEAPONA01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "LEGL",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0.43,
+            3.35
+          ],
+          "rotation": null
+        },
+        {
+          "name": "KNEEL",
+          "parent": "LEGL",
+          "position": [
+            0.1,
+            0,
+            -1.28
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FOOTL",
+          "parent": "KNEEL",
+          "position": [
+            -0.08,
+            0,
+            -1.48
+          ],
+          "rotation": null
+        },
+        {
+          "name": "LEGR",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -0.43,
+            3.35
+          ],
+          "rotation": null
+        },
+        {
+          "name": "KNEER",
+          "parent": "LEGR",
+          "position": [
+            0.1,
+            0,
+            -1.28
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FOOTR",
+          "parent": "KNEER",
+          "position": [
+            -0.08,
+            0,
+            -1.48
+          ],
+          "rotation": null
+        },
+        {
+          "name": "ARMS",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            5.13
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "ARMS",
+          "position": [
+            2.94,
+            -0.14,
+            0.16
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "ARMS",
+          "position": [
+            2.94,
+            -0.14,
+            0.16
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "ARMS",
+          "position": [
+            2.94,
+            -0.14,
+            0.16
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {
+        "_I": "ILSPIKE.ILSPIKE_I",
+        "_R": "ILSPIKE.ILSPIKE_R",
+        "_F": "ILSPIKE.ILSPIKE_F",
+        "_X": "ILSPIKE.ILSPIKE_X"
+      },
+      "textures": [
+        "ilhouse.tga",
+        "ilspike_paint.tga",
+        "ilspike_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSPIKE.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSPIKE.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILSPIKE",
+      "polish_source": "scripts/models/israel/infantry_v2.py",
+      "material_source": "scripts/models/israel/infantry_atlas_v2.png",
+      "art_revision": "infantry-v2",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilspike_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSPIKE_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/spike.png"
+    },
+    {
+      "key": "Commando",
+      "display_name": "Commando",
+      "role": "Elite infantry",
+      "category": "infantry",
+      "model": "ILCOMM",
+      "variants": [
+        "ILCOMM",
+        "ILCOMM_D"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILCOMM",
+          "triangles": 4336
+        },
+        {
+          "model": "ILCOMM_D",
+          "triangles": 4336
+        }
+      ],
+      "parent": "AmericaInfantryColonelBurton",
+      "suggested_inherited_object": "AmericaInfantryColonelBurton",
+      "dimensions": [
+        4.099999845027924,
+        2.240000009536743,
+        6.6600000858306885
+      ],
+      "bounds": [
+        [
+          -0.699999988079071,
+          3.3999998569488525
+        ],
+        [
+          -1.1200000047683716,
+          1.1200000047683716
+        ],
+        [
+          0.08999991416931152,
+          6.75
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "LEGL",
+        "KNEEL",
+        "FOOTL",
+        "LEGR",
+        "KNEER",
+        "FOOTR",
+        "ARMS",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "WEAPONA01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "LEGL",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0.43,
+            3.35
+          ],
+          "rotation": null
+        },
+        {
+          "name": "KNEEL",
+          "parent": "LEGL",
+          "position": [
+            0.1,
+            0,
+            -1.28
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FOOTL",
+          "parent": "KNEEL",
+          "position": [
+            -0.08,
+            0,
+            -1.48
+          ],
+          "rotation": null
+        },
+        {
+          "name": "LEGR",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -0.43,
+            3.35
+          ],
+          "rotation": null
+        },
+        {
+          "name": "KNEER",
+          "parent": "LEGR",
+          "position": [
+            0.1,
+            0,
+            -1.28
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FOOTR",
+          "parent": "KNEER",
+          "position": [
+            -0.08,
+            0,
+            -1.48
+          ],
+          "rotation": null
+        },
+        {
+          "name": "ARMS",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            5.13
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "ARMS",
+          "position": [
+            3.44,
+            -0.1,
+            -0.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "ARMS",
+          "position": [
+            3.44,
+            -0.1,
+            -0.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "ARMS",
+          "position": [
+            3.44,
+            -0.1,
+            -0.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {
+        "_I": "ILCOMM.ILCOMM_I",
+        "_R": "ILCOMM.ILCOMM_R",
+        "_F": "ILCOMM.ILCOMM_F",
+        "_X": "ILCOMM.ILCOMM_X"
+      },
+      "textures": [
+        "ilcomm_paint.tga",
+        "ilcomm_paint_d.tga",
+        "ilhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILCOMM.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILCOMM.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILCOMM",
+      "polish_source": "scripts/models/israel/infantry_v2.py",
+      "material_source": "scripts/models/israel/infantry_atlas_v2.png",
+      "art_revision": "infantry-v2",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilcomm_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILCOMM_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/commando.png"
+    },
+    {
+      "key": "CommandCentre",
+      "display_name": "Command centre",
+      "role": "CommandCentre",
+      "category": "building",
+      "model": "ILCMD",
+      "variants": [
+        "ILCMD",
+        "ILCMD_D",
+        "ILCMD_E",
+        "ILCMD_N",
+        "ILCMD_DN",
+        "ILCMD_EN"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILCMD",
+          "triangles": 2652
+        },
+        {
+          "model": "ILCMD_D",
+          "triangles": 2652
+        },
+        {
+          "model": "ILCMD_E",
+          "triangles": 2652
+        },
+        {
+          "model": "ILCMD_N",
+          "triangles": 2652
+        },
+        {
+          "model": "ILCMD_DN",
+          "triangles": 2652
+        },
+        {
+          "model": "ILCMD_EN",
+          "triangles": 2652
+        }
+      ],
+      "parent": "AmericaCommandCenter",
+      "suggested_inherited_object": "AmericaCommandCenter",
+      "dimensions": [
+        120.0,
+        124.0,
+        53.0
+      ],
+      "bounds": [
+        [
+          -60.0,
+          60.0
+        ],
+        [
+          -62.0,
+          62.0
+        ],
+        [
+          0.0,
+          53.0
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            -18.8,
+            34.5,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            50.9,
+            34.5,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilcmd_paint.tga",
+        "ilcmd_paint_d.tga",
+        "ilcmd_paint_dn.tga",
+        "ilcmd_paint_n.tga",
+        "ilhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILCMD.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILCMD.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILCMD",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilcmd_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILCMD_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/commandcentre.png"
+    },
+    {
+      "key": "Power",
+      "display_name": "Power plant",
+      "role": "Power",
+      "category": "building",
+      "model": "ILPOWER",
+      "variants": [
+        "ILPOWER",
+        "ILPOWER_D",
+        "ILPOWER_E",
+        "ILPOWER_N",
+        "ILPOWER_DN",
+        "ILPOWER_EN"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILPOWER",
+          "triangles": 2208
+        },
+        {
+          "model": "ILPOWER_D",
+          "triangles": 2208
+        },
+        {
+          "model": "ILPOWER_E",
+          "triangles": 2208
+        },
+        {
+          "model": "ILPOWER_N",
+          "triangles": 2208
+        },
+        {
+          "model": "ILPOWER_DN",
+          "triangles": 2208
+        },
+        {
+          "model": "ILPOWER_EN",
+          "triangles": 2208
+        }
+      ],
+      "parent": "AmericaPowerPlant",
+      "suggested_inherited_object": "AmericaPowerPlant",
+      "dimensions": [
+        68.0,
+        64.0,
+        20.15199851989746
+      ],
+      "bounds": [
+        [
+          -34.0,
+          34.0
+        ],
+        [
+          -32.0,
+          32.0
+        ],
+        [
+          0.0,
+          20.15199851989746
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilhouse.tga",
+        "ilpower_paint.tga",
+        "ilpower_paint_d.tga",
+        "ilpower_paint_dn.tga",
+        "ilpower_paint_n.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILPOWER.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILPOWER.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILPOWER",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilpower_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILPOWER_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/power.png"
+    },
+    {
+      "key": "Barracks",
+      "display_name": "Barracks",
+      "role": "Barracks",
+      "category": "building",
+      "model": "ILBARR",
+      "variants": [
+        "ILBARR",
+        "ILBARR_D",
+        "ILBARR_E",
+        "ILBARR_N",
+        "ILBARR_DN",
+        "ILBARR_EN"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILBARR",
+          "triangles": 2124
+        },
+        {
+          "model": "ILBARR_D",
+          "triangles": 2124
+        },
+        {
+          "model": "ILBARR_E",
+          "triangles": 2124
+        },
+        {
+          "model": "ILBARR_N",
+          "triangles": 2124
+        },
+        {
+          "model": "ILBARR_DN",
+          "triangles": 2124
+        },
+        {
+          "model": "ILBARR_EN",
+          "triangles": 2124
+        }
+      ],
+      "parent": "AmericaBarracks",
+      "suggested_inherited_object": "AmericaBarracks",
+      "dimensions": [
+        96.0,
+        82.0,
+        31.0
+      ],
+      "bounds": [
+        [
+          -48.0,
+          48.0
+        ],
+        [
+          -41.0,
+          41.0
+        ],
+        [
+          0.0,
+          31.0
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            20,
+            8,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            54,
+            8,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilbarr_paint.tga",
+        "ilbarr_paint_d.tga",
+        "ilbarr_paint_dn.tga",
+        "ilbarr_paint_n.tga",
+        "ilhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILBARR.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILBARR.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILBARR",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilbarr_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILBARR_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/barracks.png"
+    },
+    {
+      "key": "SupplyCentre",
+      "display_name": "Supply centre",
+      "role": "SupplyCentre",
+      "category": "building",
+      "model": "ILSUPPLY",
+      "variants": [
+        "ILSUPPLY",
+        "ILSUPPLY_D",
+        "ILSUPPLY_E",
+        "ILSUPPLY_N",
+        "ILSUPPLY_DN",
+        "ILSUPPLY_EN"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILSUPPLY",
+          "triangles": 2370
+        },
+        {
+          "model": "ILSUPPLY_D",
+          "triangles": 2370
+        },
+        {
+          "model": "ILSUPPLY_E",
+          "triangles": 2370
+        },
+        {
+          "model": "ILSUPPLY_N",
+          "triangles": 2370
+        },
+        {
+          "model": "ILSUPPLY_DN",
+          "triangles": 2370
+        },
+        {
+          "model": "ILSUPPLY_EN",
+          "triangles": 2370
+        }
+      ],
+      "parent": "ChinaSupplyCenter",
+      "suggested_inherited_object": "ChinaSupplyCenter",
+      "dimensions": [
+        88.0,
+        86.0,
+        34.152000427246094
+      ],
+      "bounds": [
+        [
+          -44.0,
+          44.0
+        ],
+        [
+          -43.0,
+          43.0
+        ],
+        [
+          0.0,
+          34.152000427246094
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "DOCKSTART",
+        "DOCKACTION",
+        "DOCKEND",
+        "DOCKWAITING01",
+        "DOCKWAITING02",
+        "DOCKWAITING03",
+        "DOCKWAITING04",
+        "EXITSTART",
+        "EXITEND",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "DOCKSTART",
+          "parent": "CHASSIS",
+          "position": [
+            54,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKACTION",
+          "parent": "CHASSIS",
+          "position": [
+            23,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKEND",
+          "parent": "CHASSIS",
+          "position": [
+            57,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING01",
+          "parent": "CHASSIS",
+          "position": [
+            68,
+            -24,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING02",
+          "parent": "CHASSIS",
+          "position": [
+            68,
+            24,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING03",
+          "parent": "CHASSIS",
+          "position": [
+            83,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING04",
+          "parent": "CHASSIS",
+          "position": [
+            89,
+            31,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            23,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            58,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilhouse.tga",
+        "ilsupply_paint.tga",
+        "ilsupply_paint_d.tga",
+        "ilsupply_paint_dn.tga",
+        "ilsupply_paint_n.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSUPPLY.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSUPPLY.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILSUPPLY",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilsupply_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSUPPLY_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/supplycentre.png"
+    },
+    {
+      "key": "Factory",
+      "display_name": "Armour factory",
+      "role": "Factory",
+      "category": "building",
+      "model": "ILFACT",
+      "variants": [
+        "ILFACT",
+        "ILFACT_D",
+        "ILFACT_E",
+        "ILFACT_N",
+        "ILFACT_DN",
+        "ILFACT_EN"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILFACT",
+          "triangles": 3298
+        },
+        {
+          "model": "ILFACT_D",
+          "triangles": 3298
+        },
+        {
+          "model": "ILFACT_E",
+          "triangles": 3298
+        },
+        {
+          "model": "ILFACT_N",
+          "triangles": 3298
+        },
+        {
+          "model": "ILFACT_DN",
+          "triangles": 3298
+        },
+        {
+          "model": "ILFACT_EN",
+          "triangles": 3298
+        }
+      ],
+      "parent": "AmericaWarFactory",
+      "suggested_inherited_object": "AmericaWarFactory",
+      "dimensions": [
+        108.0,
+        120.0,
+        32.0
+      ],
+      "bounds": [
+        [
+          -54.0,
+          54.0
+        ],
+        [
+          -60.0,
+          60.0
+        ],
+        [
+          0.0,
+          32.0
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "DOCKSTART",
+        "DOCKACTION",
+        "DOCKEND",
+        "DOCKWAITING01",
+        "DOCKWAITING02",
+        "DOCKWAITING03",
+        "DOCKWAITING04",
+        "DOCKWAITING05",
+        "DOCKWAITING06",
+        "DOCKWAITING07",
+        "DOCKWAITING08",
+        "DOCKWAITING09",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            -10,
+            -30,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            53,
+            -30,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKSTART",
+          "parent": "CHASSIS",
+          "position": [
+            66.9,
+            16.2,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKACTION",
+          "parent": "CHASSIS",
+          "position": [
+            46.5,
+            16.2,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKEND",
+          "parent": "CHASSIS",
+          "position": [
+            73.1,
+            16.2,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING01",
+          "parent": "CHASSIS",
+          "position": [
+            116,
+            44,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING02",
+          "parent": "CHASSIS",
+          "position": [
+            116,
+            98,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING03",
+          "parent": "CHASSIS",
+          "position": [
+            68,
+            98,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING04",
+          "parent": "CHASSIS",
+          "position": [
+            14,
+            98,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING05",
+          "parent": "CHASSIS",
+          "position": [
+            -38,
+            98,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING06",
+          "parent": "CHASSIS",
+          "position": [
+            -96,
+            98,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING07",
+          "parent": "CHASSIS",
+          "position": [
+            -94,
+            40,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING08",
+          "parent": "CHASSIS",
+          "position": [
+            -94,
+            -17,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING09",
+          "parent": "CHASSIS",
+          "position": [
+            -94,
+            -65,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilfact_paint.tga",
+        "ilfact_paint_d.tga",
+        "ilfact_paint_dn.tga",
+        "ilfact_paint_n.tga",
+        "ilhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILFACT.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILFACT.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILFACT",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilfact_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILFACT_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/factory.png"
+    },
+    {
+      "key": "Airfield",
+      "display_name": "Airfield",
+      "role": "Airfield",
+      "category": "building",
+      "model": "ILAIR",
+      "variants": [
+        "ILAIR",
+        "ILAIR_D",
+        "ILAIR_E",
+        "ILAIR_N",
+        "ILAIR_DN",
+        "ILAIR_EN"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILAIR",
+          "triangles": 5464
+        },
+        {
+          "model": "ILAIR_D",
+          "triangles": 5464
+        },
+        {
+          "model": "ILAIR_E",
+          "triangles": 5464
+        },
+        {
+          "model": "ILAIR_N",
+          "triangles": 5464
+        },
+        {
+          "model": "ILAIR_DN",
+          "triangles": 5464
+        },
+        {
+          "model": "ILAIR_EN",
+          "triangles": 5464
+        }
+      ],
+      "parent": "AmericaAirfield",
+      "suggested_inherited_object": "AmericaAirfield",
+      "dimensions": [
+        224.0,
+        148.0,
+        34.35200119018555
+      ],
+      "bounds": [
+        [
+          -112.0,
+          112.0
+        ],
+        [
+          -74.0,
+          74.0
+        ],
+        [
+          0.0,
+          34.35200119018555
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "HELIPARK01",
+        "RUNWAY1PARK1HAN",
+        "RUNWAY2PARK1HAN",
+        "RUNWAY1PARK2HAN",
+        "RUNWAY2PARK2HAN",
+        "RUNWAY1PARKING1",
+        "RUNWAY2PARKING1",
+        "RUNWAY1PARKING2",
+        "RUNWAY2PARKING2",
+        "RUNWAY1PREP1",
+        "RUNWAY2PREP1",
+        "RUNWAY1PREP2",
+        "RUNWAY2PREP2",
+        "RUNWAYSTART1",
+        "RUNWAYSTART2",
+        "RUNWAYEND1",
+        "RUNWAYEND2",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "HELIPARK01",
+          "parent": "CHASSIS",
+          "position": [
+            66.7,
+            41.6,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            -0.7071067811865475,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "RUNWAY1PARK1HAN",
+          "parent": "CHASSIS",
+          "position": [
+            -21.1,
+            51.9,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            -0.7071067811865475,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "RUNWAY2PARK1HAN",
+          "parent": "CHASSIS",
+          "position": [
+            9.5,
+            51.9,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            -0.7071067811865475,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "RUNWAY1PARK2HAN",
+          "parent": "CHASSIS",
+          "position": [
+            -87.1,
+            -49.0,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "RUNWAY2PARK2HAN",
+          "parent": "CHASSIS",
+          "position": [
+            -87.1,
+            -13.1,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "RUNWAY1PARKING1",
+          "parent": "CHASSIS",
+          "position": [
+            -21.1,
+            22.7,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            -0.7071067811865475,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "RUNWAY2PARKING1",
+          "parent": "CHASSIS",
+          "position": [
+            9.5,
+            22.7,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            -0.7071067811865475,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "RUNWAY1PARKING2",
+          "parent": "CHASSIS",
+          "position": [
+            -56.4,
+            -49.0,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "RUNWAY2PARKING2",
+          "parent": "CHASSIS",
+          "position": [
+            -56.4,
+            -13.1,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "RUNWAY1PREP1",
+          "parent": "CHASSIS",
+          "position": [
+            9.5,
+            -49.0,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "RUNWAY2PREP1",
+          "parent": "CHASSIS",
+          "position": [
+            9.5,
+            -13.1,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "RUNWAY1PREP2",
+          "parent": "CHASSIS",
+          "position": [
+            -21.1,
+            -49.0,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "RUNWAY2PREP2",
+          "parent": "CHASSIS",
+          "position": [
+            -21.1,
+            -13.1,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "RUNWAYSTART1",
+          "parent": "CHASSIS",
+          "position": [
+            30.8,
+            -49.0,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "RUNWAYSTART2",
+          "parent": "CHASSIS",
+          "position": [
+            30.8,
+            -13.1,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "RUNWAYEND1",
+          "parent": "CHASSIS",
+          "position": [
+            110.1,
+            -49.0,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "RUNWAYEND2",
+          "parent": "CHASSIS",
+          "position": [
+            110.1,
+            -13.1,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilair_paint.tga",
+        "ilair_paint_d.tga",
+        "ilair_paint_dn.tga",
+        "ilair_paint_n.tga",
+        "ilhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILAIR.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILAIR.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILAIR",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilair_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILAIR_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/airfield.png"
+    },
+    {
+      "key": "TechCentre",
+      "display_name": "Defence research centre",
+      "role": "TechCentre",
+      "category": "building",
+      "model": "ILTECH",
+      "variants": [
+        "ILTECH",
+        "ILTECH_D",
+        "ILTECH_E",
+        "ILTECH_N",
+        "ILTECH_DN",
+        "ILTECH_EN"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILTECH",
+          "triangles": 2848
+        },
+        {
+          "model": "ILTECH_D",
+          "triangles": 2848
+        },
+        {
+          "model": "ILTECH_E",
+          "triangles": 2848
+        },
+        {
+          "model": "ILTECH_N",
+          "triangles": 2848
+        },
+        {
+          "model": "ILTECH_DN",
+          "triangles": 2848
+        },
+        {
+          "model": "ILTECH_EN",
+          "triangles": 2848
+        }
+      ],
+      "parent": "AmericaStrategyCenter",
+      "suggested_inherited_object": "AmericaStrategyCenter",
+      "dimensions": [
+        98.0,
+        92.0,
+        39.0
+      ],
+      "bounds": [
+        [
+          -49.0,
+          49.0
+        ],
+        [
+          -46.0,
+          46.0
+        ],
+        [
+          0.0,
+          39.0
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilhouse.tga",
+        "iltech_paint.tga",
+        "iltech_paint_d.tga",
+        "iltech_paint_dn.tga",
+        "iltech_paint_n.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILTECH.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILTECH.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILTECH",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "iltech_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILTECH_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/techcentre.png"
+    },
+    {
+      "key": "Income",
+      "display_name": "Trade office",
+      "role": "Income",
+      "category": "building",
+      "model": "ILINCOME",
+      "variants": [
+        "ILINCOME",
+        "ILINCOME_D",
+        "ILINCOME_E",
+        "ILINCOME_N",
+        "ILINCOME_DN",
+        "ILINCOME_EN"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILINCOME",
+          "triangles": 1832
+        },
+        {
+          "model": "ILINCOME_D",
+          "triangles": 1832
+        },
+        {
+          "model": "ILINCOME_E",
+          "triangles": 1832
+        },
+        {
+          "model": "ILINCOME_N",
+          "triangles": 1832
+        },
+        {
+          "model": "ILINCOME_DN",
+          "triangles": 1832
+        },
+        {
+          "model": "ILINCOME_EN",
+          "triangles": 1832
+        }
+      ],
+      "parent": "AmericaSupplyDropZone",
+      "suggested_inherited_object": "AmericaSupplyDropZone",
+      "dimensions": [
+        86.0,
+        84.0,
+        23.052000045776367
+      ],
+      "bounds": [
+        [
+          -43.0,
+          43.0
+        ],
+        [
+          -42.0,
+          42.0
+        ],
+        [
+          0.0,
+          23.052000045776367
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "SUPPLIES",
+        "OCLSPAWN",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "SUPPLIES",
+          "parent": "CHASSIS",
+          "position": [
+            15,
+            15,
+            2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "OCLSPAWN",
+          "parent": "CHASSIS",
+          "position": [
+            15,
+            15,
+            2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilhouse.tga",
+        "ilincome_paint.tga",
+        "ilincome_paint_d.tga",
+        "ilincome_paint_dn.tga",
+        "ilincome_paint_n.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILINCOME.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILINCOME.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILINCOME",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilincome_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILINCOME_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/income.png"
+    },
+    {
+      "key": "GroundDefence",
+      "display_name": "Spike defence bunker",
+      "role": "GroundDefence",
+      "category": "building",
+      "model": "ILGDEF",
+      "variants": [
+        "ILGDEF",
+        "ILGDEF_D",
+        "ILGDEF_E",
+        "ILGDEF_N",
+        "ILGDEF_DN",
+        "ILGDEF_EN"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILGDEF",
+          "triangles": 1080
+        },
+        {
+          "model": "ILGDEF_D",
+          "triangles": 1080
+        },
+        {
+          "model": "ILGDEF_E",
+          "triangles": 1080
+        },
+        {
+          "model": "ILGDEF_N",
+          "triangles": 1080
+        },
+        {
+          "model": "ILGDEF_DN",
+          "triangles": 1080
+        },
+        {
+          "model": "ILGDEF_EN",
+          "triangles": 1080
+        }
+      ],
+      "parent": "AmericaPatriotBattery",
+      "suggested_inherited_object": "AmericaPatriotBattery",
+      "dimensions": [
+        34.0,
+        34.0,
+        13.299999237060547
+      ],
+      "bounds": [
+        [
+          -17.0,
+          17.0
+        ],
+        [
+          -17.0,
+          17.0
+        ],
+        [
+          0.0,
+          13.299999237060547
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "TURRET",
+        "TURRETEL",
+        "WEAPONA01",
+        "MUZZLE01",
+        "WEAPONA02",
+        "MUZZLE02",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            8
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRETEL",
+          "parent": "TURRET",
+          "position": [
+            -2,
+            0,
+            1
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "TURRETEL",
+          "position": [
+            8.3,
+            -2.5,
+            2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRETEL",
+          "position": [
+            8.3,
+            -2.5,
+            2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA02",
+          "parent": "TURRETEL",
+          "position": [
+            8.3,
+            2.5,
+            2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE02",
+          "parent": "TURRETEL",
+          "position": [
+            8.3,
+            2.5,
+            2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilgdef_paint.tga",
+        "ilgdef_paint_d.tga",
+        "ilgdef_paint_dn.tga",
+        "ilgdef_paint_n.tga",
+        "ilhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILGDEF.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILGDEF.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILGDEF",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilgdef_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILGDEF_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/grounddefence.png"
+    },
+    {
+      "key": "AirDefence",
+      "display_name": "Air defence battery",
+      "role": "AirDefence",
+      "category": "building",
+      "model": "ILADEF",
+      "variants": [
+        "ILADEF",
+        "ILADEF_D",
+        "ILADEF_E",
+        "ILADEF_N",
+        "ILADEF_DN",
+        "ILADEF_EN"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILADEF",
+          "triangles": 1280
+        },
+        {
+          "model": "ILADEF_D",
+          "triangles": 1280
+        },
+        {
+          "model": "ILADEF_E",
+          "triangles": 1280
+        },
+        {
+          "model": "ILADEF_N",
+          "triangles": 1280
+        },
+        {
+          "model": "ILADEF_DN",
+          "triangles": 1280
+        },
+        {
+          "model": "ILADEF_EN",
+          "triangles": 1280
+        }
+      ],
+      "parent": "AmericaPatriotBattery",
+      "suggested_inherited_object": "AmericaPatriotBattery",
+      "dimensions": [
+        34.0,
+        34.0,
+        21.0
+      ],
+      "bounds": [
+        [
+          -17.0,
+          17.0
+        ],
+        [
+          -17.0,
+          17.0
+        ],
+        [
+          0.0,
+          21.0
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "TURRET",
+        "TURRETEL",
+        "WEAPONA01",
+        "MUZZLE01",
+        "WEAPONA02",
+        "MUZZLE02",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            8
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRETEL",
+          "parent": "TURRET",
+          "position": [
+            -2,
+            0,
+            1
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "TURRETEL",
+          "position": [
+            8.3,
+            -2.5,
+            2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "TURRETEL",
+          "position": [
+            8.3,
+            -2.5,
+            2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA02",
+          "parent": "TURRETEL",
+          "position": [
+            8.3,
+            2.5,
+            2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE02",
+          "parent": "TURRETEL",
+          "position": [
+            8.3,
+            2.5,
+            2
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "iladef_paint.tga",
+        "iladef_paint_d.tga",
+        "iladef_paint_dn.tga",
+        "iladef_paint_n.tga",
+        "ilhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILADEF.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILADEF.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILADEF",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "iladef_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILADEF_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/airdefence.png"
+    },
+    {
+      "key": "Superweapon",
+      "display_name": "Strategic missile battery",
+      "role": "Superweapon",
+      "category": "building",
+      "model": "ILSUPER",
+      "variants": [
+        "ILSUPER",
+        "ILSUPER_D",
+        "ILSUPER_E",
+        "ILSUPER_N",
+        "ILSUPER_DN",
+        "ILSUPER_EN"
+      ],
+      "variant_statistics": [
+        {
+          "model": "ILSUPER",
+          "triangles": 2736
+        },
+        {
+          "model": "ILSUPER_D",
+          "triangles": 2736
+        },
+        {
+          "model": "ILSUPER_E",
+          "triangles": 2736
+        },
+        {
+          "model": "ILSUPER_N",
+          "triangles": 2736
+        },
+        {
+          "model": "ILSUPER_DN",
+          "triangles": 2736
+        },
+        {
+          "model": "ILSUPER_EN",
+          "triangles": 2736
+        }
+      ],
+      "parent": "AmericaParticleCannonUplink",
+      "suggested_inherited_object": "AmericaParticleCannonUplink",
+      "dimensions": [
+        114.0,
+        104.0,
+        53.0
+      ],
+      "bounds": [
+        [
+          -57.0,
+          57.0
+        ],
+        [
+          -52.0,
+          52.0
+        ],
+        [
+          0.0,
+          53.0
+        ]
+      ],
+      "scale": 1,
+      "bones": [
+        "LAUNCH1",
+        "LAUNCH2",
+        "WEAPONA01",
+        "FXBONE",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "bone_transforms": [
+        {
+          "name": "LAUNCH1",
+          "parent": "CHASSIS",
+          "position": [
+            4,
+            -9,
+            7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "LAUNCH2",
+          "parent": "CHASSIS",
+          "position": [
+            29,
+            -9,
+            7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "CHASSIS",
+          "position": [
+            4,
+            -9,
+            7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FXBONE",
+          "parent": "CHASSIS",
+          "position": [
+            4,
+            -9,
+            7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "animations": {},
+      "textures": [
+        "ilhouse.tga",
+        "ilsuper_paint.tga",
+        "ilsuper_paint_d.tga",
+        "ilsuper_paint_dn.tga",
+        "ilsuper_paint_n.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSUPER.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSUPER.blend",
+      "source": "scripts/models/israel/build.py",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/israel/build.py -- ILSUPER",
+      "polish_source": "scripts/models/israel/polish_geometry.py",
+      "material_source": "scripts/models/israel/atlas_polished.png",
+      "geometry": "Original authored geometry, no stock model or texture import",
+      "limitations": [],
+      "portrait_texture": "ilsuper_icon.tga",
+      "portrait_preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/israel/ILSUPER_portrait.png",
+      "portrait_source": "scripts/models/israel/portraits/superweapon.png"
+    }
+  ],
+  "runtime_directory": "resources/macos/GameData/Art/W3D",
+  "texture_directory": "resources/macos/GameData/Art/TexturesHD",
+  "infantry_contract": "Original rigid articulated infantry. Explicit MODEL.MODEL_I stationary pose resets the previous clip; MODEL.MODEL_R moving loop, MODEL.MODEL_F attack loop, MODEL.MODEL_X dying ONCE. No stock animation dependencies.",
+  "supply_contract": "ILSUPPLY uses ChinaSupplyCenter truck workflow. DockStart/Action/End + waiting bones, idle ILSUPTR and no helicopter pads.",
+  "factory_contract": "Factory INI ExitStart=(-10,-30,.3), ExitEnd=(53,-30,.3). RepairDock named bones match AmericaWarFactory. Barracks ExitStart=(20,8,0), ExitEnd=(54,8,0).",
+  "airfield_contract": "All USA Airfield runway parking/hangar/prep/start/end bones and HELIPARK01 preserved. Original architecture aligns to these paths.",
+  "superweapon_contract": "Original abstract strategic missile silo; launch bones LAUNCH1, LAUNCH2, WEAPONA01, FXBONE. Gameplay ability supplied by integration.",
+  "limitations": [
+    "Generic original flattened building wreck geometry; destruction rubble can be hand-authored later.",
+    "Infantry are original rigid low-poly figures with run/fire/fall animation; lack prone and rappel animation."
+  ]
+}

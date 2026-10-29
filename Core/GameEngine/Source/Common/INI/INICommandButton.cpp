@@ -31,6 +31,8 @@
 // USER INCLUDES //////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#include <cstdio>
+
 #include "Common/INI.h"
 #include "Common/SpecialPower.h"
 #include "GameClient/ControlBar.h"
@@ -41,6 +43,35 @@
 void INI::parseCommandButtonDefinition( INI *ini )
 {
 	ControlBar::parseCommandButtonDefinition(ini);
+}
+
+//-------------------------------------------------------------------------------------------------
+void INI::parseChildCommandButtonDefinition( INI *ini )
+{
+	ControlBar::parseChildCommandButtonDefinition(ini);
+}
+
+//-------------------------------------------------------------------------------------------------
+/** TheSuperHackers @feature ChildCommandButton NAME PARENT: a copy of the button PARENT in which any
+	field can change, so that a faction can have its own labels for another's powers. */
+//-------------------------------------------------------------------------------------------------
+void ControlBar::parseChildCommandButtonDefinition( INI *ini )
+{
+	AsciiString name = ini->getNextToken();
+	AsciiString parentName = ini->getNextToken();
+	const CommandButton *parent = TheControlBar->findCommandButton( parentName );
+	if( parent == nullptr || TheControlBar->findNonConstCommandButton( name ) != nullptr )
+	{
+		fprintf(stderr, "ChildCommandButton %s: the button %s does not exist, or %s does already\n", name.str(), parentName.str(), name.str());
+		throw INI_INVALID_DATA;
+	}
+	CommandButton *button = TheControlBar->newCommandButton( name );
+	CommandButton *next = button->friend_getNext();
+	*button = *parent;
+	button->setName( name );
+	button->friend_setNext( next );
+	button->setNextOverride( nullptr );
+	ini->initFromINI( button, button->getFieldParse() );
 }
 
 //-------------------------------------------------------------------------------------------------

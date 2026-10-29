@@ -1,0 +1,425 @@
+// Generated Israel faction names and tooltips.
+
+INI:FactionIsrael
+"Israel"
+END
+
+SIDE:Israel
+"Israel"
+END
+
+TOOLTIP:BioStrategyLong_Israel
+"More armour. More sensors. Bring the crew home. Lead protected assaults with Merkava tanks and Namer carriers, backed by precision missiles. Personal active protection stops one incoming missile every eight seconds; shells, aircraft and missile saturation remain dangerous."
+END
+
+GUI:BioFeatures_Israel
+"Layered armour, vigilant sensors, protected crews, precision missiles"
+END
+
+OBJECT:Israel_SandCat
+"SandCat"
+END
+
+CONTROLBAR:Israel_ConstructSandCat
+"SandCat"
+END
+
+CONTROLBAR:Israel_DescriptionSandCat
+"Fast scout with a machine gun and hidden-unit detection. Fragile against armour; no passengers."
+END
+
+OBJECT:Israel_Merkava
+"Merkava"
+END
+
+CONTROLBAR:Israel_ConstructMerkava
+"Merkava"
+END
+
+CONTROLBAR:Israel_DescriptionMerkava
+"Heavy assault tank with personal active protection. Intercepts one small missile aimed at itself every eight seconds. Vulnerable to shells and missile saturation."
+END
+
+OBJECT:Israel_Namer
+"Namer"
+END
+
+CONTROLBAR:Israel_ConstructNamer
+"Namer"
+END
+
+CONTROLBAR:Israel_DescriptionNamer
+"Heavy six-seat assault carrier with a machine gun and personal active protection. Quickly unloads infantry to fight; passengers cannot fire inside. One interception every eight seconds."
+END
+
+OBJECT:Israel_Pereh
+"Pereh"
+END
+
+CONTROLBAR:Israel_ConstructPereh
+"Pereh"
+END
+
+CONTROLBAR:Israel_DescriptionPereh
+"Long-range precision missile tank hunter. High single-target damage, slow reload and a minimum range. Requires current friendly vision of the target. Needs an escort against infantry."
+END
+
+OBJECT:Israel_SPYDER
+"SPYDER"
+END
+
+CONTROLBAR:Israel_ConstructSPYDER
+"SPYDER"
+END
+
+CONTROLBAR:Israel_DescriptionSPYDER
+"Responsive escort air defence. Fires a steady stream of missiles without deployment or a long salvo reload. Shorter reach than heavy air-defence batteries; cannot attack ground units."
+END
+
+OBJECT:Israel_PULS
+"PULS"
+END
+
+CONTROLBAR:Israel_ConstructPULS
+"PULS"
+END
+
+CONTROLBAR:Israel_DescriptionPULS
+"Long-range rocket artillery fires four rockets per salvo. Fragile and vulnerable inside its minimum range; reloads for eight seconds."
+END
+
+OBJECT:Israel_D9
+"Armoured D9"
+END
+
+CONTROLBAR:Israel_ConstructD9
+"Armoured D9"
+END
+
+CONTROLBAR:Israel_DescriptionD9
+"Armoured engineer vehicle. Builds, repairs and clears mines. Breaching Kits add health and protection from explosions so it can open mined routes under fire."
+END
+
+OBJECT:Israel_SupplyTruck
+"Supply truck"
+END
+
+CONTROLBAR:Israel_ConstructSupplyTruck
+"Supply truck"
+END
+
+CONTROLBAR:Israel_DescriptionSupplyTruck
+"Collects supply crates and delivers them to the Supply Centre."
+END
+
+OBJECT:Israel_F16I
+"F-16I Precision Fighter"
+END
+
+CONTROLBAR:Israel_ConstructF16I
+"F-16I Precision Fighter"
+END
+
+CONTROLBAR:Israel_DescriptionF16I
+"Precision ground-strike aircraft. Two powerful low-splash missiles per sortie; inefficient against dispersed groups and unable to engage aircraft. Returns to the airfield to reload."
+END
+
+OBJECT:Israel_F15I
+"F-15I Raam"
+END
+
+CONTROLBAR:Israel_ConstructF15I
+"F-15I Raam"
+END
+
+CONTROLBAR:Israel_DescriptionF15I
+"Heavy strike aircraft. Four explosive missiles per sortie; attacks ground targets only. Uses an airfield space and returns to reload."
+END
+
+OBJECT:Israel_Apache
+"AH-64 Apache"
+END
+
+CONTROLBAR:Israel_ConstructApache
+"AH-64 Apache"
+END
+
+CONTROLBAR:Israel_DescriptionApache
+"Attack helicopter with a cannon and anti-tank missiles. Rearms automatically in the field. Vulnerable to anti-air."
+END
+
+OBJECT:Israel_Rifleman
+"Assault Infantry"
+END
+
+CONTROLBAR:Israel_ConstructRifleman
+"Assault Infantry"
+END
+
+CONTROLBAR:Israel_DescriptionRifleman
+"Durable close-assault infantry with short rifle bursts. Namer carriers help them close through enemy fire. Assault Grenades clear garrisons; Capture Training captures buildings."
+END
+
+OBJECT:Israel_Spike
+"Spike team"
+END
+
+CONTROLBAR:Israel_ConstructSpike
+"Spike team"
+END
+
+CONTROLBAR:Israel_DescriptionSpike
+"Responsive ground anti-tank infantry. Fires without a deployment delay after dismounting; modest range rewards protected delivery. Cannot engage aircraft. Vulnerable to infantry and area weapons."
+END
+
+OBJECT:Israel_Commando
+"Forward Observer"
+END
+
+CONTROLBAR:Israel_ConstructCommando
+"Forward Observer"
+END
+
+CONTROLBAR:Israel_DescriptionCommando
+"Fragile forward observer with long sight range and a defensive rifle. Conceals while stationary. Keeps targets visible for Pereh missiles; no demolition charges or hero limit."
+END
+
+OBJECT:Israel_CommandCentre
+"Command centre"
+END
+
+CONTROLBAR:Israel_ConstructCommandCentre
+"Command centre"
+END
+
+CONTROLBAR:Israel_DescriptionCommandCentre
+"Builds D9 engineers, supplies radar, and coordinates research-gated reconnaissance and narrow precision strikes."
+END
+
+OBJECT:Israel_Power
+"Power plant"
+END
+
+CONTROLBAR:Israel_ConstructPower
+"Power plant"
+END
+
+CONTROLBAR:Israel_DescriptionPower
+"Produces eight power. Improved Turbines add another five power at this plant."
+END
+
+OBJECT:Israel_Barracks
+"Barracks"
+END
+
+CONTROLBAR:Israel_ConstructBarracks
+"Barracks"
+END
+
+CONTROLBAR:Israel_DescriptionBarracks
+"Trains assault infantry, Spike teams and forward observers. Research Capture Training and Assault Grenades here."
+END
+
+OBJECT:Israel_SupplyCentre
+"Supply centre"
+END
+
+CONTROLBAR:Israel_ConstructSupplyCentre
+"Supply centre"
+END
+
+CONTROLBAR:Israel_DescriptionSupplyCentre
+"Collects resources from supply trucks. Includes one truck when completed."
+END
+
+OBJECT:Israel_Factory
+"Armour factory"
+END
+
+CONTROLBAR:Israel_ConstructFactory
+"Armour factory"
+END
+
+CONTROLBAR:Israel_DescriptionFactory
+"Builds SandCat, Merkava, Namer, SPYDER and Pereh. Repairs vehicles at its service bay."
+END
+
+OBJECT:Israel_Airfield
+"Airfield"
+END
+
+CONTROLBAR:Israel_ConstructAirfield
+"Airfield"
+END
+
+CONTROLBAR:Israel_DescriptionAirfield
+"Four runway spaces support F-16I precision ground-strike sorties."
+END
+
+OBJECT:Israel_TechCentre
+"Defence research centre"
+END
+
+CONTROLBAR:Israel_ConstructTechCentre
+"Defence research centre"
+END
+
+CONTROLBAR:Israel_DescriptionTechCentre
+"Unlocks Pereh and late-game structures. Research Reinforced Armour, Reconnaissance Link and D9 Breaching Kits."
+END
+
+OBJECT:Israel_Income
+"Trade office"
+END
+
+CONTROLBAR:Israel_ConstructIncome
+"Trade office"
+END
+
+CONTROLBAR:Israel_DescriptionIncome
+"Generates $20 every two seconds while powered. Protect it to sustain a late-game army."
+END
+
+OBJECT:Israel_GroundDefence
+"Spike defence bunker"
+END
+
+CONTROLBAR:Israel_ConstructGroundDefence
+"Spike defence bunker"
+END
+
+CONTROLBAR:Israel_DescriptionGroundDefence
+"Fixed Spike missile launcher. Effective against armour. Requires power and cannot engage aircraft."
+END
+
+OBJECT:Israel_AirDefence
+"Air defence battery"
+END
+
+CONTROLBAR:Israel_ConstructAirDefence
+"Air defence battery"
+END
+
+CONTROLBAR:Israel_DescriptionAirDefence
+"Radar-guided missile battery. Requires power and cannot engage ground units."
+END
+
+OBJECT:Israel_Superweapon
+"Strategic missile battery"
+END
+
+CONTROLBAR:Israel_ConstructSuperweapon
+"Strategic missile battery"
+END
+
+CONTROLBAR:Israel_DescriptionSuperweapon
+"Strategic missile battery. Launches a high-explosive missile after the visible six-minute countdown. Requires ten power."
+END
+
+UPGRADE:IsraelTurbines
+"Improved Turbines"
+END
+
+CONTROLBAR:Israel_UpgradeTurbines
+"Improved Turbines"
+END
+
+CONTROLBAR:Israel_UpgradeTurbinesDescription
+"Adds five power at this plant."
+END
+
+UPGRADE:IsraelCapture
+"Capture Training"
+END
+
+CONTROLBAR:Israel_UpgradeCapture
+"Capture Training"
+END
+
+CONTROLBAR:Israel_UpgradeCaptureDescription
+"Riflemen can capture neutral and enemy buildings."
+END
+
+UPGRADE:IsraelArmor
+"Reinforced Armour"
+END
+
+CONTROLBAR:Israel_UpgradeArmor
+"Reinforced Armour"
+END
+
+CONTROLBAR:Israel_UpgradeArmorDescription
+"Merkava and Namer maximum health increases by 20%."
+END
+
+UPGRADE:IsraelGrenades
+"Assault Grenades"
+END
+
+CONTROLBAR:Israel_UpgradeGrenades
+"Assault Grenades"
+END
+
+CONTROLBAR:Israel_UpgradeGrenadesDescription
+"Assault infantry can switch to grenades to clear garrisons."
+END
+
+UPGRADE:IsraelRecon
+"Reconnaissance Link"
+END
+
+CONTROLBAR:Israel_UpgradeRecon
+"Reconnaissance Link"
+END
+
+CONTROLBAR:Israel_UpgradeReconDescription
+"Unlocks a one-minute Command Centre reconnaissance sweep. Ground scouts still provide persistent vision for Pereh missiles."
+END
+
+UPGRADE:IsraelBreach
+"D9 Breaching Kits"
+END
+
+CONTROLBAR:Israel_UpgradeBreach
+"D9 Breaching Kits"
+END
+
+CONTROLBAR:Israel_UpgradeBreachDescription
+"D9 engineers gain 200 health and take 40% less explosion damage. Clears mined routes using normal mine-clearing controls."
+END
+
+CONTROLBAR:Israel_PowerRecon
+"Satellite Reconnaissance"
+END
+
+CONTROLBAR:IsraelReconDescription
+"Reveals a target area. Recharges in one minute."
+END
+
+CONTROLBAR:Israel_PowerPrecision
+"Precision Strike"
+END
+
+CONTROLBAR:IsraelPrecisionDescription
+"One to three interceptable F-16I aircraft each deliver one low-splash missile. Punishes an exposed support vehicle; visible warning allows movement. Four-minute reload."
+END
+
+CONTROLBAR:Israel_PowerMissile
+"Strategic Missile"
+END
+
+CONTROLBAR:IsraelMissileDescription
+"Launches a high-explosive missile at the selected target. Recharges in six minutes."
+END
+
+SCIENCE:IsraelPrecision1
+"Precision Strike 1"
+END
+
+SCIENCE:IsraelPrecision2
+"Precision Strike 2"
+END
+
+SCIENCE:IsraelPrecision3
+"Precision Strike 3"
+END

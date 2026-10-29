@@ -1195,6 +1195,12 @@ static void parseAsciiStringLC( INI* ini, void * /*instance*/, void *store, cons
 }
 
 //-------------------------------------------------------------------------------------------------
+static void parseTextureReplace(INI *ini, void *instance, void * /*store*/, const void * /*userData*/)
+{
+	W3DModelDrawModuleData *data = (W3DModelDrawModuleData *)instance;
+	ThingTemplate::addTextureReplace(ini, data->m_textureReplaceOld, data->m_textureReplaceNew);
+}
+
 void W3DModelDrawModuleData::buildFieldParse(MultiIniFieldParse& p)
 {
   ModuleData::buildFieldParse(p);
@@ -1219,6 +1225,9 @@ void W3DModelDrawModuleData::buildFieldParse(MultiIniFieldParse& p)
 		{ "AttachToBoneInAnotherModule", parseAsciiStringLC, nullptr, offsetof(W3DModelDrawModuleData, m_attachToDrawableBone) },
 		{ "IgnoreConditionStates", ModelConditionFlags::parseFromINI, nullptr, offsetof(W3DModelDrawModuleData, m_ignoreConditionStates) },
 		{ "ReceivesDynamicLights", INI::parseBool, nullptr, offsetof(W3DModelDrawModuleData, m_receivesDynamicLights) },
+		// TheSuperHackers @feature TextureReplace = OLD NEW draws the models with texture NEW instead of OLD,
+		// so that a faction can reuse models in its own colours.
+		{ "TextureReplace", parseTextureReplace, nullptr, 0 },
 		{ nullptr, nullptr, nullptr, 0 }
 	};
   p.add(dataFieldParse);
@@ -3104,7 +3113,14 @@ void W3DModelDraw::setModelState(const ModelConditionInfo* newState)
 		}
 		else
 		{
-			m_renderObject = W3DDisplay::m_assetManager->Create_Render_Obj(newState->m_modelName.str(), draw->getScale(), m_hexColor);
+			// TextureReplace of the draw module, or else of the object.
+			const W3DModelDrawModuleData *md = getW3DModelDrawModuleData();
+			const ThingTemplate *tt = draw->getTemplate();
+			const AsciiString &oldTexture = md->m_textureReplaceOld.isNotEmpty() ? md->m_textureReplaceOld : tt->getTextureReplaceOld();
+			const AsciiString &newTexture = md->m_textureReplaceOld.isNotEmpty() ? md->m_textureReplaceNew : tt->getTextureReplaceNew();
+			const Bool retexture = oldTexture.isNotEmpty() && newTexture.isNotEmpty();
+			m_renderObject = W3DDisplay::m_assetManager->Create_Render_Obj(newState->m_modelName.str(), draw->getScale(), m_hexColor,
+				retexture ? oldTexture.str() : nullptr, retexture ? newTexture.str() : nullptr);
 			DEBUG_ASSERTCRASH(m_renderObject, ("*** ASSET ERROR: Model %s not found!",newState->m_modelName.str()));
 #if defined(RTS_POSIX_PORT)
 			if (m_renderObject)
@@ -3791,7 +3807,7 @@ Bool W3DModelDraw::handleWeaponFireFX(WeaponSlotType wslot, Int specificBarrelTo
 
 	Bool handled = false;
 
-	if (specificBarrelToUse < 0 || specificBarrelToUse > wbvec.size())
+	if (specificBarrelToUse < 0 || specificBarrelToUse >= (Int)wbvec.size())
 		specificBarrelToUse = 0;
 
 	const ModelConditionInfo::WeaponBarrelInfo& info = wbvec[specificBarrelToUse];
@@ -3838,6 +3854,10 @@ Bool W3DModelDraw::handleWeaponFireFX(WeaponSlotType wslot, Int specificBarrelTo
 	if (info.m_recoilBone || info.m_muzzleFlashBone)
 	{
 		//DEBUG_LOG(("START muzzleflash %08lx for Draw %08lx state %s at frame %d",info.m_muzzleFlashBone,this,m_curState->m_description.str(),TheGameLogic->getFrame()));
+		// TheSuperHackers @bugfix The barrels can be found after the recoil info was made for the state
+		// (a unit made outside the game logic's update); make it again rather than read past its end.
+		if (specificBarrelToUse >= (Int)m_weaponRecoilInfoVec[wslot].size())
+			rebuildWeaponRecoilInfo(m_curState);
 		WeaponRecoilInfo& recoil = m_weaponRecoilInfoVec[wslot][specificBarrelToUse];
 		recoil.m_state = WeaponRecoilInfo::RECOIL_START;
 		recoil.m_recoilRate = getW3DModelDrawModuleData()->m_initialRecoil;

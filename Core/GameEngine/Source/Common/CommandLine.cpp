@@ -33,6 +33,7 @@
 #include "Common/LocalFileSystem.h"
 #include "Common/version.h"
 #include "Common/WorkingDirectory.h"
+#include "Common/OptionPreferences.h"
 #include "GameClient/ClientInstance.h"
 #include "GameClient/TerrainVisual.h" // for TERRAIN_LOD_MIN definition
 #include "GameClient/GameText.h"
@@ -374,6 +375,14 @@ Int parseNoAudio(char *args[], int)
 	TheWritableGlobalData->m_soundsOn = false;
 	TheWritableGlobalData->m_musicOn = false;
 
+	return 1;
+}
+
+//=============================================================================
+//=============================================================================
+Int parseNoEurope(char *args[], int)
+{
+	disableAddonData();
 	return 1;
 }
 
@@ -1280,7 +1289,9 @@ Int parseClearDebugLevel(char *args[], int num)
 // Note that except for TheGlobalData, no other global objects exist yet when these are parsed.
 static CommandLineParam paramsForStartup[] =
 {
+	{ "-noEurope", parseNoEurope }, // the game without its add-on data (the European faction), read before any data loads
 	{ "-skirmish", parseSkirmishInstance },
+	{ "-battle", parseSkirmishInstance }, // a battle may run beside the game too (balance tests run several)
 	{ "-win", parseWin },
 	{ "-fullscreen", parseNoWin },
 

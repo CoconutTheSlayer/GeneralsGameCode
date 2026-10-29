@@ -701,6 +701,7 @@ void GameClient::update()
 			nextFrame = TheGameLogic->getFrame() + (every ? max(1, (Int)(atof(every) * LOGICFRAMES_PER_SECOND)) : 2 * LOGICFRAMES_PER_SECOND);
 		}
 	}
+
 #endif
 
 	RTS_BENCH_COUNTER("particles", TheParticleSystemManager ? TheParticleSystemManager->getParticleCount() : 0);

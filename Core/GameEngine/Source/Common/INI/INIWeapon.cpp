@@ -45,4 +45,12 @@ void INI::parseWeaponTemplateDefinition( INI* ini )
 	WeaponStore::parseWeaponTemplateDefinition(ini);
 }
 
-
+#if RTS_ZEROHOUR
+//-------------------------------------------------------------------------------------------------
+/** Parse ChildWeapon entry: ChildWeapon NAME PARENT */
+//-------------------------------------------------------------------------------------------------
+void INI::parseChildWeaponDefinition( INI* ini )
+{
+	WeaponStore::parseChildWeaponDefinition(ini);
+}
+#endif

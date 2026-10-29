@@ -9372,6 +9372,17 @@ void _appendMessage(const AsciiString& str, Bool isTrueMessage, Bool shouldPause
 {
 	typedef void (*funcptr)(const char*);
 
+#if defined(RTS_POSIX_PORT)
+	// GENERALS_SCRIPT_LOG=1 prints each script that runs, to follow what an AI player does.
+	static const bool scriptLog = getenv("GENERALS_SCRIPT_LOG") != nullptr;
+	if (scriptLog)
+	{
+		const Player *player = TheScriptEngine ? TheScriptEngine->getCurrentPlayer() : nullptr;
+		fprintf(stderr, "SCRIPT_LOG %u %s %s%s\n", TheGameLogic->getFrame(), player ? player->getSide().str() : "-",
+			isTrueMessage ? "" : "false ", str.str());
+	}
+#endif
+
 	AsciiString msg;
 	msg.format("%d ", TheGameLogic->getFrame());
 	if (isTrueMessage) {

@@ -63,12 +63,39 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 //-------------------------------------------------------------------------------------------------
-/*static*/ const FieldParse* PlayerTemplate::getFieldParse()
+/*static*/ void PlayerTemplate::parseSkirmishAIReplace(INI *ini, void *instance, void * /*store*/, const void * /*userData*/)
+{
+	PlayerTemplate *pt = (PlayerTemplate *)instance;
+	AsciiString from = ini->getNextAsciiString();
+	AsciiString to = ini->getNextAsciiString();
+	pt->m_skirmishAIReplace.push_back(std::make_pair(from, to));
+}
+
+//-------------------------------------------------------------------------------------------------
+/*static*/ void PlayerTemplate::parseSkirmishAIUpgrade(INI *ini, void *instance, void * /*store*/, const void * /*userData*/)
+{
+	PlayerTemplate *pt = (PlayerTemplate *)instance;
+	SkirmishAIUpgrade entry;
+	entry.upgrade = ini->getNextAsciiString();
+	entry.count = 0;
+	const char *object = ini->getNextTokenOrNull();
+	if (object)
+	{
+		entry.object = object;
+		entry.count = INI::scanInt(ini->getNextToken());
+	}
+	pt->m_skirmishAIUpgrades.push_back(entry);
+}
+
+const FieldParse* PlayerTemplate::getFieldParse()
 {
 	static const FieldParse TheFieldParseTable[] =
 	{
 		{ "Side",											INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_side ) },
 		{ "BaseSide",								INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_baseSide ) },
+		{ "SkirmishAISide",					INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_skirmishAISide ) },
+		{ "SkirmishAIReplace",			PlayerTemplate::parseSkirmishAIReplace,					nullptr, 0 },
+		{ "SkirmishAIUpgrade",			PlayerTemplate::parseSkirmishAIUpgrade,					nullptr, 0 },
 		{ "PlayableSide",							INI::parseBool,																	nullptr, offsetof( PlayerTemplate, m_playableSide ) },
 		{ "DisplayName",							INI::parseAndTranslateLabel,										nullptr, offsetof( PlayerTemplate, m_displayName) },
 		{ "StartMoney",								PlayerTemplate::parseStartMoney,								nullptr, offsetof( PlayerTemplate, m_money ) },

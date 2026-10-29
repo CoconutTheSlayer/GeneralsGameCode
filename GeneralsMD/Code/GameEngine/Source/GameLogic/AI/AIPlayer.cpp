@@ -195,9 +195,9 @@ void AIPlayer::checkForSupplyCenter( BuildListInfo *info, Object *bldg )
 	{
 		info->setSupplyBuilding(true);
 		Int desiredGatherers = 0;
-		const AISideInfo *resInfo = TheAI->getAiData()->m_sideInfo;
-		while (resInfo) {
-			if (resInfo->m_side == m_player->getSide()) {
+		const AISideInfo *resInfo = TheAI->getAiData()->findSideInfo(m_player);
+		if (resInfo) {
+			{
 				GameDifficulty difficulty = m_difficulty;
 				if (difficulty == DIFFICULTY_EASY) {
 					desiredGatherers = resInfo->m_easy;
@@ -209,7 +209,6 @@ void AIPlayer::checkForSupplyCenter( BuildListInfo *info, Object *bldg )
 					desiredGatherers = resInfo->m_hard;
 				}
 			}
-			resInfo = resInfo->m_next;
 		}
 		info->setSupplyBuilding(true);
 		info->setCurrentGatherers(-1);
@@ -2994,13 +2993,7 @@ void AIPlayer::doUpgradesAndSkills()
 	if (!checkScience) {
 		return;
 	}
-	const AISideInfo *sideInfo = TheAI->getAiData()->m_sideInfo;
-	while (sideInfo) {
-		if (sideInfo->m_side == m_player->getSide()) {
-			break;
-		}
-		sideInfo = sideInfo->m_next;
-	}
+	const AISideInfo *sideInfo = TheAI->getAiData()->findSideInfo(m_player);
 	if (sideInfo == nullptr) return;
 
 	if (m_skillsetSelector == INVALID_SKILLSET_SELECTION) {

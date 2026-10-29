@@ -58,4 +58,16 @@ void INI::parseObjectReskinDefinition( INI* ini )
 	ThingFactory::parseObjectDefinition(ini, name, reskinFrom);
 }
 
+#if RTS_ZEROHOUR
+//-------------------------------------------------------------------------------------------------
+/** Parse ChildObject entry: ChildObject NAME PARENT */
+//-------------------------------------------------------------------------------------------------
+void INI::parseChildObjectDefinition( INI* ini )
+{
+	AsciiString name = ini->getNextToken();
+	AsciiString parent = ini->getNextToken();
+	ThingFactory::parseObjectDefinition(ini, name, parent, TRUE);
+}
+#endif
+
 

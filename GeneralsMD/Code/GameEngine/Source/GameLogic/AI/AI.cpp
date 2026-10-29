@@ -26,6 +26,7 @@
 // The Artificial Intelligence system
 // Author: Michael S. Booth, November 2000
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+#include "Common/PlayerTemplate.h"
 
 #include "Common/CRCDebug.h"
 #include "Common/GameState.h"
@@ -74,6 +75,32 @@ void TAiData::addFactionBuildList(AISideBuildList *buildList)
 	}
 	buildList->m_next = m_sideBuildLists;
 	m_sideBuildLists = buildList;
+}
+
+const AISideInfo *TAiData::findSideInfo(const Player *player) const
+{
+	for (const AISideInfo *info = m_sideInfo; info; info = info->m_next)
+		if (info->m_side == player->getSide())
+			return info;
+	const PlayerTemplate *pt = player->getPlayerTemplate();
+	if (pt && pt->getSkirmishAISide().isNotEmpty())
+		for (const AISideInfo *info = m_sideInfo; info; info = info->m_next)
+			if (info->m_side == pt->getSkirmishAISide())
+				return info;
+	return nullptr;
+}
+
+const AISideBuildList *TAiData::findBuildList(const Player *player) const
+{
+	for (const AISideBuildList *build = m_sideBuildLists; build; build = build->m_next)
+		if (build->m_side == player->getSide())
+			return build;
+	const PlayerTemplate *pt = player->getPlayerTemplate();
+	if (pt && pt->getSkirmishAISide().isNotEmpty())
+		for (const AISideBuildList *build = m_sideBuildLists; build; build = build->m_next)
+			if (build->m_side == pt->getSkirmishAISide())
+				return build;
+	return nullptr;
 }
 
 TAiData::~TAiData()

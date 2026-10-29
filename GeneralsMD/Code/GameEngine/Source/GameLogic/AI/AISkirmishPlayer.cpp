@@ -38,6 +38,8 @@
 #include "Common/BuildAssistant.h"
 #include "Common/SpecialPower.h"
 #include "Common/ThingTemplate.h"
+#include "Common/Upgrade.h"
+#include "Common/PlayerTemplate.h"
 #include "Common/WellKnownKeys.h"
 #include "Common/Xfer.h"
 #include "GameLogic/GameLogic.h"
@@ -560,17 +562,9 @@ Player *AISkirmishPlayer::getAiEnemy()
 */
 void AISkirmishPlayer::buildAIBaseDefense(Bool flank)
 {
-	const AISideInfo *resInfo = TheAI->getAiData()->m_sideInfo;
-	AsciiString defenseTemplateName;
-	while (resInfo) {
-		if (resInfo->m_side == m_player->getSide()) {
-			defenseTemplateName = resInfo->m_baseDefenseStructure1;
-			break;
-		}
-		resInfo = resInfo->m_next;
-	}
+	const AISideInfo *resInfo = TheAI->getAiData()->findSideInfo(m_player);
 	if (resInfo) {
-		buildAIBaseDefenseStructure(resInfo->m_baseDefenseStructure1, flank);
+		buildAIBaseDefenseStructure(m_player->getAIReplacement(resInfo->m_baseDefenseStructure1), flank);
 	}
 }
 
@@ -971,6 +965,30 @@ void AISkirmishPlayer::doTeamBuilding()
 void AISkirmishPlayer::update()
 {
 	AIPlayer::update();
+
+	// TheSuperHackers @feature The research a faction's skirmish AI starts on its own (PlayerTemplate
+	// SkirmishAIUpgrade), every two seconds.
+	const PlayerTemplate *pt = m_player->getPlayerTemplate();
+	if (pt && !pt->getSkirmishAIUpgrades().empty() && TheGameLogic->getFrame() % (2 * LOGICFRAMES_PER_SECOND) == 0)
+	{
+		for (const PlayerTemplate::SkirmishAIUpgrade &entry : pt->getSkirmishAIUpgrades())
+		{
+			const UpgradeTemplate *upgrade = TheUpgradeCenter->findUpgrade(entry.upgrade);
+			if (upgrade == nullptr || m_player->hasUpgradeComplete(upgrade) || m_player->hasUpgradeInProduction(upgrade)
+					|| !TheUpgradeCenter->canAffordUpgrade(m_player, upgrade))
+				continue;
+			if (entry.count > 0)
+			{
+				const ThingTemplate *thing = TheThingFactory->findTemplate(entry.object);
+				Int count = 0;
+				if (thing)
+					m_player->countObjectsByThingTemplate(1, &thing, true, &count);
+				if (count < entry.count)
+					continue;
+			}
+			buildUpgrade(entry.upgrade);
+		}
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -1101,16 +1119,17 @@ void AISkirmishPlayer::newMap()
 	/* Get our proper build list. */
 	AsciiString mySide = m_player->getSide();
 	DEBUG_LOG(("AI Player side is %s", mySide.str()));
-	const AISideBuildList *build = TheAI->getAiData()->m_sideBuildLists;
-	while (build) {
-		if (build->m_side == mySide) {
+	const AISideBuildList *build = TheAI->getAiData()->findBuildList(m_player);
+	if (build) {
+		{
 			BuildListInfo *buildList = build->m_buildList->duplicate();
+			// A faction using another side's build list builds its own structures.
+			for (BuildListInfo *info = buildList; info; info = info->getNext())
+				info->setTemplateName(m_player->getAIReplacement(info->getTemplateName()));
 			adjustBuildList(buildList); // adjust to  our start position.
 			m_player->setBuildList(buildList);
 			computeCenterAndRadiusOfBase(&m_baseCenter, &m_baseRadius);
-			break;
 		}
-		build = build->m_next;
 	}
 	DEBUG_ASSERTLOG(build!=nullptr, ("Couldn't find build list for skirmish player."));
 

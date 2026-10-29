@@ -1875,6 +1875,16 @@ void Object::attemptDamage( DamageInfo *damageInfo )
 	BodyModuleInterface* body = getBodyModule();
 	if (body)
 		body->attemptDamage( damageInfo );
+	#if defined(RTS_POSIX_PORT)
+	if (isKindOf(KINDOF_DRONE) && isKindOf(KINDOF_PROJECTILE) &&
+		damageInfo->out.m_actualDamageDealt > 0 && getenv("GENERALS_DRONE_LOG"))
+	{
+		Object *source = TheGameLogic->findObjectByID(damageInfo->in.m_sourceID);
+		fprintf(stderr, "DRONE_DAMAGE frame %u drone %u source %s damage %.1f\n",
+			TheGameLogic->getFrame(), (unsigned)getID(),
+			source ? source->getTemplate()->getName().str() : "none", damageInfo->out.m_actualDamageDealt);
+	}
+	#endif
 
 	// Process any shockwave forces that might affect this object due to the incurred damage
 	if (damageInfo->in.m_shockWaveAmount > 0.0f && damageInfo->in.m_shockWaveRadius > 0.0f)

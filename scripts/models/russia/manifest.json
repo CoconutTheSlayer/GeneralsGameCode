@@ -1,0 +1,4504 @@
+{
+  "faction": "Russia",
+  "style": "Heavy olive painted armour, dark running gear, broad wear, industrial concrete and olive steel architecture. Original visible geometry only.",
+  "assets": [
+    {
+      "model": "RUTIGR",
+      "role": "Armed reconnaissance vehicle",
+      "suggested_inherited_object": "AmericaVehicleHumvee",
+      "variants": [
+        "RUTIGR",
+        "RUTIGR_D"
+      ],
+      "bones": [
+        "TIRE01",
+        "TIRE02",
+        "TIRE03",
+        "TIRE04",
+        "TURRET",
+        "BARREL",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "EXITSTART",
+        "EXITEND",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        20.399999618530273,
+        12.09999942779541,
+        13.005319595336914
+      ],
+      "triangles": 4124,
+      "meshes": 13,
+      "texture_files": [
+        "ruhouse.tga",
+        "rutigr_paint.tga",
+        "rutigr_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUTIGR.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUTIGR.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUTIGR",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "Tigr",
+      "display_name": "Tigr Radar Scout",
+      "category": "vehicle",
+      "parent": "AmericaVehicleHumvee",
+      "bone_contract": [
+        {
+          "name": "TIRE01",
+          "parent": "CHASSIS",
+          "position": [
+            6.4,
+            -4.8,
+            2.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE02",
+          "parent": "CHASSIS",
+          "position": [
+            6.4,
+            4.8,
+            2.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE03",
+          "parent": "CHASSIS",
+          "position": [
+            -6.4,
+            -4.8,
+            2.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE04",
+          "parent": "CHASSIS",
+          "position": [
+            -6.4,
+            4.8,
+            2.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -1,
+            0,
+            9
+          ],
+          "rotation": null
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            0.4,
+            0,
+            1.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "BARREL",
+          "position": [
+            5.0,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "BARREL",
+          "position": [
+            5.0,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            -6,
+            0,
+            1
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            -14,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rutigr_paint.tga",
+        "rutigr_paint_d.tga"
+      ],
+      "art_revision": "russia-v2",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUT90",
+      "role": "Main battle tank",
+      "suggested_inherited_object": "ChinaTankBattleMaster",
+      "variants": [
+        "RUT90",
+        "RUT90_D"
+      ],
+      "bones": [
+        "TURRET",
+        "BARREL",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        33.165000915527344,
+        14.359999656677246,
+        13.702590703964233
+      ],
+      "triangles": 6024,
+      "meshes": 7,
+      "texture_files": [
+        "ruhouse.tga",
+        "rut90_paint.tga",
+        "rut90_paint_d.tga",
+        "rutrack.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUT90.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUT90.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUT90",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "T90",
+      "display_name": "T-90",
+      "category": "vehicle",
+      "parent": "ChinaTankBattleMaster",
+      "bone_contract": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -0.3,
+            0,
+            6.1
+          ],
+          "rotation": null
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            4.6,
+            0,
+            1.9
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "BARREL",
+          "position": [
+            14.5,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "BARREL",
+          "position": [
+            14.5,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rut90_paint.tga",
+        "rut90_paint_d.tga",
+        "rutrack.tga"
+      ],
+      "art_revision": "russia-v2",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUBMPT",
+      "role": "BMPT twin-cannon assault support",
+      "suggested_inherited_object": "AmericaTankCrusader",
+      "variants": [
+        "RUBMPT",
+        "RUBMPT_D"
+      ],
+      "bones": [
+        "TURRET",
+        "BARREL",
+        "MUZZLE01",
+        "MUZZLE02",
+        "MUZZLEFX01",
+        "GRENADE01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        26.399999618530273,
+        14.039999961853027,
+        13.00309157371521
+      ],
+      "triangles": 4704,
+      "meshes": 7,
+      "texture_files": [
+        "rubmpt_paint.tga",
+        "rubmpt_paint_d.tga",
+        "ruhouse.tga",
+        "rutrack.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUBMPT.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUBMPT.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUBMPT",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "BMP3",
+      "display_name": "BMPT Assault Support",
+      "category": "vehicle",
+      "parent": "AmericaTankCrusader",
+      "bone_contract": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -0.6,
+            0,
+            6.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            2.4,
+            0,
+            1.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "BARREL",
+          "position": [
+            11.4,
+            0.72,
+            0.18
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE02",
+          "parent": "BARREL",
+          "position": [
+            11.4,
+            -0.72,
+            0.18
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "BARREL",
+          "position": [
+            11.4,
+            0,
+            0.18
+          ],
+          "rotation": null
+        },
+        {
+          "name": "GRENADE01",
+          "parent": "CHASSIS",
+          "position": [
+            9.8,
+            3.8,
+            6.1
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "rubmpt_paint.tga",
+        "rubmpt_paint_d.tga",
+        "ruhouse.tga",
+        "rutrack.tga"
+      ],
+      "art_revision": "russia-v2",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUTUNG",
+      "role": "Gun and missile air defence",
+      "suggested_inherited_object": "ChinaTankGattling",
+      "variants": [
+        "RUTUNG",
+        "RUTUNG_D"
+      ],
+      "bones": [
+        "TURRET",
+        "BARREL",
+        "MUZZLE02",
+        "WEAPONA02",
+        "MUZZLE01",
+        "WEAPONA01",
+        "MUZZLEFX01",
+        "RADAR",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [
+        "RUTUNG.RUTUNG"
+      ],
+      "dimensions": [
+        27.199999809265137,
+        14.039999961853027,
+        14.90000033378601
+      ],
+      "triangles": 5084,
+      "meshes": 8,
+      "texture_files": [
+        "ruhouse.tga",
+        "rutrack.tga",
+        "rutung_paint.tga",
+        "rutung_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUTUNG.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUTUNG.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUTUNG",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "Tunguska",
+      "display_name": "Tunguska",
+      "category": "vehicle",
+      "parent": "ChinaTankGattling",
+      "bone_contract": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            6.8
+          ],
+          "rotation": null
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            2.8,
+            0,
+            2.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE02",
+          "parent": "BARREL",
+          "position": [
+            8.6,
+            -4.7,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA02",
+          "parent": "BARREL",
+          "position": [
+            3.6,
+            -5.2,
+            2.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "BARREL",
+          "position": [
+            8.6,
+            4.7,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "BARREL",
+          "position": [
+            3.6,
+            5.2,
+            2.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "BARREL",
+          "position": [
+            8.6,
+            4.7,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "RADAR",
+          "parent": "TURRET",
+          "position": [
+            -3,
+            0,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rutrack.tga",
+        "rutung_paint.tga",
+        "rutung_paint_d.tga"
+      ],
+      "art_revision": "russia-v2",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUMSTA",
+      "role": "Long-range self-propelled artillery",
+      "suggested_inherited_object": "ChinaVehicleInfernoCannon",
+      "variants": [
+        "RUMSTA",
+        "RUMSTA_D"
+      ],
+      "bones": [
+        "TURRET",
+        "BARREL",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        40.53499889373779,
+        14.4399995803833,
+        14.619999647140503
+      ],
+      "triangles": 4636,
+      "meshes": 7,
+      "texture_files": [
+        "ruhouse.tga",
+        "rumsta_paint.tga",
+        "rumsta_paint_d.tga",
+        "rutrack.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUMSTA.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUMSTA.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUMSTA",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "Msta",
+      "display_name": "Msta-S",
+      "category": "vehicle",
+      "parent": "ChinaVehicleInfernoCannon",
+      "bone_contract": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -3,
+            0,
+            6.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            4.9,
+            0,
+            4.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "BARREL",
+          "position": [
+            23.5,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "BARREL",
+          "position": [
+            23.5,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rumsta_paint.tga",
+        "rumsta_paint_d.tga",
+        "rutrack.tga"
+      ],
+      "art_revision": "russia-v2",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUTOS",
+      "role": "Short-range assault barrage",
+      "suggested_inherited_object": "ChinaVehicleNukeLauncher",
+      "variants": [
+        "RUTOS",
+        "RUTOS_D"
+      ],
+      "bones": [
+        "TURRET",
+        "BARREL",
+        "WEAPONA01",
+        "WEAPONA02",
+        "WEAPONA03",
+        "WEAPONA04",
+        "WEAPONA05",
+        "WEAPONA06",
+        "WEAPONA07",
+        "WEAPONA08",
+        "WEAPONA09",
+        "WEAPONA10",
+        "WEAPONA11",
+        "WEAPONA12",
+        "WEAPONA13",
+        "WEAPONA14",
+        "WEAPONA15",
+        "WEAPONA16",
+        "WEAPONA17",
+        "WEAPONA18",
+        "WEAPONA19",
+        "WEAPONA20",
+        "WEAPONA21",
+        "WEAPONA22",
+        "WEAPONA23",
+        "WEAPONA24",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        26.199999809265137,
+        14.4399995803833,
+        13.249399900436401
+      ],
+      "triangles": 5868,
+      "meshes": 7,
+      "texture_files": [
+        "ruhouse.tga",
+        "rutos_paint.tga",
+        "rutos_paint_d.tga",
+        "rutrack.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUTOS.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUTOS.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUTOS",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "TOS",
+      "display_name": "TOS-1A",
+      "category": "vehicle",
+      "parent": "ChinaVehicleNukeLauncher",
+      "bone_contract": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            -1,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            0,
+            0,
+            2.6
+          ],
+          "rotation": [
+            0,
+            -0.0799146939691727,
+            0,
+            0.9968017063026194
+          ]
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            -4.1,
+            -0.15
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA02",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            -2.9299999999999997,
+            -0.15
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA03",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            -1.7599999999999998,
+            -0.15
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA04",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            -0.5899999999999999,
+            -0.15
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA05",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            0.5800000000000001,
+            -0.15
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA06",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            1.75,
+            -0.15
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA07",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            2.92,
+            -0.15
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA08",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            4.09,
+            -0.15
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA09",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            -4.1,
+            1.2100000000000002
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA10",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            -2.9299999999999997,
+            1.2100000000000002
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA11",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            -1.7599999999999998,
+            1.2100000000000002
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA12",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            -0.5899999999999999,
+            1.2100000000000002
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA13",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            0.5800000000000001,
+            1.2100000000000002
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA14",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            1.75,
+            1.2100000000000002
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA15",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            2.92,
+            1.2100000000000002
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA16",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            4.09,
+            1.2100000000000002
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA17",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            -4.1,
+            2.5700000000000003
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA18",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            -2.9299999999999997,
+            2.5700000000000003
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA19",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            -1.7599999999999998,
+            2.5700000000000003
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA20",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            -0.5899999999999999,
+            2.5700000000000003
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA21",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            0.5800000000000001,
+            2.5700000000000003
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA22",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            1.75,
+            2.5700000000000003
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA23",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            2.92,
+            2.5700000000000003
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA24",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            4.09,
+            2.5700000000000003
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            0,
+            1
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "BARREL",
+          "position": [
+            7.1,
+            0,
+            1
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rutos_paint.tga",
+        "rutos_paint_d.tga",
+        "rutrack.tga"
+      ],
+      "art_revision": "russia-v2",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RURIFLE",
+      "role": "Rifle infantry",
+      "suggested_inherited_object": "AmericaInfantryRanger",
+      "variants": [
+        "RURIFLE",
+        "RURIFLE_D"
+      ],
+      "bones": [
+        "LEGL",
+        "KNEEL",
+        "FOOTL",
+        "LEGR",
+        "KNEER",
+        "FOOTR",
+        "ARMS",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "WEAPONA01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": {
+        "_I": "RURIFLE.RURIFLE_I",
+        "_R": "RURIFLE.RURIFLE_R",
+        "_F": "RURIFLE.RURIFLE_F",
+        "_X": "RURIFLE.RURIFLE_X"
+      },
+      "dimensions": [
+        7.6799997091293335,
+        4.480000019073486,
+        13.46000051498413
+      ],
+      "triangles": 5256,
+      "meshes": 9,
+      "texture_files": [
+        "ruhouse.tga",
+        "rurifle_paint.tga",
+        "rurifle_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RURIFLE.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RURIFLE.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/russia/articulated.py -- RURIFLE",
+      "geometry": "Original articulated anatomy, clothing and Russian weapon geometry. Authored knee/ankle rig and clips; no stock visible meshes or stock animation dependency.",
+      "art_revision": "russia-v2",
+      "animation_contract": "Original skeleton. Explicit _I stationary LOOP resets joints; _R MOVING LOOP; _F FIRING/ATTACKING LOOP; _X DYING ONCE. No AIRNGR dependency. World-size geometry at ModelScale=1.",
+      "key": "Rifleman",
+      "display_name": "Rifleman",
+      "category": "infantry",
+      "parent": "AmericaInfantryRanger",
+      "bone_contract": [
+        {
+          "name": "LEGL",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0.86,
+            6.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "KNEEL",
+          "parent": "LEGL",
+          "position": [
+            0.2,
+            0,
+            -2.56
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FOOTL",
+          "parent": "KNEEL",
+          "position": [
+            -0.16,
+            0,
+            -2.96
+          ],
+          "rotation": null
+        },
+        {
+          "name": "LEGR",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -0.86,
+            6.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "KNEER",
+          "parent": "LEGR",
+          "position": [
+            0.2,
+            0,
+            -2.56
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FOOTR",
+          "parent": "KNEER",
+          "position": [
+            -0.16,
+            0,
+            -2.96
+          ],
+          "rotation": null
+        },
+        {
+          "name": "ARMS",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            10.26
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "ARMS",
+          "position": [
+            6.4,
+            -0.2,
+            -1.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "ARMS",
+          "position": [
+            6.4,
+            -0.2,
+            -1.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "ARMS",
+          "position": [
+            6.4,
+            -0.2,
+            -1.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rurifle_paint.tga",
+        "rurifle_paint_d.tga"
+      ],
+      "animation_note": "Original skeleton. Explicit _I stationary LOOP resets joints; _R MOVING LOOP; _F FIRING/ATTACKING LOOP; _X DYING ONCE. No AIRNGR dependency. World-size geometry at ModelScale=1.",
+      "weapon_fire_bone": "MUZZLE01",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures."
+    },
+    {
+      "model": "RUKORNET",
+      "role": "Anti-tank missile team",
+      "suggested_inherited_object": "AmericaInfantryMissileDefender",
+      "variants": [
+        "RUKORNET",
+        "RUKORNET_D"
+      ],
+      "bones": [
+        "LEGL",
+        "KNEEL",
+        "FOOTL",
+        "LEGR",
+        "KNEER",
+        "FOOTR",
+        "ARMS",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "WEAPONA01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": {
+        "_I": "RUKORNET.RUKORNET_I",
+        "_R": "RUKORNET.RUKORNET_R",
+        "_F": "RUKORNET.RUKORNET_F",
+        "_X": "RUKORNET.RUKORNET_X"
+      },
+      "dimensions": [
+        7.189999938011169,
+        4.480000019073486,
+        13.46000051498413
+      ],
+      "triangles": 5168,
+      "meshes": 9,
+      "texture_files": [
+        "ruhouse.tga",
+        "rukornet_paint.tga",
+        "rukornet_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUKORNET.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUKORNET.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/russia/articulated.py -- RUKORNET",
+      "geometry": "Original articulated anatomy, clothing and Russian weapon geometry. Authored knee/ankle rig and clips; no stock visible meshes or stock animation dependency.",
+      "art_revision": "russia-v2",
+      "animation_contract": "Original skeleton. Explicit _I stationary LOOP resets joints; _R MOVING LOOP; _F FIRING/ATTACKING LOOP; _X DYING ONCE. No AIRNGR dependency. World-size geometry at ModelScale=1.",
+      "key": "Kornet",
+      "display_name": "Kornet Team",
+      "category": "infantry",
+      "parent": "AmericaInfantryMissileDefender",
+      "bone_contract": [
+        {
+          "name": "LEGL",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0.86,
+            6.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "KNEEL",
+          "parent": "LEGL",
+          "position": [
+            0.2,
+            0,
+            -2.56
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FOOTL",
+          "parent": "KNEEL",
+          "position": [
+            -0.16,
+            0,
+            -2.96
+          ],
+          "rotation": null
+        },
+        {
+          "name": "LEGR",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -0.86,
+            6.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "KNEER",
+          "parent": "LEGR",
+          "position": [
+            0.2,
+            0,
+            -2.56
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FOOTR",
+          "parent": "KNEER",
+          "position": [
+            -0.16,
+            0,
+            -2.96
+          ],
+          "rotation": null
+        },
+        {
+          "name": "ARMS",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            10.26
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "ARMS",
+          "position": [
+            5.88,
+            -0.28,
+            0.32
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "ARMS",
+          "position": [
+            5.88,
+            -0.28,
+            0.32
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "ARMS",
+          "position": [
+            5.88,
+            -0.28,
+            0.32
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rukornet_paint.tga",
+        "rukornet_paint_d.tga"
+      ],
+      "animation_note": "Original skeleton. Explicit _I stationary LOOP resets joints; _R MOVING LOOP; _F FIRING/ATTACKING LOOP; _X DYING ONCE. No AIRNGR dependency. World-size geometry at ModelScale=1.",
+      "weapon_fire_bone": "MUZZLE01",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures."
+    },
+    {
+      "model": "RUCMDO",
+      "role": "Assault engineer",
+      "suggested_inherited_object": "AmericaInfantryColonelBurton",
+      "variants": [
+        "RUCMDO",
+        "RUCMDO_D"
+      ],
+      "bones": [
+        "LEGL",
+        "KNEEL",
+        "FOOTL",
+        "LEGR",
+        "KNEER",
+        "FOOTR",
+        "ARMS",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "WEAPONA01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": {
+        "_I": "RUCMDO.RUCMDO_I",
+        "_R": "RUCMDO.RUCMDO_R",
+        "_F": "RUCMDO.RUCMDO_F",
+        "_X": "RUCMDO.RUCMDO_X"
+      },
+      "dimensions": [
+        8.179999828338623,
+        4.480000019073486,
+        13.320000171661377
+      ],
+      "triangles": 5740,
+      "meshes": 9,
+      "texture_files": [
+        "rucmdo_paint.tga",
+        "rucmdo_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUCMDO.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUCMDO.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 4 -P scripts/models/russia/articulated.py -- RUCMDO",
+      "geometry": "Original articulated anatomy, clothing and Russian weapon geometry. Authored knee/ankle rig and clips; no stock visible meshes or stock animation dependency.",
+      "art_revision": "russia-v2",
+      "animation_contract": "Original skeleton. Explicit _I stationary LOOP resets joints; _R MOVING LOOP; _F FIRING/ATTACKING LOOP; _X DYING ONCE. No AIRNGR dependency. World-size geometry at ModelScale=1.",
+      "key": "Commando",
+      "display_name": "Assault Engineer",
+      "category": "infantry",
+      "parent": "AmericaInfantryColonelBurton",
+      "bone_contract": [
+        {
+          "name": "LEGL",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0.86,
+            6.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "KNEEL",
+          "parent": "LEGL",
+          "position": [
+            0.2,
+            0,
+            -2.56
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FOOTL",
+          "parent": "KNEEL",
+          "position": [
+            -0.16,
+            0,
+            -2.96
+          ],
+          "rotation": null
+        },
+        {
+          "name": "LEGR",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -0.86,
+            6.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "KNEER",
+          "parent": "LEGR",
+          "position": [
+            0.2,
+            0,
+            -2.56
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FOOTR",
+          "parent": "KNEER",
+          "position": [
+            -0.16,
+            0,
+            -2.96
+          ],
+          "rotation": null
+        },
+        {
+          "name": "ARMS",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            10.26
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "ARMS",
+          "position": [
+            5.5,
+            -0.2,
+            -2.08
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "ARMS",
+          "position": [
+            5.5,
+            -0.2,
+            -2.08
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "ARMS",
+          "position": [
+            5.5,
+            -0.2,
+            -2.08
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "rucmdo_paint.tga",
+        "rucmdo_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "animation_note": "Original skeleton. Explicit _I stationary LOOP resets joints; _R MOVING LOOP; _F FIRING/ATTACKING LOOP; _X DYING ONCE. No AIRNGR dependency. World-size geometry at ModelScale=1.",
+      "weapon_fire_bone": "MUZZLE01",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures."
+    },
+    {
+      "model": "RUSU35",
+      "role": "Air-superiority fighter",
+      "suggested_inherited_object": "AmericaJetRaptor",
+      "variants": [
+        "RUSU35",
+        "RUSU35_D"
+      ],
+      "bones": [
+        "WEAPONA04",
+        "WEAPONB04",
+        "WEAPONA05",
+        "WEAPONB05",
+        "WEAPONA06",
+        "WEAPONB06",
+        "WEAPONA01",
+        "WEAPONB01",
+        "WEAPONA02",
+        "WEAPONB02",
+        "WEAPONA03",
+        "WEAPONB03",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "EXHAUST01",
+        "EXHAUST02",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        45.400001525878906,
+        37.0,
+        12.65000033378601
+      ],
+      "triangles": 3456,
+      "meshes": 3,
+      "texture_files": [
+        "ruhouse.tga",
+        "rusu35_paint.tga",
+        "rusu35_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUSU35.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUSU35.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUSU35",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "Su35",
+      "display_name": "Su-35",
+      "category": "aircraft",
+      "parent": "AmericaJetRaptor",
+      "bone_contract": [
+        {
+          "name": "WEAPONA04",
+          "parent": "CHASSIS",
+          "position": [
+            -3.2,
+            -7,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB04",
+          "parent": "CHASSIS",
+          "position": [
+            -3.2,
+            -7,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA05",
+          "parent": "CHASSIS",
+          "position": [
+            -3.2,
+            -11,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB05",
+          "parent": "CHASSIS",
+          "position": [
+            -3.2,
+            -11,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA06",
+          "parent": "CHASSIS",
+          "position": [
+            -3.2,
+            -15,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB06",
+          "parent": "CHASSIS",
+          "position": [
+            -3.2,
+            -15,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "CHASSIS",
+          "position": [
+            -3.2,
+            7,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB01",
+          "parent": "CHASSIS",
+          "position": [
+            -3.2,
+            7,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA02",
+          "parent": "CHASSIS",
+          "position": [
+            -3.2,
+            11,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB02",
+          "parent": "CHASSIS",
+          "position": [
+            -3.2,
+            11,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA03",
+          "parent": "CHASSIS",
+          "position": [
+            -3.2,
+            15,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB03",
+          "parent": "CHASSIS",
+          "position": [
+            -3.2,
+            15,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            13,
+            1,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "CHASSIS",
+          "position": [
+            13,
+            1,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXHAUST01",
+          "parent": "CHASSIS",
+          "position": [
+            -19,
+            -3,
+            3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXHAUST02",
+          "parent": "CHASSIS",
+          "position": [
+            -19,
+            3,
+            3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rusu35_paint.tga",
+        "rusu35_paint_d.tga"
+      ],
+      "art_revision": "russia-v2",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures."
+    },
+    {
+      "model": "RUSU25",
+      "role": "Ground-attack aircraft",
+      "suggested_inherited_object": "AmericaJetRaptor",
+      "variants": [
+        "RUSU25",
+        "RUSU25_D"
+      ],
+      "bones": [
+        "WEAPONA04",
+        "WEAPONB04",
+        "WEAPONA05",
+        "WEAPONB05",
+        "WEAPONA06",
+        "WEAPONB06",
+        "WEAPONA01",
+        "WEAPONB01",
+        "WEAPONA02",
+        "WEAPONB02",
+        "WEAPONA03",
+        "WEAPONB03",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "EXHAUST01",
+        "EXHAUST02",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        39.0,
+        36.0,
+        11.549999952316284
+      ],
+      "triangles": 3388,
+      "meshes": 3,
+      "texture_files": [
+        "ruhouse.tga",
+        "rusu25_paint.tga",
+        "rusu25_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUSU25.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUSU25.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUSU25",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "Su25",
+      "display_name": "Su-25",
+      "category": "aircraft",
+      "parent": "AmericaJetRaptor",
+      "bone_contract": [
+        {
+          "name": "WEAPONA04",
+          "parent": "CHASSIS",
+          "position": [
+            0.7999999999999998,
+            -7,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB04",
+          "parent": "CHASSIS",
+          "position": [
+            0.7999999999999998,
+            -7,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA05",
+          "parent": "CHASSIS",
+          "position": [
+            0.7999999999999998,
+            -11,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB05",
+          "parent": "CHASSIS",
+          "position": [
+            0.7999999999999998,
+            -11,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA06",
+          "parent": "CHASSIS",
+          "position": [
+            0.7999999999999998,
+            -15,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB06",
+          "parent": "CHASSIS",
+          "position": [
+            0.7999999999999998,
+            -15,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "CHASSIS",
+          "position": [
+            0.7999999999999998,
+            7,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB01",
+          "parent": "CHASSIS",
+          "position": [
+            0.7999999999999998,
+            7,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA02",
+          "parent": "CHASSIS",
+          "position": [
+            0.7999999999999998,
+            11,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB02",
+          "parent": "CHASSIS",
+          "position": [
+            0.7999999999999998,
+            11,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA03",
+          "parent": "CHASSIS",
+          "position": [
+            0.7999999999999998,
+            15,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB03",
+          "parent": "CHASSIS",
+          "position": [
+            0.7999999999999998,
+            15,
+            2.7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            13,
+            1,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "CHASSIS",
+          "position": [
+            13,
+            1,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXHAUST01",
+          "parent": "CHASSIS",
+          "position": [
+            -19,
+            -3,
+            3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXHAUST02",
+          "parent": "CHASSIS",
+          "position": [
+            -19,
+            3,
+            3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rusu25_paint.tga",
+        "rusu25_paint_d.tga"
+      ],
+      "art_revision": "russia-v2",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures."
+    },
+    {
+      "model": "RUMI28",
+      "role": "Heavy attack helicopter",
+      "suggested_inherited_object": "AmericaVehicleComanche",
+      "variants": [
+        "RUMI28",
+        "RUMI28_D"
+      ],
+      "bones": [
+        "WEAPONA03",
+        "WEAPONB03",
+        "WEAPONA04",
+        "WEAPONB04",
+        "WEAPONA01",
+        "WEAPONB01",
+        "WEAPONA02",
+        "WEAPONB02",
+        "PROPELLER01",
+        "PROPELLER02",
+        "TURRET",
+        "BARREL",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "TURRETFX01",
+        "FLARE01",
+        "FLARE02",
+        "MISSILEUPGRADE",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [
+        "RUMI28.RUMI28"
+      ],
+      "dimensions": [
+        49.0,
+        38.428531646728516,
+        13.899999976158142
+      ],
+      "triangles": 4236,
+      "meshes": 6,
+      "texture_files": [
+        "ruhouse.tga",
+        "rumi28_paint.tga",
+        "rumi28_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUMI28.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUMI28.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUMI28",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "Mi28",
+      "display_name": "Mi-28",
+      "category": "aircraft",
+      "parent": "AmericaVehicleComanche",
+      "bone_contract": [
+        {
+          "name": "WEAPONA03",
+          "parent": "CHASSIS",
+          "position": [
+            2.5,
+            -5.4,
+            3.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB03",
+          "parent": "CHASSIS",
+          "position": [
+            2.5,
+            -5.4,
+            3.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA04",
+          "parent": "CHASSIS",
+          "position": [
+            2.5,
+            -8,
+            3.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB04",
+          "parent": "CHASSIS",
+          "position": [
+            2.5,
+            -8,
+            3.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "CHASSIS",
+          "position": [
+            2.5,
+            5.4,
+            3.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB01",
+          "parent": "CHASSIS",
+          "position": [
+            2.5,
+            5.4,
+            3.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA02",
+          "parent": "CHASSIS",
+          "position": [
+            2.5,
+            8,
+            3.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONB02",
+          "parent": "CHASSIS",
+          "position": [
+            2.5,
+            8,
+            3.4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "PROPELLER01",
+          "parent": "CHASSIS",
+          "position": [
+            -1,
+            0,
+            11.8
+          ],
+          "rotation": null
+        },
+        {
+          "name": "PROPELLER02",
+          "parent": "CHASSIS",
+          "position": [
+            -27,
+            -0.8,
+            8
+          ],
+          "rotation": [
+            0.7071067811865475,
+            0,
+            0,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            12,
+            0,
+            1.8
+          ],
+          "rotation": null
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            0.4,
+            0,
+            -0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "BARREL",
+          "position": [
+            4.5,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "BARREL",
+          "position": [
+            4.5,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TURRETFX01",
+          "parent": "TURRET",
+          "position": [
+            4.8,
+            0,
+            -0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FLARE01",
+          "parent": "CHASSIS",
+          "position": [
+            -7,
+            -2,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "FLARE02",
+          "parent": "CHASSIS",
+          "position": [
+            -7,
+            2,
+            5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MISSILEUPGRADE",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rumi28_paint.tga",
+        "rumi28_paint_d.tga"
+      ],
+      "art_revision": "russia-v2",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures."
+    },
+    {
+      "model": "RUENG",
+      "role": "Armoured engineer vehicle",
+      "suggested_inherited_object": "ChinaVehicleDozer",
+      "variants": [
+        "RUENG",
+        "RUENG_D"
+      ],
+      "bones": [
+        "FXBUILD",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        24.800000190734863,
+        16.200000762939453,
+        14.19755631685257
+      ],
+      "triangles": 4060,
+      "meshes": 5,
+      "texture_files": [
+        "rueng_paint.tga",
+        "rueng_paint_d.tga",
+        "ruhouse.tga",
+        "rutrack.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUENG.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUENG.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUENG",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "Engineer",
+      "display_name": "Armoured Engineer",
+      "category": "vehicle",
+      "parent": "ChinaVehicleDozer",
+      "bone_contract": [
+        {
+          "name": "FXBUILD",
+          "parent": "CHASSIS",
+          "position": [
+            13,
+            0,
+            1
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "rueng_paint.tga",
+        "rueng_paint_d.tga",
+        "ruhouse.tga",
+        "rutrack.tga"
+      ],
+      "art_revision": "russia-v2",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUSUP",
+      "role": "Supply collection truck",
+      "suggested_inherited_object": "ChinaVehicleSupplyTruck",
+      "variants": [
+        "RUSUP",
+        "RUSUP_D"
+      ],
+      "bones": [
+        "TIRE01",
+        "TIRE02",
+        "TIRE03",
+        "TIRE04",
+        "TIRE05",
+        "TIRE06",
+        "SUPPLYDOCK",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        30.0,
+        12.09999942779541,
+        10.100000381469727
+      ],
+      "triangles": 4752,
+      "meshes": 18,
+      "texture_files": [
+        "ruhouse.tga",
+        "rusup_paint.tga",
+        "rusup_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUSUP.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUSUP.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUSUP",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "SupplyTruck",
+      "display_name": "Supply Truck",
+      "category": "vehicle",
+      "parent": "ChinaVehicleSupplyTruck",
+      "bone_contract": [
+        {
+          "name": "TIRE01",
+          "parent": "CHASSIS",
+          "position": [
+            9,
+            -4.8,
+            2.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE02",
+          "parent": "CHASSIS",
+          "position": [
+            9,
+            4.8,
+            2.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE03",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            -4.8,
+            2.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE04",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            4.8,
+            2.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE05",
+          "parent": "CHASSIS",
+          "position": [
+            -10,
+            -4.8,
+            2.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "TIRE06",
+          "parent": "CHASSIS",
+          "position": [
+            -10,
+            4.8,
+            2.6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SUPPLYDOCK",
+          "parent": "CHASSIS",
+          "position": [
+            9,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rusup_paint.tga",
+        "rusup_paint_d.tga"
+      ],
+      "art_revision": "russia-v2",
+      "material_source": "scripts/models/russia/atlas_polished.png",
+      "material_prompt": "scripts/models/russia/atlas_polished.prompt.txt",
+      "surface_note": "Original generated olive paint, hardware, smooth cloth and skin; source rectangles mapped explicitly, assembled contact shading and damage baked into 1k/2k textures.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUCC",
+      "role": "Command centre",
+      "suggested_inherited_object": "AmericaCommandCenter",
+      "variants": [
+        "RUCC",
+        "RUCC_D",
+        "RUCC_E",
+        "RUCC_N",
+        "RUCC_DN",
+        "RUCC_EN"
+      ],
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        96.0,
+        88.0,
+        59.0
+      ],
+      "triangles": 2352,
+      "meshes": 2,
+      "texture_files": [
+        "rucc_paint.tga",
+        "rucc_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUCC.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUCC.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUCC",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "CommandCenter",
+      "display_name": "Command Centre",
+      "category": "building",
+      "parent": "AmericaCommandCenter",
+      "bone_contract": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            -18.8,
+            34.5,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            50.9,
+            34.5,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "rucc_paint.tga",
+        "rucc_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "night_variant_note": "Night variants preserve authored architecture; no emissive lights are baked in this initial pass.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUPWR",
+      "role": "Power station",
+      "suggested_inherited_object": "AmericaPowerPlant",
+      "variants": [
+        "RUPWR",
+        "RUPWR_D",
+        "RUPWR_E",
+        "RUPWR_N",
+        "RUPWR_DN",
+        "RUPWR_EN"
+      ],
+      "bones": [
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        66.29999923706055,
+        58.0,
+        42.0
+      ],
+      "triangles": 2704,
+      "meshes": 2,
+      "texture_files": [
+        "ruhouse.tga",
+        "rupwr_paint.tga",
+        "rupwr_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUPWR.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUPWR.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUPWR",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "PowerPlant",
+      "display_name": "Power Station",
+      "category": "building",
+      "parent": "AmericaPowerPlant",
+      "bone_contract": [
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rupwr_paint.tga",
+        "rupwr_paint_d.tga"
+      ],
+      "night_variant_note": "Night variants preserve authored architecture; no emissive lights are baked in this initial pass.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUBARR",
+      "role": "Barracks",
+      "suggested_inherited_object": "AmericaBarracks",
+      "variants": [
+        "RUBARR",
+        "RUBARR_D",
+        "RUBARR_E",
+        "RUBARR_N",
+        "RUBARR_DN",
+        "RUBARR_EN"
+      ],
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        76.0,
+        66.0,
+        22.02988338470459
+      ],
+      "triangles": 1756,
+      "meshes": 2,
+      "texture_files": [
+        "rubarr_paint.tga",
+        "rubarr_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUBARR.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUBARR.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUBARR",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "Barracks",
+      "display_name": "Barracks",
+      "category": "building",
+      "parent": "AmericaBarracks",
+      "bone_contract": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            10,
+            0,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            43,
+            0,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "rubarr_paint.tga",
+        "rubarr_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "night_variant_note": "Night variants preserve authored architecture; no emissive lights are baked in this initial pass.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUSUPPLY",
+      "role": "Supply centre",
+      "suggested_inherited_object": "ChinaSupplyCenter",
+      "variants": [
+        "RUSUPPLY",
+        "RUSUPPLY_D",
+        "RUSUPPLY_E",
+        "RUSUPPLY_N",
+        "RUSUPPLY_DN",
+        "RUSUPPLY_EN"
+      ],
+      "bones": [
+        "DOCKSTART",
+        "DOCKACTION",
+        "DOCKEND",
+        "EXITSTART",
+        "EXITEND",
+        "DOCKWAITING01",
+        "DOCKWAITING02",
+        "DOCKWAITING03",
+        "DOCKWAITING04",
+        "DOCKWAITING05",
+        "DOCKWAITING06",
+        "DOCKWAITING07",
+        "DOCKWAITING08",
+        "DOCKWAITING09",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        100.0,
+        84.0,
+        25.399999618530273
+      ],
+      "triangles": 1484,
+      "meshes": 2,
+      "texture_files": [
+        "ruhouse.tga",
+        "rusupply_paint.tga",
+        "rusupply_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUSUPPLY.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUSUPPLY.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUSUPPLY",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "SupplyCenter",
+      "display_name": "Supply Centre",
+      "category": "building",
+      "parent": "ChinaSupplyCenter",
+      "bone_contract": [
+        {
+          "name": "DOCKSTART",
+          "parent": "CHASSIS",
+          "position": [
+            47,
+            -20,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKACTION",
+          "parent": "CHASSIS",
+          "position": [
+            22,
+            -20,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKEND",
+          "parent": "CHASSIS",
+          "position": [
+            48,
+            -20,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            20,
+            20,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            55,
+            20,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING01",
+          "parent": "CHASSIS",
+          "position": [
+            67,
+            -35,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING02",
+          "parent": "CHASSIS",
+          "position": [
+            67,
+            0,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING03",
+          "parent": "CHASSIS",
+          "position": [
+            67,
+            35,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING04",
+          "parent": "CHASSIS",
+          "position": [
+            35,
+            57,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING05",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            57,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING06",
+          "parent": "CHASSIS",
+          "position": [
+            -35,
+            57,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING07",
+          "parent": "CHASSIS",
+          "position": [
+            -67,
+            25,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING08",
+          "parent": "CHASSIS",
+          "position": [
+            -67,
+            -15,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING09",
+          "parent": "CHASSIS",
+          "position": [
+            -40,
+            -60,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rusupply_paint.tga",
+        "rusupply_paint_d.tga"
+      ],
+      "night_variant_note": "Night variants preserve authored architecture; no emissive lights are baked in this initial pass.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUFACT",
+      "role": "War factory",
+      "suggested_inherited_object": "AmericaWarFactory",
+      "variants": [
+        "RUFACT",
+        "RUFACT_D",
+        "RUFACT_E",
+        "RUFACT_N",
+        "RUFACT_DN",
+        "RUFACT_EN"
+      ],
+      "bones": [
+        "EXITSTART",
+        "EXITEND",
+        "DOCKSTART",
+        "DOCKACTION",
+        "DOCKEND",
+        "DOCKWAITING01",
+        "DOCKWAITING02",
+        "DOCKWAITING03",
+        "DOCKWAITING04",
+        "DOCKWAITING05",
+        "DOCKWAITING06",
+        "DOCKWAITING07",
+        "DOCKWAITING08",
+        "DOCKWAITING09",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        112.0,
+        124.0,
+        32.400001525878906
+      ],
+      "triangles": 2168,
+      "meshes": 2,
+      "texture_files": [
+        "rufact_paint.tga",
+        "rufact_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUFACT.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUFACT.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUFACT",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "WarFactory",
+      "display_name": "War Factory",
+      "category": "building",
+      "parent": "AmericaWarFactory",
+      "bone_contract": [
+        {
+          "name": "EXITSTART",
+          "parent": "CHASSIS",
+          "position": [
+            -10,
+            -30,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "EXITEND",
+          "parent": "CHASSIS",
+          "position": [
+            53,
+            -30,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKSTART",
+          "parent": "CHASSIS",
+          "position": [
+            66.9,
+            16.2,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKACTION",
+          "parent": "CHASSIS",
+          "position": [
+            46.5,
+            16.2,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKEND",
+          "parent": "CHASSIS",
+          "position": [
+            73.1,
+            16.2,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING01",
+          "parent": "CHASSIS",
+          "position": [
+            116,
+            45,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING02",
+          "parent": "CHASSIS",
+          "position": [
+            116,
+            99,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING03",
+          "parent": "CHASSIS",
+          "position": [
+            68,
+            99,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING04",
+          "parent": "CHASSIS",
+          "position": [
+            14,
+            99,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING05",
+          "parent": "CHASSIS",
+          "position": [
+            -39,
+            99,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING06",
+          "parent": "CHASSIS",
+          "position": [
+            -96,
+            99,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING07",
+          "parent": "CHASSIS",
+          "position": [
+            -94,
+            40,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING08",
+          "parent": "CHASSIS",
+          "position": [
+            -94,
+            -18,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "DOCKWAITING09",
+          "parent": "CHASSIS",
+          "position": [
+            -94,
+            -66,
+            0.3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "rufact_paint.tga",
+        "rufact_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "night_variant_note": "Night variants preserve authored architecture; no emissive lights are baked in this initial pass.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUAIR",
+      "role": "Airfield",
+      "suggested_inherited_object": "AmericaAirfield",
+      "variants": [
+        "RUAIR",
+        "RUAIR_D",
+        "RUAIR_E",
+        "RUAIR_N",
+        "RUAIR_DN",
+        "RUAIR_EN"
+      ],
+      "bones": [
+        "HELIPARK01",
+        "RUNWAY1PARK1HAN",
+        "RUNWAY2PARK1HAN",
+        "RUNWAY1PARK2HAN",
+        "RUNWAY2PARK2HAN",
+        "RUNWAY1PARKING1",
+        "RUNWAY2PARKING1",
+        "RUNWAY1PARKING2",
+        "RUNWAY2PARKING2",
+        "RUNWAY1PREP1",
+        "RUNWAY2PREP1",
+        "RUNWAY1PREP2",
+        "RUNWAY2PREP2",
+        "RUNWAYSTART1",
+        "RUNWAYSTART2",
+        "RUNWAYEND1",
+        "RUNWAYEND2",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        224.0,
+        148.0,
+        59.95000000298023
+      ],
+      "triangles": 2272,
+      "meshes": 2,
+      "texture_files": [
+        "ruair_paint.tga",
+        "ruair_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUAIR.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUAIR.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUAIR",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "Airfield",
+      "display_name": "Airfield",
+      "category": "building",
+      "parent": "AmericaAirfield",
+      "bone_contract": [
+        {
+          "name": "HELIPARK01",
+          "parent": "CHASSIS",
+          "position": [
+            66.7,
+            41.6,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            -0.7071067811865475,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "RUNWAY1PARK1HAN",
+          "parent": "CHASSIS",
+          "position": [
+            -21.1,
+            51.9,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            -0.7071067811865475,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "RUNWAY2PARK1HAN",
+          "parent": "CHASSIS",
+          "position": [
+            9.5,
+            51.9,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            -0.7071067811865475,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "RUNWAY1PARK2HAN",
+          "parent": "CHASSIS",
+          "position": [
+            -87.1,
+            -49.0,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RUNWAY2PARK2HAN",
+          "parent": "CHASSIS",
+          "position": [
+            -87.1,
+            -13.1,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RUNWAY1PARKING1",
+          "parent": "CHASSIS",
+          "position": [
+            -21.1,
+            22.7,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            -0.7071067811865475,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "RUNWAY2PARKING1",
+          "parent": "CHASSIS",
+          "position": [
+            9.5,
+            22.7,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            -0.7071067811865475,
+            0.7071067811865476
+          ]
+        },
+        {
+          "name": "RUNWAY1PARKING2",
+          "parent": "CHASSIS",
+          "position": [
+            -56.4,
+            -49.0,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RUNWAY2PARKING2",
+          "parent": "CHASSIS",
+          "position": [
+            -56.4,
+            -13.1,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RUNWAY1PREP1",
+          "parent": "CHASSIS",
+          "position": [
+            9.5,
+            -49.0,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RUNWAY2PREP1",
+          "parent": "CHASSIS",
+          "position": [
+            9.5,
+            -13.1,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RUNWAY1PREP2",
+          "parent": "CHASSIS",
+          "position": [
+            -21.1,
+            -49.0,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RUNWAY2PREP2",
+          "parent": "CHASSIS",
+          "position": [
+            -21.1,
+            -13.1,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RUNWAYSTART1",
+          "parent": "CHASSIS",
+          "position": [
+            30.8,
+            -49.0,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RUNWAYSTART2",
+          "parent": "CHASSIS",
+          "position": [
+            30.8,
+            -13.1,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RUNWAYEND1",
+          "parent": "CHASSIS",
+          "position": [
+            110.1,
+            -49.0,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RUNWAYEND2",
+          "parent": "CHASSIS",
+          "position": [
+            110.1,
+            -13.1,
+            0.0
+          ],
+          "rotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruair_paint.tga",
+        "ruair_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "night_variant_note": "Night variants preserve authored architecture; no emissive lights are baked in this initial pass.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUTECH",
+      "role": "Military institute",
+      "suggested_inherited_object": "AmericaStrategyCenter",
+      "variants": [
+        "RUTECH",
+        "RUTECH_D",
+        "RUTECH_E",
+        "RUTECH_N",
+        "RUTECH_DN",
+        "RUTECH_EN"
+      ],
+      "bones": [
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        96.0,
+        86.0,
+        58.0
+      ],
+      "triangles": 2460,
+      "meshes": 2,
+      "texture_files": [
+        "ruhouse.tga",
+        "rutech_paint.tga",
+        "rutech_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUTECH.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUTECH.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUTECH",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "TechCenter",
+      "display_name": "Military Institute",
+      "category": "building",
+      "parent": "AmericaStrategyCenter",
+      "bone_contract": [
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rutech_paint.tga",
+        "rutech_paint_d.tga"
+      ],
+      "night_variant_note": "Night variants preserve authored architecture; no emissive lights are baked in this initial pass.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUINCOME",
+      "role": "Logistics ministry",
+      "suggested_inherited_object": "AmericaSupplyDropZone",
+      "variants": [
+        "RUINCOME",
+        "RUINCOME_D",
+        "RUINCOME_E",
+        "RUINCOME_N",
+        "RUINCOME_DN",
+        "RUINCOME_EN"
+      ],
+      "bones": [
+        "SUPPLY",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        86.0,
+        76.0,
+        41.0
+      ],
+      "triangles": 1968,
+      "meshes": 2,
+      "texture_files": [
+        "ruhouse.tga",
+        "ruincome_paint.tga",
+        "ruincome_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUINCOME.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUINCOME.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUINCOME",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "Income",
+      "display_name": "Logistics Ministry",
+      "category": "building",
+      "parent": "AmericaSupplyDropZone",
+      "bone_contract": [
+        {
+          "name": "SUPPLY",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "ruincome_paint.tga",
+        "ruincome_paint_d.tga"
+      ],
+      "night_variant_note": "Night variants preserve authored architecture; no emissive lights are baked in this initial pass.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUGDEF",
+      "role": "Cannon emplacement",
+      "suggested_inherited_object": "ChinaBunker",
+      "variants": [
+        "RUGDEF",
+        "RUGDEF_D",
+        "RUGDEF_E",
+        "RUGDEF_N",
+        "RUGDEF_DN",
+        "RUGDEF_EN"
+      ],
+      "bones": [
+        "TURRET",
+        "BARREL",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        28.0,
+        28.0,
+        8.975000381469727
+      ],
+      "triangles": 1120,
+      "meshes": 4,
+      "texture_files": [
+        "rugdef_paint.tga",
+        "rugdef_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUGDEF.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUGDEF.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUGDEF",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "GroundDefense",
+      "display_name": "Cannon Emplacement",
+      "category": "building",
+      "parent": "ChinaBunker",
+      "bone_contract": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            3,
+            0,
+            1.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "BARREL",
+          "position": [
+            9.5,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "BARREL",
+          "position": [
+            9.5,
+            0,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "rugdef_paint.tga",
+        "rugdef_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "night_variant_note": "Night variants preserve authored architecture; no emissive lights are baked in this initial pass.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUADEF",
+      "role": "Radar missile defence",
+      "suggested_inherited_object": "AmericaPatriotBattery",
+      "variants": [
+        "RUADEF",
+        "RUADEF_D",
+        "RUADEF_E",
+        "RUADEF_N",
+        "RUADEF_DN",
+        "RUADEF_EN"
+      ],
+      "bones": [
+        "TURRET",
+        "BARREL",
+        "WEAPONA01",
+        "WEAPONA02",
+        "WEAPONA03",
+        "WEAPONA04",
+        "MUZZLE01",
+        "MUZZLEFX01",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        38.0,
+        34.0,
+        26.0
+      ],
+      "triangles": 1712,
+      "meshes": 4,
+      "texture_files": [
+        "ruadef_paint.tga",
+        "ruadef_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUADEF.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUADEF.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUADEF",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "AirDefense",
+      "display_name": "Radar Missile Defence",
+      "category": "building",
+      "parent": "AmericaPatriotBattery",
+      "bone_contract": [
+        {
+          "name": "TURRET",
+          "parent": "CHASSIS",
+          "position": [
+            3,
+            0,
+            7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "BARREL",
+          "parent": "TURRET",
+          "position": [
+            0,
+            0,
+            2
+          ],
+          "rotation": [
+            0,
+            -0.3894183423086505,
+            0,
+            0.9210609940028851
+          ]
+        },
+        {
+          "name": "WEAPONA01",
+          "parent": "BARREL",
+          "position": [
+            6.2,
+            -2,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA02",
+          "parent": "BARREL",
+          "position": [
+            6.2,
+            2,
+            0
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA03",
+          "parent": "BARREL",
+          "position": [
+            6.2,
+            -2,
+            3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "WEAPONA04",
+          "parent": "BARREL",
+          "position": [
+            6.2,
+            2,
+            3
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "BARREL",
+          "position": [
+            6.5,
+            0,
+            1.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLEFX01",
+          "parent": "BARREL",
+          "position": [
+            6.5,
+            0,
+            1.5
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            -4,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruadef_paint.tga",
+        "ruadef_paint_d.tga",
+        "ruhouse.tga"
+      ],
+      "night_variant_note": "Night variants preserve authored architecture; no emissive lights are baked in this initial pass.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    },
+    {
+      "model": "RUSUPER",
+      "role": "Strategic missile silo",
+      "suggested_inherited_object": "ChinaNuclearMissileLauncher",
+      "variants": [
+        "RUSUPER",
+        "RUSUPER_D",
+        "RUSUPER_E",
+        "RUSUPER_N",
+        "RUSUPER_DN",
+        "RUSUPER_EN"
+      ],
+      "bones": [
+        "WEAPONA01",
+        "MUZZLE01",
+        "NUKE",
+        "ROCKPOS",
+        "STEAM01",
+        "STEAM02",
+        "SMOKE01",
+        "SMOKE02",
+        "SMOKE03"
+      ],
+      "animations": [],
+      "dimensions": [
+        114.0,
+        114.0,
+        46.0
+      ],
+      "triangles": 2176,
+      "meshes": 2,
+      "texture_files": [
+        "ruhouse.tga",
+        "rusuper_paint.tga",
+        "rusuper_paint_d.tga"
+      ],
+      "preview": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUSUPER.png",
+      "blend": "/Users/radimvajchr/Projects/GeneralsGameCode-eu/build/faction-assets/russia/RUSUPER.blend",
+      "generation_command": "/Applications/Blender.app/Contents/MacOS/Blender -b -t 2 -P scripts/models/russia/build.py -- RUSUPER",
+      "geometry": "Original authored visible geometry; mathematical mesh primitives only.",
+      "key": "Superweapon",
+      "display_name": "Strategic Missile Silo",
+      "category": "building",
+      "parent": "ChinaNuclearMissileLauncher",
+      "bone_contract": [
+        {
+          "name": "WEAPONA01",
+          "parent": "CHASSIS",
+          "position": [
+            5,
+            0,
+            7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "MUZZLE01",
+          "parent": "CHASSIS",
+          "position": [
+            5,
+            0,
+            7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "NUKE",
+          "parent": "CHASSIS",
+          "position": [
+            5,
+            0,
+            7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "ROCKPOS",
+          "parent": "CHASSIS",
+          "position": [
+            5,
+            0,
+            7
+          ],
+          "rotation": null
+        },
+        {
+          "name": "STEAM01",
+          "parent": "CHASSIS",
+          "position": [
+            -15,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "STEAM02",
+          "parent": "CHASSIS",
+          "position": [
+            25,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE01",
+          "parent": "CHASSIS",
+          "position": [
+            5,
+            0,
+            6
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE02",
+          "parent": "CHASSIS",
+          "position": [
+            1,
+            2,
+            4
+          ],
+          "rotation": null
+        },
+        {
+          "name": "SMOKE03",
+          "parent": "CHASSIS",
+          "position": [
+            0,
+            -2,
+            4
+          ],
+          "rotation": null
+        }
+      ],
+      "textures": [
+        "ruhouse.tga",
+        "rusuper_paint.tga",
+        "rusuper_paint_d.tga"
+      ],
+      "night_variant_note": "Night variants preserve authored architecture; no emissive lights are baked in this initial pass.",
+      "detail_revision": "russia-ground-building-detail",
+      "detail_source": "scripts/models/russia/ground_building_detail.py",
+      "detail_contract": "Original fittings within unchanged assembled bounds; all turret, muzzle, exit, docking and parking transforms preserved."
+    }
+  ],
+  "contracts": {
+    "coordinates": "+X forward, +Z up, game scale; wheeled origin ground zero.",
+    "turrets": "TURRET yaw; BARREL pitch child; MUZZLE01/MUZZLEFX01 muzzle and fire FX; TREADSL/TREADSR scrolling.",
+    "wheels": "TIRE01..06: front left/right first, then rear axle pairs. Tigr has four, supply six.",
+    "factory": "EXITSTART (-10,-30,.3), EXITEND (53,-30,.3); production SpawnPoint/ExitPoint should match. Repair docking uses DOCKSTART/ACTION/END plus nine WAITING bones. Bay is permanently open.",
+    "supply": "China SupplyTruck collection workflow; DOCKSTART (47,-20,.3), DOCKACTION (22,-20,.3), DOCKEND (48,-20,.3); nine waiting bones. Build truck SpawnPoint/ExitPoint (20,20,.3)/(55,20,.3).",
+    "airfield": "USA 2x2 runway parking contract, all 17 standard public parking/runway/heli bones included. List these as ExtraPublicBone in Draw.",
+    "infantry": "Original authored full-size articulated rig at ModelScale1.0. MODEL.MODEL_I explicit idle/reset, _R run, _F attack, _X death. No stock skeleton dependency; knees/ankles remain attached throughout motion.",
+    "helicopter": "RUMI28.RUMI28 loop spins PROPELLER01/02; WEAPONA01..04 and WEAPONB01..04; TURRET/BARREL gun.",
+    "wrecks": "Vehicles use original _D as wreck visual; buildings _E/_EN use compressed burned shells. Infantry death uses the original articulated _X clip.",
+    "night": "Building night variants are present; dedicated illuminated night repaint is deferred."
+  },
+  "validation": "build/faction-assets/russia/validation.json",
+  "contact_sheet": "build/faction-assets/russia/contact-sheet.png"
+}

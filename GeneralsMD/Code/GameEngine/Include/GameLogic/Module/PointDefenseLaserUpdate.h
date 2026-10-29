@@ -49,6 +49,7 @@ public:
 	UnsignedInt			m_scanFrames;
 	Real						m_scanRange;
 	Real						m_velocityFactor;
+	Bool m_protectOnlySelf;
 
 	PointDefenseLaserUpdateModuleData();
 	static void buildFieldParse(MultiIniFieldParse& p);

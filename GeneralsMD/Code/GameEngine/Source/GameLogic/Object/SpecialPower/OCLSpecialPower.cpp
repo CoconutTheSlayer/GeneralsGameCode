@@ -39,6 +39,8 @@
 #include "GameLogic/PartitionManager.h"
 #include "GameLogic/TerrainLogic.h"
 #include "GameLogic/Module/OCLSpecialPower.h"
+#include "Common/Money.h"
+#include "Common/Player.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // MODULE DATA ////////////////////////////////////////////////////////////////////////////////////
@@ -68,6 +70,7 @@ static_assert(ARRAY_SIZE(TheOCLCreateLocTypeNames) == OCL_CREATE_LOC_COUNT + 1, 
 OCLSpecialPowerModuleData::OCLSpecialPowerModuleData()
 {
 	m_defaultOCL = nullptr;
+	m_moneyCost = 0;
 	m_upgradeOCL.clear();
 	m_createLoc = CREATE_AT_EDGE_NEAR_SOURCE;
 	m_isOCLAdjustPositionToPassable = FALSE;
@@ -94,6 +97,7 @@ static void parseOCLUpgradePair( INI* ini, void * /*instance*/, void *store, con
 
 	static const FieldParse dataFieldParse[] =
 	{
+		{ "MoneyCost", INI::parseUnsignedInt, nullptr, offsetof(OCLSpecialPowerModuleData, m_moneyCost) },
 		{ "UpgradeOCL", parseOCLUpgradePair, nullptr, offsetof( OCLSpecialPowerModuleData, m_upgradeOCL ) },
 		{ "OCL", INI::parseObjectCreationList, nullptr, offsetof( OCLSpecialPowerModuleData, m_defaultOCL ) },
 		{ "CreateLocation", INI::parseIndexList, TheOCLCreateLocTypeNames, offsetof( OCLSpecialPowerModuleData, m_createLoc ) },
@@ -146,6 +150,23 @@ OCLSpecialPower::~OCLSpecialPower()
 //-------------------------------------------------------------------------------------------------
 /** Execute the power */
 //-------------------------------------------------------------------------------------------------
+Bool OCLSpecialPower::isReady() const
+{
+	if (!SpecialPowerModule::isReady()) return false;
+	UnsignedInt cost = getOCLSpecialPowerModuleData()->m_moneyCost;
+	const Player* owner = getObject()->getControllingPlayer();
+	return !cost || (owner && owner->getMoney()->countMoney() >= cost);
+}
+
+Bool OCLSpecialPower::payActivationCost()
+{
+	UnsignedInt cost = getOCLSpecialPowerModuleData()->m_moneyCost;
+	if (!cost) return true; // Preserve existing free powers and delayed launch callbacks.
+	if (m_pausedCount || getObject()->isEffectivelyDead() || !isReady() || !findOCL()) return false;
+	getObject()->getControllingPlayer()->getMoney()->withdraw(cost);
+	return true;
+}
+
 void OCLSpecialPower::doSpecialPowerAtLocation( const Coord3D *loc, Real angle, UnsignedInt commandOptions )
 {
 	if (getObject()->isDisabled())
@@ -173,6 +194,8 @@ void OCLSpecialPower::doSpecialPowerAtLocation( const Coord3D *loc, Real angle, 
 
 
 	}
+
+	if (!payActivationCost()) return;
 
 	// call the base class action cause we are *EXTENDING* functionality
 	SpecialPowerModule::doSpecialPowerAtLocation( &targetCoord, angle, commandOptions );
@@ -241,6 +264,8 @@ void OCLSpecialPower::doSpecialPower( UnsignedInt commandOptions )
 
 	Coord3D creationCoord;
 	creationCoord.set( *getObject()->getPosition() );
+
+	if (!payActivationCost()) return;
 
 	// call the base class action cause we are *EXTENDING* functionality
 	SpecialPowerModule::doSpecialPowerAtLocation( &creationCoord, INVALID_ANGLE, commandOptions );

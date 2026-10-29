@@ -374,7 +374,7 @@ AsciiString TheThingTemplateBeingParsedName;
 //-------------------------------------------------------------------------------------------------
 /** Parse Object entry */
 //-------------------------------------------------------------------------------------------------
-/*static*/ void ThingFactory::parseObjectDefinition( INI* ini, const AsciiString& name, const AsciiString& reskinFrom )
+/*static*/ void ThingFactory::parseObjectDefinition( INI* ini, const AsciiString& name, const AsciiString& reskinFrom, Bool child )
 {
 #if defined(RTS_DEBUG) || defined(DEBUG_CRASHING)
 	TheThingTemplateBeingParsedName = name;
@@ -407,7 +407,20 @@ AsciiString TheThingTemplateBeingParsedName;
 		thingTemplate = TheThingFactory->newOverride( thingTemplate );
 	}
 
-	if (reskinFrom.isNotEmpty())
+	if (child)
+	{
+		// TheSuperHackers @feature ChildObject NAME PARENT: a copy of PARENT in which any field can change.
+		const ThingTemplate* parent = TheThingFactory->findTemplate(reskinFrom);
+		if (parent == nullptr)
+		{
+			DEBUG_CRASH(("ChildObject must come after its parent (%s, %s).", reskinFrom.str(), name.str()));
+			throw INI_INVALID_DATA;
+		}
+		thingTemplate->copyFrom(parent);
+		thingTemplate->setCopiedFromParent();
+		ini->initFromINI( thingTemplate, thingTemplate->getFieldParse() );
+	}
+	else if (reskinFrom.isNotEmpty())
 	{
 		const ThingTemplate* reskinTmpl = TheThingFactory->findTemplate(reskinFrom);
 		if (reskinTmpl)

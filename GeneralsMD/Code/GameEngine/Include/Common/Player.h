@@ -225,6 +225,8 @@ public:
 	NameKeyType getPlayerNameKey() const { return m_playerNameKey; }
 
 	AsciiString getSide() const { return m_side; }
+	/// For a faction that plays with another side's skirmish AI: the name of its own object for one the AI names.
+	AsciiString getAIReplacement(const AsciiString &name) const;
 	AsciiString getBaseSide() const { return m_baseSide; }
 
 	const PlayerTemplate* getPlayerTemplate() const { return m_playerTemplate;	}

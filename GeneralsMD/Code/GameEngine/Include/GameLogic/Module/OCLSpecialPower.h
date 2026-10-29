@@ -75,6 +75,7 @@ public:
 	AsciiString				m_referenceThingName;
 
 	OCLSpecialPowerModuleData();
+	UnsignedInt m_moneyCost;
 	static void buildFieldParse(MultiIniFieldParse& p);
 
 };
@@ -93,6 +94,7 @@ public:
 	// virtual destructor prototype provided by memory pool object
 
 	virtual void doSpecialPower( UnsignedInt commandOptions ) override;
+	virtual Bool isReady() const override;
 	virtual void doSpecialPowerAtObject( Object *obj, UnsignedInt commandOptions ) override;
 	virtual void doSpecialPowerAtLocation( const Coord3D *loc, Real angle, UnsignedInt commandOptions ) override;
 
@@ -102,4 +104,5 @@ public:
 protected:
 
 	const ObjectCreationList* findOCL() const;
+	Bool payActivationCost();
 };
