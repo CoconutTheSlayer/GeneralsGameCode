@@ -101,10 +101,10 @@ on the current display and scales the image to fit.
   `resources/macos/GameData/Data/INI/Blood.ini`.
 - **Rally points** (Zero Hour): new combat units attack-move to a factory's rally point, fighting what they meet on
   the way. Ctrl+right-click sets a rally point they simply move to, as before.
-- **Model sizes** (Zero Hour): some models are far out of proportion, so they are drawn at a different size
-  without changing their size in the game: tanks 1.3 times larger, jets 1.5, helicopters 1.15, combat bikes 0.7.
+- **Model sizes**: the original game's proportions are the default for every unit category.
   `ScaleInfantry`, `ScaleVehicles`, `ScaleTanks`, `ScaleBikes`, `ScaleJets`, `ScaleHelicopters` and
-  `ScaleStructures` in `Options.ini` (0.25 to 4) change them when `RealScale = no`. `RealScale = yes`
+  `ScaleStructures` in `Options.ini` (0.25 to 4, default 1) optionally change their appearance
+  without changing gameplay geometry when `RealScale = no` (the default). `RealScale = yes`
   instead draws vehicles and aircraft at their real world size next to the infantry (buildings
   keep their size); `GENERALS_ORIGINAL_SCALE=1` draws everything at the
   original size. `GENERALS_LINEUP=TemplateA,TemplateB` places one of each in a row in the middle of the map, to

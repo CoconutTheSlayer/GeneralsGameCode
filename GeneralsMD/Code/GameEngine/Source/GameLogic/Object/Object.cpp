@@ -44,6 +44,9 @@
 #include "Common/Team.h"
 #include "Common/ThingFactory.h"
 #include "Common/ThingTemplate.h"
+#if RTS_GENERALS && RETAIL_COMPATIBLE_CRC
+#include "Common/TunnelTracker.h"
+#endif
 #include "Common/Upgrade.h"
 #include "Common/WellKnownKeys.h"
 #include "Common/Xfer.h"
@@ -119,7 +122,7 @@ ObjectID TheObjectIDToDebug = INVALID_ID;
 #endif
 
 // ------------------------------------------------------------------------------------------------
-static const ModelConditionFlags s_allWeaponFireFlags[WEAPONSLOT_COUNT] =
+static const ModelConditionFlags s_allWeaponFireFlags[] =
 {
 	MAKE_MODELCONDITION_MASK5(
 		MODELCONDITION_FIRING_A,
@@ -143,6 +146,7 @@ static const ModelConditionFlags s_allWeaponFireFlags[WEAPONSLOT_COUNT] =
 		MODELCONDITION_USING_WEAPON_C
 	)
 };
+static_assert(ARRAY_SIZE(s_allWeaponFireFlags) == WEAPONSLOT_COUNT, "Incorrect array size");
 
 //-------------------------------------------------------------------------------------------------
 extern void addIcon(const Coord3D *pos, Real width, Int numFramesDuration, RGBColor color);
@@ -712,6 +716,23 @@ void Object::onRemovedFrom( Object *removedFrom )
 
 }
 
+#if RTS_GENERALS && RETAIL_COMPATIBLE_CRC
+//-------------------------------------------------------------------------------------------------
+void Object::removeFromTunnelContain()
+{
+	for (Int i = 0; i < ThePlayerList->getPlayerCount(); ++i)
+	{
+		TunnelTracker* tracker = ThePlayerList->getNthPlayer(i)->getTunnelSystem();
+		if (tracker && tracker->removeFromContain(this))
+		{
+			break;
+		}
+	}
+
+	onRemovedFrom(nullptr);
+}
+#endif
+
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 Int Object::getTransportSlotCount() const
@@ -771,7 +792,26 @@ void Object::onDestroy()
 	// This is the old cleanUpContain safeguard.  Say goodbye so they don't try to look us up.
 	if( m_containedBy && m_containedBy->getContain() )
 	{
-		m_containedBy->getContain()->removeFromContain( this );
+#if RETAIL_COMPATIBLE_CRC
+		// TheSuperHackers @bugfix Caball009 17/10/2026 Check if m_containedBy is still valid to avoid potential crashes.
+		if (!TheGameLogic->findObjectByID(m_containedBy->getID()))
+		{
+#if RTS_GENERALS
+			// TheSuperHackers @bugfix bobtista / Caball009 17/09/2026 Remove stranded tunnel occupants during destruction.
+			// Surrendering can transfer a tunnel without updating its tunnel tracker. If that tunnel is destroyed,
+			// m_containedBy still points to the freed tunnel, and its ID is read here through that stale pointer.
+			// An unregistered ID means the tunnel is gone, so this object is removed from the tunnel trackers directly.
+			// This is a limited workaround that keeps retail compatibility. It cannot detect reuse of the freed memory.
+			removeFromTunnelContain();
+#else
+			onRemovedFrom(nullptr);
+#endif
+		}
+		else
+#endif
+		{
+			m_containedBy->getContain()->removeFromContain(this);
+		}
 	}
 
 	//
@@ -1767,13 +1807,13 @@ inline Bool isPosDifferent(const Coord3D* a, const Coord3D* b)
 	// so we must put in some cleverness...
 	const Real THRESH = 0.01f;
 
-	if (fabs(a->x - b->x) > THRESH)
+	if (WWMath::Fabs(a->x - b->x) > THRESH)
 		return true;
 
-	if (fabs(a->y - b->y) > THRESH)
+	if (WWMath::Fabs(a->y - b->y) > THRESH)
 		return true;
 
-	if (fabs(a->z - b->z) > THRESH)
+	if (WWMath::Fabs(a->z - b->z) > THRESH)
 		return true;
 
 	return false;
@@ -1789,7 +1829,7 @@ inline Bool isAngleDifferent(Real a, Real b)
 
 	const Real THRESH = 0.01f;	// in radians, this is approx 1/2 degree.
 
-	if (fabs(a - b) > THRESH)
+	if (WWMath::Fabs(a - b) > THRESH)
 		return true;
 
 	return false;
@@ -1846,7 +1886,7 @@ void Object::reactToTransformChange(const Matrix3D* oldMtx, const Coord3D* oldPo
 
 		Region3D mapExtent;
 		TheTerrainLogic->getExtent(&mapExtent);
-		if (mapExtent.isInRegionNoZ(*getPosition()))
+		if (mapExtent.containsWithin(getPosition()->asCoord2D()))
 			m_privateStatus &= ~OFF_MAP;
 		else
 			m_privateStatus |= OFF_MAP;
@@ -1875,6 +1915,16 @@ void Object::attemptDamage( DamageInfo *damageInfo )
 	BodyModuleInterface* body = getBodyModule();
 	if (body)
 		body->attemptDamage( damageInfo );
+	#if defined(RTS_POSIX_PORT)
+	if (isKindOf(KINDOF_DRONE) && isKindOf(KINDOF_PROJECTILE) &&
+		damageInfo->out.m_actualDamageDealt > 0 && getenv("GENERALS_DRONE_LOG"))
+	{
+		Object *source = TheGameLogic->findObjectByID(damageInfo->in.m_sourceID);
+		fprintf(stderr, "DRONE_DAMAGE frame %u drone %u source %s damage %.1f\n",
+			TheGameLogic->getFrame(), (unsigned)getID(),
+			source ? source->getTemplate()->getName().str() : "none", damageInfo->out.m_actualDamageDealt);
+	}
+	#endif
 
 	// Process any shockwave forces that might affect this object due to the incurred damage
 	if (damageInfo->in.m_shockWaveAmount > 0.0f && damageInfo->in.m_shockWaveRadius > 0.0f)
@@ -2877,7 +2927,7 @@ void Object::friend_notifyOfNewMapBoundary()
 
 	Region3D mapExtent;
 	TheTerrainLogic->getExtent(&mapExtent);
-	if (mapExtent.isInRegionNoZ(*getPosition()))
+	if (mapExtent.containsWithin(getPosition()->asCoord2D()))
 		m_privateStatus &= ~OFF_MAP;
 	else
 		m_privateStatus |= OFF_MAP;
@@ -4072,7 +4122,17 @@ void Object::xfer( Xfer *xfer )
 {
 
 	// version
+#if RTS_GENERALS
+
+#if RETAIL_COMPATIBLE_XFER_SAVE
+	const XferVersion currentVersion = 7;
+#else
+	const XferVersion currentVersion = 8;
+#endif
+
+#else
 	const XferVersion currentVersion = 9;
+#endif
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
 
@@ -4135,20 +4195,30 @@ void Object::xfer( Xfer *xfer )
 	}
 	else
 	{
-		//We are loading an old version, so we must convert it from a 32-bit int to a bitflag
-		UnsignedInt oldStatus;
-		xfer->xferUnsignedInt( &oldStatus );
+#if RTS_GENERALS
+		// TheSuperHackers @info Originally OBJECT_STATUS_IS_CARBOMB (28) + 1 would equal OBJECT_STATUS_COUNT,
+		// but the enum has been expanded with Zero Hour specific entries.
+		constexpr const UnsignedInt count = OBJECT_STATUS_IS_CARBOMB + 1;
+		constexpr const UnsignedInt mask = (1 << count) - 1;
+		static_assert(count == 29, "This code needs to be updated when inserting new entries into ObjectStatusTypes");
 
-		//Clear our status
+		// shift by one bit: OBJECT_STATUS_NONE (0) has a dedicated bit in the bitset but not in the integer
+		UnsignedInt status = (m_status.toUnsignedInt() & mask) >> 1;
+#else
+		// Zero Hour uses this branch only for XFER_LOAD
+		UnsignedInt status;
+#endif
+		xfer->xferUnsignedInt(&status);
+
 		m_status.clear();
 
 		for( int i = 0; i < 32; i++ )
 		{
-			UnsignedInt bit = 1<<i;
-			if( oldStatus & bit )
+			UnsignedInt bit = 1u<<i;
+			if( status & bit )
 			{
-				ObjectStatusTypes status = (ObjectStatusTypes)(i+1);
-				m_status.set( MAKE_OBJECT_STATUS_MASK( status ) );
+				ObjectStatusTypes type = (ObjectStatusTypes)(i + 1);
+				m_status.set( MAKE_OBJECT_STATUS_MASK( type ) );
 			}
 		}
 	}
@@ -4208,7 +4278,44 @@ void Object::xfer( Xfer *xfer )
 	}
 
 	// disabled till frame
-	xfer->xferUser( m_disabledTillFrame, sizeof( UnsignedInt ) * DISABLED_COUNT );
+	{
+		static_assert(DISABLED_DEFAULT             == 0,  "Unexpected enum value");
+		static_assert(DISABLED_HACKED              == 1,  "Unexpected enum value");
+		static_assert(DISABLED_EMP                 == 2,  "Unexpected enum value");
+		static_assert(DISABLED_HELD                == 3,  "Unexpected enum value");
+		static_assert(DISABLED_PARALYZED           == 4,  "Unexpected enum value");
+		static_assert(DISABLED_UNMANNED            == 5,  "Unexpected enum value");
+		static_assert(DISABLED_UNDERPOWERED        == 6,  "Unexpected enum value");
+		static_assert(DISABLED_FREEFALL            == 7,  "Unexpected enum value");
+		static_assert(DISABLED_AWESTRUCK           == 8,  "Unexpected enum value");
+		static_assert(DISABLED_BRAINWASHED         == 9,  "Unexpected enum value");
+		static_assert(DISABLED_SUBDUED             == 10, "Unexpected enum value");
+		static_assert(DISABLED_SCRIPT_DISABLED     == 11, "Unexpected enum value");
+		static_assert(DISABLED_SCRIPT_UNDERPOWERED == 12, "Unexpected enum value");
+		static_assert(DISABLED_COUNT               == 13, "Unexpected enum value");
+
+		xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_DEFAULT]);
+		xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_HACKED]);
+		xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_EMP]);
+		xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_HELD]);
+		xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_PARALYZED]);
+		xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_UNMANNED]);
+		xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_UNDERPOWERED]);
+		xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_FREEFALL]);
+
+#if RTS_GENERALS
+		if (version >= 8)
+#endif
+		{
+			// TheSuperHackers @info These 3 types are Zero Hour specific, but inserted in the middle of the enum.
+			xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_AWESTRUCK]);
+			xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_BRAINWASHED]);
+			xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_SUBDUED]);
+		}
+
+		xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_SCRIPT_DISABLED]);
+		xfer->xferUnsignedInt(&m_disabledTillFrame[DISABLED_SCRIPT_UNDERPOWERED]);
+	}
 
 	// OK, now that we have xferred our status bits and disabled data, it's safe to set the team...
 	// TheSuperHackers @todo Refactor so that this code can be moved to loadPostProcess.
@@ -4846,7 +4953,7 @@ void Object::adjustModelConditionForWeaponStatus()
 		{
 			WeaponStatus newStatus = w->getStatus();
 
-			const static WeaponSetConditionType s_wsfLookup[WEAPON_STATUS_COUNT] =
+			const static WeaponSetConditionType s_wsfLookup[] =
 			{
 				WSF_NONE,				// READY_TO_FIRE,
 				WSF_NONE,				// OUT_OF_AMMO,
@@ -4854,6 +4961,7 @@ void Object::adjustModelConditionForWeaponStatus()
 				WSF_RELOADING,	// RELOADING_CLIP,
 				WSF_PREATTACK		// PRE_ATTACK,
 			};
+			static_assert(ARRAY_SIZE(s_wsfLookup) == WEAPON_STATUS_COUNT, "Incorrect array size");
 			conditionToSet = s_wsfLookup[newStatus];
 
 			// special case this: say we are firing in bursts: pow-pow-pow-pause, etc.
@@ -5160,10 +5268,10 @@ void Object::unlook()
 
 //			DEBUG_LOG(( "A %s queues an unlook at %f, %f for %x at range %f",
 //									getTemplate()->getName().str(),
-//									m_partitionLastLook.m_where.x,
-//									m_partitionLastLook.m_where.y,
-//									m_partitionLastLook.m_forWhom,
-//									m_partitionLastLook.m_howFar
+//									m_partitionLastLook->m_where.x,
+//									m_partitionLastLook->m_where.y,
+//									m_partitionLastLook->m_forWhom,
+//									m_partitionLastLook->m_howFar
 //									));
 
 	m_partitionLastLook->reset();

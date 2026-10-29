@@ -196,6 +196,22 @@ char const * GameFileClass::Set_Name( char const *filename )
 	}
 #endif
 
+#if defined(RTS_POSIX_PORT)
+	// TheSuperHackers @feature Models of add-on factions come from <extra data>/Art/W3D.
+	if( fileType == FILE_TYPE_W3D )
+	{
+		if( const char *extraDir = Win32Shim_GetExtraDataDirectory() )
+		{
+			snprintf( m_filePath, ARRAY_SIZE(m_filePath), "%s/Art/W3D/%s", extraDir, filename );
+			if( TheFileSystem->doesFileExist( m_filePath ) )
+			{
+				m_fileExists = TRUE;
+				return m_filename;
+			}
+		}
+	}
+#endif
+
 	// We need to be able to grab w3d's from a localization dir, since Germany hates exploding people units.
 	if( fileType == FILE_TYPE_W3D )
 	{

@@ -94,6 +94,7 @@ public:
 	virtual Bool projectileHandleCollision( Object *other ) override;
 	virtual Bool projectileIsArmed() const override { return m_isArmed; }
 	virtual ObjectID projectileGetLauncherID() const override { return m_launcherID; }
+	virtual ObjectID projectileGetTargetID() const override { return m_isJammed ? INVALID_ID : m_victimID; }
 	virtual void setFramesTillCountermeasureDiversionOccurs( UnsignedInt frames ) override; ///< Number of frames till missile diverts to countermeasures.
 	virtual void projectileNowJammed() override;///< We lose our Object target and scatter to the ground
 

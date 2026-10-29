@@ -45,6 +45,10 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#if defined(RTS_POSIX_PORT)
+#include <win32shim.h>
+#endif
+
 #include "Common/UTF16.h"
 
 #include "GameClient/GameText.h"
@@ -58,6 +62,7 @@
 #include "Common/file.h"
 #include "Common/FileSystem.h"
 #include "Common/version.h"
+#include "Common/OptionPreferences.h"
 
 
 
@@ -196,6 +201,8 @@ class GameTextManager : public GameTextInterface
 		Bool						getCSFInfo ( const Char *filename );
 		Bool						parseCSF(  const Char *filename );
 		Bool						parseStringFile( const char *filename );
+		void						appendAddonStrings();
+		Int							m_parseStart;				///< where parseStringFile puts the first string
 		Bool						parseMapStringFile( const char *filename );
 		Bool						readLine( char *buffer, Int max, File *file );
 		Char						readChar( File *file );
@@ -249,6 +256,7 @@ GameTextManager::GameTextManager()
 	m_maxLabelLen(0),
 	m_stringInfo(nullptr),
 	m_stringLUT(nullptr),
+	m_parseStart(0),
 	m_initialized(FALSE),
 	m_noStringList(nullptr),
 #if defined(RTS_DEBUG)
@@ -353,6 +361,10 @@ void GameTextManager::init()
 		}
 	}
 
+#if defined(RTS_POSIX_PORT)
+	appendAddonStrings();
+#endif
+
 	m_stringLUT = NEW StringLookUp[m_textCount];
 
 	StringLookUp *lut = m_stringLUT;
@@ -367,7 +379,6 @@ void GameTextManager::init()
 	}
 
 	qsort( m_stringLUT, m_textCount, sizeof(StringLookUp), compareLUT  );
-
 }
 
 //============================================================================
@@ -1014,7 +1025,7 @@ quit:
 
 Bool GameTextManager::parseStringFile( const char *filename )
 {
-	Int listCount = 0;
+	Int listCount = m_parseStart;
 	Bool ok = TRUE;
 
 	File *file = TheFileSystem->openFile(filename, File::READ | File::TEXT);
@@ -1108,6 +1119,49 @@ quit:
 
 	return ok;
 }
+
+#if defined(RTS_POSIX_PORT)
+//============================================================================
+// TheSuperHackers @feature Add-on text, a new faction's names for example: the labels of
+// Addon.str and Addon/*.str in <extra data>/Data/<language> come after the game's own.
+// Separate files let faction generators regenerate their text independently.
+//============================================================================
+
+void GameTextManager::appendAddonStrings()
+{
+	const char *extraData = Win32Shim_GetExtraDataDirectory();
+	if (extraData == nullptr || !isAddonDataEnabled())
+		return;
+	AsciiString path, directory;
+	path.format("%s/Data/%s/Addon.str", extraData, GetRegistryLanguage().str());
+	directory.format("%s/Data/%s/Addon/", extraData, GetRegistryLanguage().str());
+	FilenameList files;
+	TheFileSystem->getFileListInDirectory(directory, "*.str", files, FALSE);
+	if (TheFileSystem->doesFileExist(path.str()))
+		files.insert(path);
+	for (const AsciiString &file : files)
+	{
+		Int count = 0;
+		if (!getStringCount(file.str(), count) || count <= 0)
+			continue;
+		StringInfo *grown = NEW StringInfo[m_textCount + count];
+		for (Int i = 0; i < m_textCount; ++i)
+			grown[i] = m_stringInfo[i];
+		delete [] m_stringInfo;
+		m_stringInfo = grown;
+		m_parseStart = m_textCount;
+		parseStringFile(file.str());
+		m_parseStart = 0;
+		// getStringCount reserves 500 spare entries; count only the parsed labels.
+		Int parsed = 0;
+		while (parsed < count && m_stringInfo[m_textCount + parsed].label.isNotEmpty())
+			++parsed;
+		m_textCount += parsed;
+		fprintf(stderr, "Add-on data: loaded %d texts from %s\n", (int)parsed, file.str());
+	}
+	fflush(stderr);
+}
+#endif
 
 //============================================================================
 // GameTextManager::initMapStringFile

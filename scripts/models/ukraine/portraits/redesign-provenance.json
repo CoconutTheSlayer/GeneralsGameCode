@@ -1,0 +1,13 @@
+{
+  "mode": "built-in image_gen",
+  "prompts": {
+    "manpads": "Use case: stylized-concept. Square RTS command-button portrait in classic Command and Conquer Generals illustrated cinematic military style. Ukrainian MANPADS infantry, adult soldier wearing olive digital camouflage helmet and plate carrier, holding a slender long shoulder launched anti-aircraft missile tube angled upward, compact sight, no huge anti-tank CLU, close waist-up three-quarter composition. Weathered detailed cloth and equipment, determined face, warm upper-left light, smoky blue gray battlefield background, crisp readable silhouette, slightly painterly realistic art matching polished 2000s strategy-game portraits. No text, no flags, no logos, no border, no watermarks.",
+    "commando": "Use case: stylized-concept. Square RTS command-button portrait in classic Command and Conquer Generals illustrated cinematic military style. Ukrainian sapper, adult soldier wearing olive digital camouflage helmet and plate carrier, carbine slung low, holding a round olive military mine case at chest height with a probe and tool pouches prominently visible. Not a beret commando or sniper. Close waist-up three-quarter composition. Weathered detailed cloth and equipment, dry confident expression, warm upper-left light, smoky blue gray battlefield background, crisp readable silhouette, slightly painterly realistic art matching polished 2000s strategy-game portraits. No text, flags, logos, border or watermark.",
+    "airfield": "Use case: stylized-concept. Square RTS building command-button portrait in classic Command and Conquer Generals illustrated cinematic military style. Compact Ukrainian drone workshop: olive corrugated-metal pitched-roof industrial assembly shed with open side awning over a workbench, a small pale gray fixed-wing UAV on a bench, short catapult launch rail on concrete apron and small roof communications dish. No runway, no airport control tower, no helicopters. Close elevated three-quarter view, structure fills frame, weathered industrial details, warm upper-left light, smoky blue gray backdrop, painterly realistic strategy-game icon. No text, flags, logos, border or watermark."
+  },
+  "sources": {
+    "manpads": "/Users/radimvajchr/.codex/generated_images/01a1370e-7d55-75c0-8d7e-2bf837a01c4f/exec-2d3f452e-438c-405c-a4c4-dcb3addd77e6.png",
+    "commando": "/Users/radimvajchr/.codex/generated_images/01a1370e-7d55-75c0-8d7e-2bf837a01c4f/exec-639e065b-aeb0-40b5-84cb-970ab6afbc7c.png",
+    "airfield": "/Users/radimvajchr/.codex/generated_images/01a1370e-7d55-75c0-8d7e-2bf837a01c4f/exec-735adbb5-6516-4159-908d-1775db5b50c8.png"
+  }
+}

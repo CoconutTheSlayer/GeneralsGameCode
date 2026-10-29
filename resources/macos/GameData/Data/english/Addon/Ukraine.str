@@ -1,0 +1,409 @@
+// Generated Ukraine faction names and tooltips.
+
+INI:FactionUkraine
+"Ukraine"
+END
+
+SIDE:Ukraine
+"Ukraine"
+END
+
+TOOLTIP:BioStrategyLong_Ukraine
+"Find the approach, prepare an ambush, strike and relocate. Scouts expose targets for concealed anti-tank teams, prepared Buk salvos and attack drones. Fast artillery gives up shell power for mobility. Detectors, anti-air and close assaults break an unsupported ambush."
+END
+
+GUI:BioFeatures_Ukraine
+"Prepared ambushes, reconnaissance, mobile artillery, disposable attack drones"
+END
+
+OBJECT:Ukraine_BTR4
+"BTR-4"
+END
+
+CONTROLBAR:Ukraine_ConstructBTR4
+"BTR-4"
+END
+
+CONTROLBAR:Ukraine_DescriptionBTR4
+"Four-seat infantry carrier with an autocannon. Strong against infantry and light vehicles. Passengers must dismount to fire."
+END
+
+OBJECT:Ukraine_Buk
+"Buk"
+END
+
+CONTROLBAR:Ukraine_ConstructBuk
+"Buk"
+END
+
+CONTROLBAR:Ukraine_DescriptionBuk
+"Prepared long-range air defence. Automatically sets up for 1.2 seconds, fires two heavy missiles, then reloads for 5.5 seconds. Packs for 0.7 seconds before moving. MANPADS cover its reload; cannot attack ground targets."
+END
+
+OBJECT:Ukraine_Bohdana
+"Bohdana"
+END
+
+CONTROLBAR:Ukraine_ConstructBohdana
+"Bohdana"
+END
+
+CONTROLBAR:Ukraine_DescriptionBohdana
+"Fast, fragile wheeled artillery. A lighter, less accurate shell trades firepower for relocation. Sets up in 0.8 seconds and packs in 0.5 seconds; 80-unit minimum range. Fire and reposition."
+END
+
+OBJECT:Ukraine_DroneController
+"Drone Controller"
+END
+
+CONTROLBAR:Ukraine_ConstructDroneController
+"Drone Controller"
+END
+
+CONTROLBAR:Ukraine_DescriptionDroneController
+"Fragile long-range attack-drone van. Automatically launches one drone every 12 seconds. Normal anti-air and missile defences can shoot the drone down. No stockpiling, anti-air attack or veterancy."
+END
+
+OBJECT:Ukraine_Rifleman
+"Territorial Infantry"
+END
+
+CONTROLBAR:Ukraine_ConstructRifleman
+"Territorial Infantry"
+END
+
+CONTROLBAR:Ukraine_DescriptionRifleman
+"Affordable territorial infantry for screening and holding buildings. Can capture after Capture Training. Weak alone; anti-tank teams and BTRs supply support."
+END
+
+OBJECT:Ukraine_Stugna
+"Stugna Team"
+END
+
+CONTROLBAR:Ukraine_ConstructStugna
+"Stugna Team"
+END
+
+CONTROLBAR:Ukraine_DescriptionStugna
+"Prepared ground anti-tank infantry with steady missile fire. Sets up for 1.2 seconds; packs in 0.5 seconds. Field Concealment hides a stationary team between engagements. Fragile against infantry and detection."
+END
+
+OBJECT:Ukraine_Commando
+"Sapper"
+END
+
+CONTROLBAR:Ukraine_ConstructCommando
+"Sapper"
+END
+
+CONTROLBAR:Ukraine_DescriptionCommando
+"Sapper with a short-range carbine, detection and demolition charges. Deploys one mine at his feet for $100; mine arms after 3 seconds. No hero limit or innate stealth."
+END
+
+OBJECT:Ukraine_TB2
+"TB2"
+END
+
+CONTROLBAR:Ukraine_ConstructTB2
+"TB2"
+END
+
+CONTROLBAR:Ukraine_DescriptionTB2
+"Persistent unarmed scout UAV. Stays airborne without returning to reload. Wide vision, fragile against air defence. Sensor Optics unlocks a short local detection sweep."
+END
+
+OBJECT:Ukraine_EngineeringVehicle
+"Engineering Vehicle"
+END
+
+CONTROLBAR:Ukraine_ConstructEngineeringVehicle
+"Engineering Vehicle"
+END
+
+CONTROLBAR:Ukraine_DescriptionEngineeringVehicle
+"Builds and repairs Ukrainian structures and clears mines."
+END
+
+OBJECT:Ukraine_SupplyTruck
+"Supply Truck"
+END
+
+CONTROLBAR:Ukraine_ConstructSupplyTruck
+"Supply Truck"
+END
+
+CONTROLBAR:Ukraine_DescriptionSupplyTruck
+"Collects supply crates and delivers them to the Supply Depot."
+END
+
+OBJECT:Ukraine_CommandCenter
+"Command Centre"
+END
+
+CONTROLBAR:Ukraine_ConstructCommandCenter
+"Command Centre"
+END
+
+CONTROLBAR:Ukraine_DescriptionCommandCenter
+"Builds engineering vehicles, supplies radar, and directs reconnaissance, decoys and limited drone raids."
+END
+
+OBJECT:Ukraine_PowerPlant
+"Diesel Power Station"
+END
+
+CONTROLBAR:Ukraine_ConstructPowerPlant
+"Diesel Power Station"
+END
+
+CONTROLBAR:Ukraine_DescriptionPowerPlant
+"Produces eight power. Improved Turbines add another five power at this plant."
+END
+
+OBJECT:Ukraine_Barracks
+"Barracks"
+END
+
+CONTROLBAR:Ukraine_ConstructBarracks
+"Barracks"
+END
+
+CONTROLBAR:Ukraine_DescriptionBarracks
+"Trains territorial infantry, Stugna teams, MANPADS and sappers. Research Capture Training here."
+END
+
+OBJECT:Ukraine_SupplyCenter
+"Supply Centre"
+END
+
+CONTROLBAR:Ukraine_ConstructSupplyCenter
+"Supply Centre"
+END
+
+CONTROLBAR:Ukraine_DescriptionSupplyCenter
+"Collects resources from supply trucks. Includes one truck when completed."
+END
+
+OBJECT:Ukraine_WarFactory
+"Vehicle Factory"
+END
+
+CONTROLBAR:Ukraine_ConstructWarFactory
+"Vehicle Factory"
+END
+
+CONTROLBAR:Ukraine_DescriptionWarFactory
+"Builds BTR-4 carriers, Buk air defence, mobile Bohdana artillery and automatic drone controllers. No main battle tank."
+END
+
+OBJECT:Ukraine_Airfield
+"Drone Workshop"
+END
+
+CONTROLBAR:Ukraine_ConstructAirfield
+"Drone Workshop"
+END
+
+CONTROLBAR:Ukraine_DescriptionAirfield
+"Compact drone assembly and launch workshop. Produces persistent unarmed TB2 scouts without runway slots or rearming."
+END
+
+OBJECT:Ukraine_TechCenter
+"Signals Centre"
+END
+
+CONTROLBAR:Ukraine_ConstructTechCenter
+"Signals Centre"
+END
+
+CONTROLBAR:Ukraine_DescriptionTechCenter
+"Unlocks Bohdana artillery and late-game structures. Research drone replacement, concealment and sensor optics."
+END
+
+OBJECT:Ukraine_IncomeCenter
+"Equipment Workshop"
+END
+
+CONTROLBAR:Ukraine_ConstructIncomeCenter
+"Equipment Workshop"
+END
+
+CONTROLBAR:Ukraine_DescriptionIncomeCenter
+"Generates $20 every two seconds while powered. Protect it to sustain a late-game army."
+END
+
+OBJECT:Ukraine_GroundDefense
+"Autocannon Emplacement"
+END
+
+CONTROLBAR:Ukraine_ConstructGroundDefense
+"Autocannon Emplacement"
+END
+
+CONTROLBAR:Ukraine_DescriptionGroundDefense
+"A powered fixed autocannon deters infantry and light vehicles. Cannot attack aircraft; heavy armour can overpower it."
+END
+
+OBJECT:Ukraine_AADefense
+"Air Defence Emplacement"
+END
+
+CONTROLBAR:Ukraine_ConstructAADefense
+"Air Defence Emplacement"
+END
+
+CONTROLBAR:Ukraine_DescriptionAADefense
+"Powered radar-guided missile battery. Engages aircraft only. Defend it from ground attackers."
+END
+
+OBJECT:Ukraine_Superweapon
+"Drone Command Complex"
+END
+
+CONTROLBAR:Ukraine_ConstructSuperweapon
+"Drone Command Complex"
+END
+
+CONTROLBAR:Ukraine_DescriptionSuperweapon
+"Long-range drone command complex. Launches a conventional drone raid after a visible five-minute countdown. Air defence can intercept carriers and attack drones. Requires ten power."
+END
+
+OBJECT:Ukraine_MANPADS
+"MANPADS Team"
+END
+
+CONTROLBAR:Ukraine_ConstructMANPADS
+"MANPADS Team"
+END
+
+CONTROLBAR:Ukraine_DescriptionMANPADS
+"Affordable short-range missile air defence with no setup delay. Covers Buk batteries while they move or reload. Cannot attack ground targets; shelter behind infantry and carriers."
+END
+
+UPGRADE:UkraineTurbines
+"Improved Turbines"
+END
+
+CONTROLBAR:Ukraine_UpgradeTurbines
+"Improved Turbines"
+END
+
+CONTROLBAR:Ukraine_UpgradeTurbinesDescription
+"Adds five power at this plant."
+END
+
+UPGRADE:UkraineCapture
+"Capture Training"
+END
+
+CONTROLBAR:Ukraine_UpgradeCapture
+"Capture Training"
+END
+
+CONTROLBAR:Ukraine_UpgradeCaptureDescription
+"Riflemen can capture neutral and enemy buildings."
+END
+
+UPGRADE:UkraineDrones
+"Workshop Drone Kits"
+END
+
+CONTROLBAR:Ukraine_UpgradeDrones
+"Workshop Drone Kits"
+END
+
+CONTROLBAR:Ukraine_UpgradeDronesDescription
+"Drone controller reload time improves from 12 to 9 seconds. Does not create or stockpile extra drones."
+END
+
+UPGRADE:UkraineConcealment
+"Field Concealment"
+END
+
+CONTROLBAR:Ukraine_UpgradeConcealment
+"Field Concealment"
+END
+
+CONTROLBAR:Ukraine_UpgradeConcealmentDescription
+"Territorial infantry, Stugna teams, sappers and drone controllers hide after 3.5 seconds stationary without attacking or taking damage. Detectors reveal them."
+END
+
+UPGRADE:UkraineOptics
+"Sensor Optics"
+END
+
+CONTROLBAR:Ukraine_UpgradeOptics
+"Sensor Optics"
+END
+
+CONTROLBAR:Ukraine_UpgradeOpticsDescription
+"Unlocks a local TB2 sensor sweep: reveals hidden enemies within 210 range for 8 seconds, then recharges for 45 seconds."
+END
+
+CONTROLBAR:Ukraine_PowerRecon
+"Recon Sweep"
+END
+
+CONTROLBAR:UkraineReconDescription
+"Reveals a target area temporarily. Recharges in one minute."
+END
+
+CONTROLBAR:Ukraine_PowerDroneRaid
+"Drone Raid"
+END
+
+CONTROLBAR:UkraineDroneRaidDescription
+"One strike carrier launches six interceptable drones. Rank two adds a second carrier. Recharges in four minutes."
+END
+
+CONTROLBAR:Ukraine_PowerDecoy
+"Decoy Deployment"
+END
+
+CONTROLBAR:UkraineDecoyDescription
+"Deploys two unarmed, fragile BTR decoys at a visible location for 35 seconds. Recharges in two minutes."
+END
+
+CONTROLBAR:Ukraine_PowerLongRangeRaid
+"Long-Range Drone Raid"
+END
+
+CONTROLBAR:UkraineLongRangeRaidDescription
+"Four strike carriers each launch six conventional attack drones. Air defence can intercept both carriers and drones. Visible five-minute countdown."
+END
+
+SCIENCE:UkraineDroneRaid1
+"Drone Raid"
+END
+
+SCIENCE:UkraineDroneRaid2
+"Drone Raid II"
+END
+
+SCIENCE:UkraineDecoy
+"Decoy Deployment"
+END
+
+CONTROLBAR:UkraineSensorSweep
+"Sensor Sweep"
+END
+
+CONTROLBAR:UkraineSensorSweepDescription
+"After Sensor Optics, reveals hidden enemies within 210 range around the UAV for 8 seconds. Recharges in 45 seconds."
+END
+
+CONTROLBAR:UkraineLayMine
+"Deploy Mine ($100)"
+END
+
+CONTROLBAR:UkraineLayMineDescription
+"Spend $100 to deploy one mine at the sapper feet. Arms after 3 seconds. No regeneration; enemies can detect and clear it. Recharges in 10 seconds."
+END
+
+CONTROLBAR:UkraineDemolition
+"Plant Demolition Charge"
+END
+
+CONTROLBAR:UkraineDemolitionDescription
+"Approach a vehicle or structure and spend 3.5 seconds planting a timed demolition charge."
+END

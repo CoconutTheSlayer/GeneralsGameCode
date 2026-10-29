@@ -55,6 +55,7 @@ PointDefenseLaserUpdateModuleData::PointDefenseLaserUpdateModuleData()
 	m_scanFrames				= 0;
 	m_scanRange					= 0.0f;
 	m_velocityFactor		= 0.0f;
+	m_protectOnlySelf = false;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -70,6 +71,7 @@ PointDefenseLaserUpdateModuleData::PointDefenseLaserUpdateModuleData()
 		{ "ScanRate",							INI::parseDurationUnsignedInt,	nullptr, offsetof( PointDefenseLaserUpdateModuleData, m_scanFrames ) },
 		{ "ScanRange",						INI::parseReal,									nullptr, offsetof( PointDefenseLaserUpdateModuleData, m_scanRange ) },
 		{ "PredictTargetVelocityFactor", INI::parseReal,					nullptr, offsetof( PointDefenseLaserUpdateModuleData, m_velocityFactor ) },
+		{ "ProtectOnlySelf", INI::parseBool, nullptr, offsetof( PointDefenseLaserUpdateModuleData, m_protectOnlySelf ) },
 		{ nullptr, nullptr, nullptr, 0 }
 	};
 	p.add(dataFieldParse);
@@ -155,19 +157,39 @@ UpdateSleepTime PointDefenseLaserUpdate::update()
 }
 
 //-------------------------------------------------------------------------------------------------
+static ObjectID pointDefenseProjectileTarget(Object *projectile)
+{
+	if (!projectile->isKindOf(KINDOF_PROJECTILE))
+		return INVALID_ID;
+	for (BehaviorModule **module = projectile->getBehaviorModules(); *module; ++module)
+	{
+		ProjectileUpdateInterface *update = (*module)->getProjectileUpdateInterface();
+		if (update)
+			return update->projectileGetTargetID();
+	}
+	return INVALID_ID;
+}
+
 void PointDefenseLaserUpdate::fireWhenReady()
 {
 	const PointDefenseLaserUpdateModuleData *data = getPointDefenseLaserUpdateModuleData();
 
 	//Track our target
 	Object *target = TheGameLogic->findObjectByID( m_bestTargetID );
+	// Recheck at firing time as countermeasures may have redirected the missile.
+	if (target && data->m_protectOnlySelf && pointDefenseProjectileTarget(target) != getObject()->getID())
+	{
+		m_bestTargetID = INVALID_ID;
+		m_inRange = false;
+		target = nullptr;
+	}
 	if( target )
 	{
 		WeaponBonus bonus;
 		bonus.clear();
 		Real fireRange = data->m_weaponTemplate->getAttackRange( bonus );
 		Object *me = getObject();
-		Real fDist = sqrt( ThePartitionManager->getDistanceSquared( me, target, FROM_CENTER_2D ) );
+		Real fDist = WWMath::Sqrt( ThePartitionManager->getDistanceSquared( me, target, FROM_CENTER_2D ) );
 		if( fDist < fireRange )
 		{
 			//We are currently in range!
@@ -217,6 +239,12 @@ void PointDefenseLaserUpdate::fireWhenReady()
 				w->loadAmmoNow( getObject() );
 				w->fireWeapon( getObject(), target );
 				deleteInstance(w);
+				#if defined(RTS_POSIX_PORT)
+				if (data->m_protectOnlySelf && getenv("GENERALS_APS_LOG"))
+					fprintf(stderr, "APS_INTERCEPT frame %u defender %u target %u missile %u\n",
+						TheGameLogic->getFrame(), (unsigned)getObject()->getID(),
+						(unsigned)pointDefenseProjectileTarget(target), (unsigned)target->getID());
+				#endif
 
 				// And now that we have shot, set our internal reload timer.
 				m_nextShotAvailableInFrames = wt->getDelayBetweenShots( bonus );
@@ -283,6 +311,9 @@ Object* PointDefenseLaserUpdate::scanClosestTarget()
 			//Don't kill our friends!
 			continue;
 		}
+		// Personal active protection must not stack into an army-wide missile shield.
+		if (data->m_protectOnlySelf && pointDefenseProjectileTarget(other) != me->getID())
+			continue;
 
 		if( other->testStatus( OBJECT_STATUS_STEALTHED ) && !other->testStatus( OBJECT_STATUS_DETECTED ) && !other->testStatus( OBJECT_STATUS_DISGUISED ) )
 		{
@@ -290,7 +321,7 @@ Object* PointDefenseLaserUpdate::scanClosestTarget()
 			continue;
 		}
 
-		Real fDist = sqrt( ThePartitionManager->getDistanceSquared( me, other, FROM_CENTER_2D ) );
+		Real fDist = WWMath::Sqrt( ThePartitionManager->getDistanceSquared( me, other, FROM_CENTER_2D ) );
 
 		if( fDist <= fireRange )
 		{
@@ -317,7 +348,7 @@ Object* PointDefenseLaserUpdate::scanClosestTarget()
 					pos.add( *other->getPosition() );
 
 					//Recalculate the distance.
-					fDist = sqrt( ThePartitionManager->getDistanceSquared( me, other, FROM_CENTER_2D ) );
+					fDist = WWMath::Sqrt( ThePartitionManager->getDistanceSquared( me, other, FROM_CENTER_2D ) );
 				}
 			}
 

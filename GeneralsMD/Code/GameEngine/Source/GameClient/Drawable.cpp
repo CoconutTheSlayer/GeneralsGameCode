@@ -333,9 +333,8 @@ void Drawable::saturateRGB(RGBColor& color, Real factor)
  * graphical side of a logical object, whereas GameLogic objects encapsulate
  * behaviors and physics.  */
 //-------------------------------------------------------------------------------------------------
-// TheSuperHackers @feature Some models are far out of proportion to the rest: the combat bike is as long
-// as a pickup truck, tanks are half their real length and jets a third. On macOS these are drawn at a
-// size closer to the trucks and infantry around them; Options.ini can change each group (ScaleInfantry,
+// TheSuperHackers @feature Models use the original game's proportions by default. On macOS,
+// Options.ini can optionally change each group (ScaleInfantry,
 // ScaleVehicles, ScaleTanks, ScaleBikes, ScaleJets, ScaleHelicopters, ScaleStructures). Only the model is
 // scaled; geometry, bone positions and everything else the game logic uses stay the same.
 //-------------------------------------------------------------------------------------------------
@@ -350,13 +349,13 @@ static Real modelScaleFor(const ThingTemplate *thingTemplate)
 		OptionPreferences prefs;
 		infantry = prefs.getModelScale("ScaleInfantry", 1.0f);
 		vehicles = prefs.getModelScale("ScaleVehicles", 1.0f);
-		tanks = prefs.getModelScale("ScaleTanks", 1.3f);
-		bikes = prefs.getModelScale("ScaleBikes", 0.7f);
-		jets = prefs.getModelScale("ScaleJets", 1.5f);
-		helicopters = prefs.getModelScale("ScaleHelicopters", 1.15f);
+		tanks = prefs.getModelScale("ScaleTanks", 1.0f);
+		bikes = prefs.getModelScale("ScaleBikes", 1.0f);
+		jets = prefs.getModelScale("ScaleJets", 1.0f);
+		helicopters = prefs.getModelScale("ScaleHelicopters", 1.0f);
 		structures = prefs.getModelScale("ScaleStructures", 1.0f);
-		// GENERALS_ORIGINAL_SCALE=1 draws everything at the original size, to compare. With RealScale (the
-		// default) W3DModelDraw sizes the models it knows the real size of instead.
+		// GENERALS_ORIGINAL_SCALE=1 ignores custom size preferences. With RealScale enabled,
+		// W3DModelDraw sizes the models it knows the real size of instead.
 		if (getenv("GENERALS_ORIGINAL_SCALE") || prefs.getRealScale())
 			infantry = vehicles = tanks = bikes = jets = helicopters = structures = 1.0f;
 	}
@@ -366,12 +365,18 @@ static Real modelScaleFor(const ThingTemplate *thingTemplate)
 	if (thingTemplate->isKindOf(KINDOF_INFANTRY))
 		return infantry;
 	if (thingTemplate->isKindOf(KINDOF_AIRCRAFT))
-		return strstr(name, "Jet") ? jets : helicopters;
+	{
+		// Europe's own models do not use the base game's Jet/Tank naming convention.
+		const Bool isJet = strstr(name, "Jet") || strstr(name, "Euro_Typhoon")
+			|| strstr(name, "Euro_Rafale") || strstr(name, "Euro_Tornado");
+		return isJet ? jets : helicopters;
+	}
 	if (thingTemplate->isKindOf(KINDOF_VEHICLE))
 	{
 		if (strstr(name, "CombatBike"))
 			return bikes;
-		if (strstr(name, "Tank") && !strstr(name, "Tanker"))
+		if ((strstr(name, "Tank") && !strstr(name, "Tanker"))
+			|| strstr(name, "Euro_Leopard") || strstr(name, "Euro_Leclerc"))
 			return tanks;
 		return vehicles;
 	}
@@ -1125,13 +1130,14 @@ Real Drawable::getScale () const
 //-------------------------------------------------------------------------------------------------
 void Drawable::reactToBodyDamageStateChange(BodyDamageType newState)
 {
-	static const ModelConditionFlagType TheDamageMap[BODYDAMAGETYPE_COUNT] =
+	static const ModelConditionFlagType TheDamageMap[] =
 	{
 		MODELCONDITION_INVALID,
 		MODELCONDITION_DAMAGED,
 		MODELCONDITION_REALLY_DAMAGED,
 		MODELCONDITION_RUBBLE,
 	};
+	static_assert(ARRAY_SIZE(TheDamageMap) == BODYDAMAGETYPE_COUNT, "Incorrect array size");
 
 	ModelConditionFlags newDamage;
 	if (TheDamageMap[newState] != MODELCONDITION_INVALID)
@@ -1885,36 +1891,6 @@ void Drawable::calcPhysicsXformTreads( const Locomotor *locomotor, PhysicsXformI
 		Real lateralAccel = -dir->y * accel->x + dir->x * accel->y;
 		m_locoInfo->m_accelerationRollRate += -(LATERAL_ACCEL_COEFF * lateralAccel);
 	}
-
-#ifdef RECOIL_FROM_BEING_DAMAGED
-	// recoil from being hit
-	/// @todo Recoil needs to be based on sane damage amounts (MSB)
-	const DamageInfo *damageInfo = obj->getBodyModule()->getLastDamageInfo();
-	if (damageInfo)
-	{
-		if (obj->getBodyModule()->getLastDamageTimestamp() > m_lastDamageTimestamp && damageInfo->in.m_amount > RECOIL_DAMAGE)
-		{
-			Object *attacker = TheGameLogic->getObject( damageInfo->in.m_sourceID );
-			if (attacker)
-			{
-				Coord3D to;
-				ThePartitionManager->getVectorTo( obj, attacker, FROM_CENTER_2D, &to );
-
-				to.normalize();
-
-				Real forward = dir->x * to.x + dir->y * to.y;
-				Real lateral = perp.x * to.x + perp.y * to.y;
-
-				Real recoil = PI/16.0f * GameClientRandomValueReal( 0.5f, 1.0f );
-
-				m_locoInfo->m_accelerationPitchRate -= recoil * forward;
-				m_locoInfo->m_accelerationRollRate -= recoil * lateral;
-			}
-
-			m_lastDamageTimestamp = obj->getBodyModule()->getLastDamageTimestamp();
-		}
-	}
-#endif
 
 	// limit recoil pitch and roll
 
@@ -3267,8 +3243,10 @@ void Drawable::drawHealing(const IRegion2D* healthBarRegion)
 //		if( lastDamage != nullptr && lastDamage->in.m_damageType == DAMAGE_HEALING
 //			&&(TheGameLogic->getFrame() - body->getLastHealingTimestamp()) <= HEALING_ICON_DISPLAY_TIME
 //			)
+		const UnsignedInt *lastHealingTimestamp = body->getLastHealingTimestamp();
 		if ( TheGameLogic->getFrame() > HEALING_ICON_DISPLAY_TIME && // because so many things init health early in game
-			(TheGameLogic->getFrame() - body->getLastHealingTimestamp() <= HEALING_ICON_DISPLAY_TIME) )
+			lastHealingTimestamp != nullptr &&
+			(TheGameLogic->getFrame() - *lastHealingTimestamp <= HEALING_ICON_DISPLAY_TIME) )
 
 			showHealing = TRUE;
 	}

@@ -142,6 +142,11 @@ public:
 	TAiData();
 	~TAiData();
 
+	// The side info and skirmish build list of a player's side, or else of the side whose skirmish AI the
+	// player's faction uses (PlayerTemplate SkirmishAISide).
+	const AISideInfo *findSideInfo(const Player *player) const;
+	const AISideBuildList *findBuildList(const Player *player) const;
+
 	void addSideInfo(AISideInfo *info);
 	void addFactionBuildList(AISideBuildList *buildList);
 

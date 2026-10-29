@@ -58,7 +58,6 @@
 #include "GameLogic/ScriptEngine.h"
 #include "GameLogic/SidesList.h"
 #include "GameLogic/TerrainLogic.h"
-#include "Lib/PathUtil.h"
 
 
 // PUBLIC DATA ////////////////////////////////////////////////////////////////////////////////////
@@ -227,7 +226,7 @@ UnicodeString getUnicodeDateBuffer(SYSTEMTIME timeVal)
 			return displayDateBuffer;
 		}
 	}
-	wchar_t dateBuffer[ DATE_BUFFER_SIZE ];
+	WideChar dateBuffer[ DATE_BUFFER_SIZE ];
 	GetDateFormatW( LOCALE_USER_DEFAULT,
 								 DATE_SHORTDATE,
 								 &timeVal,
@@ -261,7 +260,7 @@ UnicodeString getUnicodeTimeBuffer(SYSTEMTIME timeVal)
 	}
 	// setup time buffer for local region time format
 	#define TIME_BUFFER_SIZE 256
-	wchar_t timeBuffer[ TIME_BUFFER_SIZE ];
+	WideChar timeBuffer[ TIME_BUFFER_SIZE ];
 	GetTimeFormatW( LOCALE_USER_DEFAULT,
 								 TIME_NOSECONDS,
 								 &timeVal,
@@ -840,7 +839,7 @@ Bool GameState::isInSaveDirectory(const AsciiString& path) const
 // ------------------------------------------------------------------------------------------------
 AsciiString GameState::getMapLeafName(const AsciiString& in) const
 {
-	const char* p = strrchr(in.str(), '\\');
+	const char* p = getLastPathSeparator(in.str());
 	if (p)
 	{
 		//
@@ -1270,9 +1269,21 @@ void GameState::populateSaveGameListbox( GameWindow *listbox, SaveLoadLayoutType
 		if( saveGameInfo->saveFileType == SAVE_FILE_TYPE_MISSION )
 			color = GameMakeColor( 200, 255, 200, 255 );
 		else if( count & 0x1 )
+		{
+#if RTS_GENERALS
+			color = GameMakeColor( 255, 128, 0, 255 );
+#else
 			color = GameMakeColor( 255, 255, 255, 255 );
+#endif
+		}
 		else
+		{
+#if RTS_GENERALS
+			color = GameMakeColor( 255, 192, 0, 255 );
+#else
 			color = GameMakeColor( 170, 170, 235, 255 );
+#endif
+		}
 
 		// add string to listbox
 		index = GadgetListBoxAddEntryText( listbox, displayLabel, color, -1, 0 );
@@ -1666,14 +1677,7 @@ void GameState::xfer( Xfer *xfer )
 	// if no label was found, we'll use the map name (just filename, no directory info)
 	if (exists == FALSE || saveGameInfo->mapLabel == AsciiString::TheEmptyString)
 	{
-		const char* p = TheGlobalData->m_mapName.reverseFind('\\');
-		if (p == nullptr)
-			saveGameInfo->mapLabel = TheGlobalData->m_mapName;
-		else
-		{
-			p++;  // skip the '\' we're on
-			saveGameInfo->mapLabel.set(p);
-		}
+		saveGameInfo->mapLabel = getFileName(TheGlobalData->m_mapName.str());
 	}
 
 	// xfer map label

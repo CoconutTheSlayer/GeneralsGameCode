@@ -987,3 +987,19 @@ Real OptionPreferences::getGameWindowTransitionSpeedMultiplier() const
 	Real speed = (Real) atof(it->second.str());
 	return clamp(1.0f, speed, 1000.0f);
 }
+
+//-------------------------------------------------------------------------------------------------
+static Bool s_addonDataDisabled = FALSE;
+
+void disableAddonData()
+{
+	s_addonDataDisabled = TRUE;
+}
+
+Bool isAddonDataEnabled()
+{
+	if (s_addonDataDisabled)
+		return FALSE;
+	OptionPreferences prefs;
+	return prefs.getBool("EnableEurope", TRUE);
+}

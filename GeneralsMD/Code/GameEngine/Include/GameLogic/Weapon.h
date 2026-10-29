@@ -117,6 +117,8 @@ enum WeaponAffectsMaskType CPP_11(: Int)
 	WEAPON_KILLS_SELF							= 0x10,	// ensures that it's not possible to survive self damage
 	WEAPON_DOESNT_AFFECT_SIMILAR	= 0x20, // Doesn't affect others that are the same as us (like other terrorists for a terrorist bomb to prevent chain reaction)
 	WEAPON_DOESNT_AFFECT_AIRBORNE	= 0x40, // Radius damage doesn't affect airborne units, unless they are the primary target. (used for poison fields.)
+
+	WEAPON_AFFECTS_MASK_TYPE_END // keep after the last named flag
 };
 
 //#ifdef DEFINE_WEAPONAFFECTSMASK_NAMES ; Removed protection so other classes can use these strings... not sure why this was protected in the 1st place
@@ -131,6 +133,7 @@ static const char *const TheWeaponAffectsMaskNames[] =
 	"NOT_AIRBORNE",
 	nullptr
 };
+static_assert(equalsEnumBitFlagsCount(ARRAY_SIZE(TheWeaponAffectsMaskNames) - 1, WEAPON_AFFECTS_MASK_TYPE_END), "Incorrect array size");
 //#endif
 
 //-------------------------------------------------------------------------------------------------
@@ -146,7 +149,9 @@ enum WeaponCollideMaskType CPP_11(: Int)
 	WEAPON_COLLIDE_WALLS									= 0x0020,
 	WEAPON_COLLIDE_SMALL_MISSILES					= 0x0040, //All missiles are also projectiles!
 	WEAPON_COLLIDE_BALLISTIC_MISSILES			= 0x0080, //All missiles are also projectiles!
-	WEAPON_COLLIDE_CONTROLLED_STRUCTURES	= 0x0100	//this is "ONLY structures belonging to the projectile's controller".
+	WEAPON_COLLIDE_CONTROLLED_STRUCTURES	= 0x0100,	//this is "ONLY structures belonging to the projectile's controller".
+
+	WEAPON_COLLIDE_MASK_TYPE_END // keep after the last named flag
 };
 
 #ifdef DEFINE_WEAPONCOLLIDEMASK_NAMES
@@ -163,6 +168,7 @@ static const char *const TheWeaponCollideMaskNames[] =
 	"CONTROLLED_STRUCTURES",
 	nullptr
 };
+static_assert(equalsEnumBitFlagsCount(ARRAY_SIZE(TheWeaponCollideMaskNames) - 1, WEAPON_COLLIDE_MASK_TYPE_END), "Incorrect array size");
 #endif
 
 //-------------------------------------------------------------------------------------------------
@@ -206,6 +212,7 @@ enum WeaponBonusConditionType CPP_11(: Int)
 	WEAPONBONUSCONDITION_FRENZY_ONE,
 	WEAPONBONUSCONDITION_FRENZY_TWO,
 	WEAPONBONUSCONDITION_FRENZY_THREE,
+	WEAPONBONUSCONDITION_SMOKE_SCREEN,
 
 	WEAPONBONUSCONDITION_COUNT
 };
@@ -244,6 +251,7 @@ static const char *const TheWeaponBonusNames[] =
 	"FRENZY_ONE",
 	"FRENZY_TWO",
 	"FRENZY_THREE",
+	"SMOKE_SCREEN",
 
 	nullptr
 };
@@ -460,6 +468,7 @@ public:
 	Int getAntiMask() const { return m_antiMask; }
 	Bool isLeechRangeWeapon() const { return m_leechRangeWeapon; }
 	Bool isCapableOfFollowingWaypoint() const { return m_capableOfFollowingWaypoint; }
+	Bool requiresTargetVision() const { return m_requiresTargetVision; }
 	Bool isShowsAmmoPips() const { return m_isShowsAmmoPips; }
 	Bool isPlayFXWhenStealthed() const { return m_playFXWhenStealthed; }
 	Bool getDieOnDetonate() const { return m_dieOnDetonate; }
@@ -553,6 +562,7 @@ private:
 	const WeaponTemplate* m_historicBonusWeapon;	///< see above
 	Bool m_leechRangeWeapon;								///< once the weapon has fired once at the proper range, the weapon gains unlimited range for the remainder of the attack cycle
 	Bool m_capableOfFollowingWaypoint;			///< determines if the weapon is capable of following a waypoint path.
+	Bool m_requiresTargetVision; ///< optional live visibility required to launch
 	Bool m_isShowsAmmoPips;									///< shows ammo pips
 	Bool m_allowAttackGarrisonedBldgs;			///< allow attacks on garrisoned bldgs, even if estimated damage would be zero
 	Bool m_playFXWhenStealthed;					///< Ignores rule about not playing FX when stealthed
@@ -680,6 +690,9 @@ public:
 	// Also note: you should RARELY need to call getAttackRange. If what you want is to
 	// determine if you are within attack range, please call isWithinAttackRange instead.
 	Real getAttackRange(const Object *source) const;
+	Real getAttackRange(const Object *source, const Object *target) const;
+	Bool isIndirectFireWeapon(const Object *source) const;
+	Bool hasRequiredTargetVision(const Object *source, const Object *target, const Coord3D *pos = nullptr) const;
 
 	// Returns the max distance between the centerpoints of source & victim	for victim to be in range.
 	Real getAttackDistance(const Object *source, const Object *victim, const Coord3D* victimPos) const;
@@ -855,6 +868,7 @@ public:
 	void handleProjectileDetonation( const WeaponTemplate* w, const Object *source, const Coord3D* pos, WeaponBonusConditionFlags extraBonusFlags, Bool inflictDamage = TRUE );
 
 	static void parseWeaponTemplateDefinition(INI* ini);
+	static void parseChildWeaponDefinition(INI* ini);
 
 protected:
 

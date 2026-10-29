@@ -1161,6 +1161,21 @@ void ControlBarSchemeManager::setControlBarSchemeByPlayer(Player *p)
 	if(!p)
 		return;
 	AsciiString side = p->getSide();
+#if RTS_ZEROHOUR
+	// TheSuperHackers @feature An add-on faction without a control bar of its own uses the one of the side
+	// whose units and AI it builds on (PlayerTemplate SkirmishAISide).
+	{
+		const PlayerTemplate *pt = p->getPlayerTemplate();
+		if (pt && pt->getSkirmishAISide().isNotEmpty())
+		{
+			Bool hasScheme = FALSE;
+			for (ControlBarScheme *scheme : m_schemeList)
+				hasScheme = hasScheme || (scheme && scheme->m_side.compareNoCase(side) == 0);
+			if (!hasScheme)
+				side = pt->getSkirmishAISide();
+		}
+	}
+#endif
 	if(m_currentScheme && (m_currentScheme->m_side.compare(side) == 0))
 	{
 		m_currentScheme->init();

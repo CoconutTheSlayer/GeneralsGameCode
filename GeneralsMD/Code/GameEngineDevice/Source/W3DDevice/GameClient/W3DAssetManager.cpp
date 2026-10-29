@@ -323,6 +323,19 @@ Int W3DAssetManager::replaceMeshTexture(RenderObjClass *robj, TextureClass *oldT
 	int didReplace=0;
 
 	MeshClass *mesh=(MeshClass*) robj;
+
+	// TheSuperHackers @bugfix The mesh data is shared by every copy of the model, so give this copy its
+	// own before changing its texture, or every unit with the model would change.
+	{
+		MaterialInfoClass *shared = mesh->Get_Material_Info();
+		Bool uses = false;
+		for (i=0; shared && i<shared->Texture_Count(); i++)
+			uses = uses || shared->Peek_Texture(i) == oldTex;
+		REF_PTR_RELEASE(shared);
+		if (uses)
+			mesh->Make_Unique(true);
+	}
+
 	MeshModelClass * model = mesh->Get_Model();
 	MaterialInfoClass	*material = mesh->Get_Material_Info();
 
@@ -704,6 +717,23 @@ TextureClass * W3DAssetManager::Recolor_Texture_One_Time(TextureClass *texture, 
 	return newtex;
 }
 
+//---------------------------------------------------------------------
+/** Copies the next name of a list separated by spaces and moves past it; false at the end. */
+static Bool nextTextureName(const char *&list, char *name, size_t nameSize)
+{
+	while (*list == ' ')
+		++list;
+	size_t length = 0;
+	while (list[length] != '\0' && list[length] != ' ')
+		++length;
+	if (length == 0 || length >= nameSize)
+		return false;
+	memcpy(name, list, length);
+	name[length] = '\0';
+	list += length;
+	return true;
+}
+
 #ifdef DUMP_PERF_STATS
 __int64 Total_Create_Render_Obj_Time=0;
 #endif
@@ -724,7 +754,7 @@ RenderObjClass * W3DAssetManager::Create_Render_Obj(
 	GetPrecisionTimer(&startTime64);
 	#endif
 
-	Bool reallyscale = (WWMath::Fabs(scale - ident_scale) > scale_epsilon);
+	Bool reallyscale = (WWMath::Fabsf_Legacy(scale - ident_scale) > scale_epsilon);
 	Bool reallycolor = (color & 0xFFFFFF) != 0;	//black is not a valid color and assumes no custom coloring.
 	Bool reallytexture = (oldTexture != nullptr && newTexture != nullptr);
 
@@ -826,11 +856,20 @@ RenderObjClass * W3DAssetManager::Create_Render_Obj(
 
 	if (reallytexture)
 	{
-		TextureClass *oldTex = Get_Texture(oldTexture);
-		TextureClass *newTex = Get_Texture(newTexture);
-		replaceAssetTexture(rendobj,oldTex,newTex);
-		REF_PTR_RELEASE(newTex);
-		REF_PTR_RELEASE(oldTex);
+		// TheSuperHackers @feature The texture names may be lists separated by spaces, each old texture
+		// replaced by the new one at the same place in the list.
+		const char *oldNext = oldTexture;
+		const char *newNext = newTexture;
+		char oldName[_MAX_PATH];
+		char newName[_MAX_PATH];
+		while (nextTextureName(oldNext, oldName, ARRAY_SIZE(oldName)) && nextTextureName(newNext, newName, ARRAY_SIZE(newName)))
+		{
+			TextureClass *oldTex = Get_Texture(oldName);
+			TextureClass *newTex = Get_Texture(newName);
+			replaceAssetTexture(rendobj,oldTex,newTex);
+			REF_PTR_RELEASE(newTex);
+			REF_PTR_RELEASE(oldTex);
+		}
 	}
 
 	if (reallycolor)
@@ -1340,9 +1379,9 @@ static inline void Munge_Texture_Name(char *newname, const char *oldname, const 
 RenderObjClass * W3DAssetManager::Create_Render_Obj(const char * name,float scale, const Vector3 &hsv_shift)
 {
 	Bool isGranny = false;
-	Bool reallyscale = (WWMath::Fabs(scale - ident_scale) > scale_epsilon);
-	Bool reallyhsv_shift = (WWMath::Fabs(hsv_shift.X - ident_HSV.X) > H_epsilon ||
-		WWMath::Fabs(hsv_shift.Y - ident_HSV.Y) > S_epsilon || WWMath::Fabs(hsv_shift.Z - ident_HSV.Z) > V_epsilon);
+	Bool reallyscale = (WWMath::Fabsf(scale - ident_scale) > scale_epsilon);
+	Bool reallyhsv_shift = (WWMath::Fabsf(hsv_shift.X - ident_HSV.X) > H_epsilon ||
+		WWMath::Fabsf(hsv_shift.Y - ident_HSV.Y) > S_epsilon || WWMath::Fabsf(hsv_shift.Z - ident_HSV.Z) > V_epsilon);
 
 	// base case, no scale or hue shifting
 	if (!reallyscale && !reallyhsv_shift) return WW3DAssetManager::Create_Render_Obj(name);
@@ -1442,8 +1481,8 @@ TextureClass * W3DAssetManager::Get_Texture_With_HSV_Shift(const char * filename
 {
 	WWPROFILE( "W3DAssetManager::Get_Texture with HSV shift" );
 
-	Bool is_hsv_shift = (WWMath::Fabs(hsv_shift.X - ident_HSV.X) > H_epsilon ||
-		WWMath::Fabs(hsv_shift.Y - ident_HSV.Y) > S_epsilon || WWMath::Fabs(hsv_shift.Z - ident_HSV.Z) > V_epsilon);
+	Bool is_hsv_shift = (WWMath::Fabsf(hsv_shift.X - ident_HSV.X) > H_epsilon ||
+		WWMath::Fabsf(hsv_shift.Y - ident_HSV.Y) > S_epsilon || WWMath::Fabsf(hsv_shift.Z - ident_HSV.Z) > V_epsilon);
 
 	if (!is_hsv_shift) {
 
@@ -1516,7 +1555,9 @@ void W3DAssetManager::Recolor_Vertices(unsigned int *color, int count, const Vec
 	for (i=0; i<count; i++)
 	{
 		rgba=DX8Wrapper::Convert_Color(color[i]);
-		Recolor(reinterpret_cast<Vector3&>(rgba),hsv_shift);
+		Vector3 rgb(rgba.X,rgba.Y,rgba.Z);
+		Recolor(rgb,hsv_shift);
+		rgba.Set(rgb.X,rgb.Y,rgb.Z,rgba.W);
 		color[i]=DX8Wrapper::Convert_Color_Clamp(rgba);
 	}
 }

@@ -75,15 +75,19 @@ static_assert(ARRAY_SIZE(TheWeaponSlotTypeNamesLookupList) == WEAPONSLOT_COUNT +
 
 //-------------------------------------------------------------------------------------------------
 #ifdef DEFINE_WEAPONCONDITIONMAP
-static const ModelConditionFlagType TheWeaponSetTypeToModelConditionTypeMap[WEAPONSET_COUNT] =
+static const ModelConditionFlagType TheWeaponSetTypeToModelConditionTypeMap[] =
 {
-	MODELCONDITION_WEAPONSET_VETERAN,
-	MODELCONDITION_WEAPONSET_ELITE,
-	MODELCONDITION_WEAPONSET_HERO,
-	MODELCONDITION_WEAPONSET_PLAYER_UPGRADE,
-	MODELCONDITION_WEAPONSET_CRATEUPGRADE_ONE,
-	MODELCONDITION_WEAPONSET_CRATEUPGRADE_TWO
+	/*WEAPONSET_VETERAN*/								MODELCONDITION_WEAPONSET_VETERAN,
+	/*WEAPONSET_ELITE*/									MODELCONDITION_WEAPONSET_ELITE,
+	/*WEAPONSET_HERO*/									MODELCONDITION_WEAPONSET_HERO,
+	/*WEAPONSET_PLAYER_UPGRADE*/				MODELCONDITION_WEAPONSET_PLAYER_UPGRADE,
+	/*WEAPONSET_CRATEUPGRADE_ONE*/			MODELCONDITION_WEAPONSET_CRATEUPGRADE_ONE,
+	/*WEAPONSET_CRATEUPGRADE_TWO*/			MODELCONDITION_WEAPONSET_CRATEUPGRADE_TWO,
+	/*WEAPONSET_VEHICLE_HIJACK*/				MODELCONDITION_INVALID,
+	/*WEAPONSET_CARBOMB*/								MODELCONDITION_INVALID,
+	/*WEAPONSET_MINE_CLEARING_DETAIL*/	MODELCONDITION_INVALID,
 };
+static_assert(ARRAY_SIZE(TheWeaponSetTypeToModelConditionTypeMap) == WEAPONSET_COUNT, "Incorrect array size");
 #endif
 
 //-------------------------------------------------------------------------------------------------
@@ -123,6 +127,21 @@ public:
 	}
 
 	const ThingTemplate* friend_getThingTemplate() const { return m_thingTemplate; }	// only for WeaponSet::xfer
+	// For ChildObject: the copied set belongs to the child, and can use other weapons.
+	void friend_setThingTemplate(const ThingTemplate *tt) { m_thingTemplate = tt; }
+	Bool friend_replaceWeapon(const WeaponTemplate *from, const WeaponTemplate *to)
+	{
+		Bool replaced = false;
+		for (Int i = 0; i < WEAPONSLOT_COUNT; ++i)
+		{
+			if (m_template[i] == from)
+			{
+				m_template[i] = to;
+				replaced = true;
+			}
+		}
+		return replaced;
+	}
 	const WeaponSetFlags& friend_getWeaponSetFlags() const { return m_types; }	// only for WeaponSet::xfer
 
 	void clear();

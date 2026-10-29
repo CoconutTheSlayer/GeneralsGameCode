@@ -99,6 +99,8 @@ enum CommandOption CPP_11(: Int)
 	USES_MINE_CLEARING_WEAPONSET= 0x00200000,	// uses the special mine-clearing weaponset, even if not current
 	CAN_USE_WAYPOINTS						= 0x00400000, // button has option to use a waypoint path
 	MUST_BE_STOPPED							= 0x00800000, // Unit must be stopped in order to be able to use button.
+
+	COMMAND_OPTION_END // keep after the last named flag
 };
 
 #ifdef DEFINE_COMMAND_OPTION_NAMES
@@ -135,6 +137,7 @@ static const char *const TheCommandOptionNames[] =
 
 	nullptr
 };
+static_assert(equalsEnumBitFlagsCount(ARRAY_SIZE(TheCommandOptionNames) - 1, COMMAND_OPTION_END), "Incorrect array size");
 #endif  // end DEFINE_COMMAND_OPTION_NAMES
 
 // convenient bit masks to group some command options together
@@ -378,6 +381,7 @@ public:
 	// only for ControlBar!
 	void friend_addToList(CommandButton** list) {	m_next = *list;	*list = this; }
 	CommandButton* friend_getNext() { return m_next; }
+	void friend_setNext(CommandButton* next) { m_next = next; }
 
 private:
 	AsciiString										m_name;												///< template name
@@ -660,6 +664,9 @@ class ControlBar : public SubsystemInterface
 {
 
 public:
+	/// post process step, after all commands and command sets are loaded (again after add-on data)
+	void postProcessCommands();
+
 
 	ControlBar();
 	virtual ~ControlBar() override;
@@ -784,6 +791,7 @@ public:
 
 	static void parseCommandSetDefinition( INI *ini );
 	static void parseCommandButtonDefinition( INI *ini );
+	static void parseChildCommandButtonDefinition( INI *ini );
 
 	void drawTransitionHandler();
 	const Image *getArrowImage(){ return m_genArrow;	}
@@ -837,8 +845,6 @@ protected:
 	/// show rally point at world location, a nullptr location will hide any visible rally point marker
 	void showRallyPoint( const Coord3D *loc );
 
-	/// post process step, after all commands and command sets are loaded
-	void postProcessCommands();
 	// TheSuperHackers @feature Unit stance button, defined by the engine and added to the command bar
 	// of units that can use it.
 	static Bool canUseStance( const Object *obj );

@@ -83,7 +83,7 @@ static_assert(ARRAY_SIZE(TheWeaponSlotTypeNamesLookupList) == WEAPONSLOT_COUNT +
 
 //Purpose: Whenever you change a weaponset, the model condition state associated with it
 //will be properly set exclusively.
-static const ModelConditionFlagType TheWeaponSetTypeToModelConditionTypeMap[WEAPONSET_COUNT] =
+static const ModelConditionFlagType TheWeaponSetTypeToModelConditionTypeMap[] =
 {
 	/*WEAPONSET_VETERAN*/								MODELCONDITION_WEAPONSET_VETERAN,
 	/*WEAPONSET_ELITE*/									MODELCONDITION_WEAPONSET_ELITE,
@@ -103,6 +103,7 @@ static const ModelConditionFlagType TheWeaponSetTypeToModelConditionTypeMap[WEAP
 	/*WEAPONSET_RIDER7*/								MODELCONDITION_RIDER7,
 	/*WEAPONSET_RIDER8*/								MODELCONDITION_RIDER8,
 };
+static_assert(ARRAY_SIZE(TheWeaponSetTypeToModelConditionTypeMap) == WEAPONSET_COUNT, "Incorrect array size");
 #endif
 
 //-------------------------------------------------------------------------------------------------
@@ -142,6 +143,21 @@ public:
 	}
 
 	const ThingTemplate* friend_getThingTemplate() const { return m_thingTemplate; }	// only for WeaponSet::xfer
+	// For ChildObject: the copied set belongs to the child, and can use other weapons.
+	void friend_setThingTemplate(const ThingTemplate *tt) { m_thingTemplate = tt; }
+	Bool friend_replaceWeapon(const WeaponTemplate *from, const WeaponTemplate *to)
+	{
+		Bool replaced = false;
+		for (Int i = 0; i < WEAPONSLOT_COUNT; ++i)
+		{
+			if (m_template[i] == from)
+			{
+				m_template[i] = to;
+				replaced = true;
+			}
+		}
+		return replaced;
+	}
 	const WeaponSetFlags& friend_getWeaponSetFlags() const { return m_types; }	// only for WeaponSet::xfer
 
 	void clear();

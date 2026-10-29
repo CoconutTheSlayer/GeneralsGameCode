@@ -154,7 +154,8 @@ UpdateSleepTime AutoDepositUpdate::update()
 		}
 		m_depositOnFrame = TheGameLogic->getFrame() + modData->m_depositFrame;
 
-		if(getObject()->isNeutralControlled() || modData->m_depositAmount <= 0 )
+		// A deposit of 0 pays only once an upgrade adds to it (Europe's Green Deal subsidies).
+		if(getObject()->isNeutralControlled() || (modData->m_depositAmount <= 0 && modData->m_upgradeBoost.empty()))
 			return UPDATE_SLEEP_NONE;
 
 		// makes sure that buildings under construction do not get a bonus CCB
@@ -162,6 +163,8 @@ UpdateSleepTime AutoDepositUpdate::update()
 			return UPDATE_SLEEP_NONE;
 
 		int moneyAmount = modData->m_depositAmount + getUpgradedSupplyBoost();
+		if (moneyAmount <= 0)
+			return UPDATE_SLEEP_NONE;
 
 		if( modData->m_isActualMoney )
 		{
@@ -213,8 +216,9 @@ Int AutoDepositUpdate::getUpgradedSupplyBoost() const
 	{
 		upgradePair info = *it;
 
-		// Check if the player has the desired upgrade. If so return the boost
-		static const UpgradeTemplate *upgradeTemplate = TheUpgradeCenter->findUpgrade( info.type.c_str() );
+		// Check if the player has the desired upgrade. If so return the boost. (Not cached in a static: that
+		// kept the first upgrade ever looked up, the USA's Supply Lines, for every building's boost.)
+		const UpgradeTemplate *upgradeTemplate = TheUpgradeCenter->findUpgrade( info.type.c_str() );
 		if (player && upgradeTemplate && player->hasUpgradeComplete(upgradeTemplate))
 		{
 			return info.amount;

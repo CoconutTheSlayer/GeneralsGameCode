@@ -52,6 +52,7 @@ public:
 	Bool									m_initiallyActive;
 	Bool									m_singleBurst;
 	Int										m_healingAmount;
+	UnsignedInt						m_damageCooldown; ///< optional per-target pause after damage
 	UnsignedInt						m_healingDelay;
 	UnsignedInt						m_startHealingDelay;	///< how long since our last damage till autoheal starts.
 	Real									m_radius; //If non-zero, then it becomes a area effect.
@@ -69,6 +70,7 @@ public:
 		m_healingAmount = 0;
 		m_healingDelay = UINT_MAX;
 		m_startHealingDelay = 0;
+		m_damageCooldown = 0;
 		m_radius = 0.0f;
 		m_radiusParticleSystemTmpl = nullptr;
 		m_unitHealPulseParticleSystemTmpl = nullptr;
@@ -82,6 +84,7 @@ public:
 	{
 		static const FieldParse dataFieldParse[] =
 		{
+			{ "DamageCooldown", INI::parseDurationUnsignedInt, nullptr, offsetof(AutoHealBehaviorModuleData, m_damageCooldown) },
 			{ "StartsActive",	INI::parseBool, nullptr, offsetof( AutoHealBehaviorModuleData, m_initiallyActive ) },
 			{ "SingleBurst",	INI::parseBool, nullptr, offsetof( AutoHealBehaviorModuleData, m_singleBurst ) },
 			{ "HealingAmount",		INI::parseInt,												nullptr, offsetof( AutoHealBehaviorModuleData, m_healingAmount ) },

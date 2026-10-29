@@ -63,12 +63,39 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 //-------------------------------------------------------------------------------------------------
-/*static*/ const FieldParse* PlayerTemplate::getFieldParse()
+/*static*/ void PlayerTemplate::parseSkirmishAIReplace(INI *ini, void *instance, void * /*store*/, const void * /*userData*/)
+{
+	PlayerTemplate *pt = (PlayerTemplate *)instance;
+	AsciiString from = ini->getNextAsciiString();
+	AsciiString to = ini->getNextAsciiString();
+	pt->m_skirmishAIReplace.push_back(std::make_pair(from, to));
+}
+
+//-------------------------------------------------------------------------------------------------
+/*static*/ void PlayerTemplate::parseSkirmishAIUpgrade(INI *ini, void *instance, void * /*store*/, const void * /*userData*/)
+{
+	PlayerTemplate *pt = (PlayerTemplate *)instance;
+	SkirmishAIUpgrade entry;
+	entry.upgrade = ini->getNextAsciiString();
+	entry.count = 0;
+	const char *object = ini->getNextTokenOrNull();
+	if (object)
+	{
+		entry.object = object;
+		entry.count = INI::scanInt(ini->getNextToken());
+	}
+	pt->m_skirmishAIUpgrades.push_back(entry);
+}
+
+const FieldParse* PlayerTemplate::getFieldParse()
 {
 	static const FieldParse TheFieldParseTable[] =
 	{
 		{ "Side",											INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_side ) },
 		{ "BaseSide",								INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_baseSide ) },
+		{ "SkirmishAISide",					INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_skirmishAISide ) },
+		{ "SkirmishAIReplace",			PlayerTemplate::parseSkirmishAIReplace,					nullptr, 0 },
+		{ "SkirmishAIUpgrade",			PlayerTemplate::parseSkirmishAIUpgrade,					nullptr, 0 },
 		{ "PlayableSide",							INI::parseBool,																	nullptr, offsetof( PlayerTemplate, m_playableSide ) },
 		{ "DisplayName",							INI::parseAndTranslateLabel,										nullptr, offsetof( PlayerTemplate, m_displayName) },
 		{ "StartMoney",								PlayerTemplate::parseStartMoney,								nullptr, offsetof( PlayerTemplate, m_money ) },
@@ -100,7 +127,7 @@
 		{ "ScoreScreenImage",					INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_scoreScreenImage ) },
 		{ "LoadScreenImage",					INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_loadScreenImage ) },
 		{ "LoadScreenMusic",					INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_loadScreenMusic ) },
-		{ "ScoreScreenMusic",					INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_scoreScreenMusic ) },
+		{ "ScoreScreenMusic",					INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_scoreScreenMusic ) }, // Added in Zero Hour
 
 		{ "HeadWaterMark",						INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_headWaterMark ) },
 		{ "FlagWaterMark",						INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_flagWaterMark ) },
@@ -109,14 +136,14 @@
 		//{ "HiliteImage",							INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_hiliteImage ) },
 		//{ "PushedImage",							INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_pushedImage ) },
 		{ "SideIconImage",						INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_sideIconImage ) },
-		{ "GeneralImage",						INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_generalImage ) },
+		{ "GeneralImage",						INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_generalImage ) }, // Added in Zero Hour
 
 		{ "BeaconName",								INI::parseAsciiString,													nullptr, offsetof( PlayerTemplate, m_beaconTemplate ) },
-		{ "ArmyTooltip",						INI::parseAsciiString,					nullptr, offsetof( PlayerTemplate, m_tooltip ) },
-		{ "Features",						INI::parseAsciiString,					nullptr, offsetof( PlayerTemplate, m_strGeneralFeatures ) },
-		{ "MedallionRegular",						INI::parseAsciiString,					nullptr, offsetof( PlayerTemplate, m_strMedallionNormal ) },
-		{ "MedallionHilite",						INI::parseAsciiString,					nullptr, offsetof( PlayerTemplate, m_strMedallionHilite ) },
-		{ "MedallionSelect",						INI::parseAsciiString,					nullptr, offsetof( PlayerTemplate, m_strMedallionSelected ) },
+		{ "ArmyTooltip",						INI::parseAsciiString,					nullptr, offsetof( PlayerTemplate, m_tooltip ) }, // Added in Zero Hour
+		{ "Features",						INI::parseAsciiString,					nullptr, offsetof( PlayerTemplate, m_strGeneralFeatures ) }, // Added in Zero Hour
+		{ "MedallionRegular",						INI::parseAsciiString,					nullptr, offsetof( PlayerTemplate, m_strMedallionNormal ) }, // Added in Zero Hour
+		{ "MedallionHilite",						INI::parseAsciiString,					nullptr, offsetof( PlayerTemplate, m_strMedallionHilite ) }, // Added in Zero Hour
+		{ "MedallionSelect",						INI::parseAsciiString,					nullptr, offsetof( PlayerTemplate, m_strMedallionSelected ) }, // Added in Zero Hour
 
 		{ nullptr,											nullptr,																				nullptr, 0 },
 	};

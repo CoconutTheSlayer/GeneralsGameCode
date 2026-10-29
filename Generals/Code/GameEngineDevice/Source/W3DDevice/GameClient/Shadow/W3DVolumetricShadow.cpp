@@ -1700,9 +1700,9 @@ void W3DVolumetricShadow::Update()
    		if (fabs(pos.Z - groundHeight) >= AIRBORNE_UNIT_GROUND_DELTA)
    		{
  			Real extent = MAX_SHADOW_LENGTH_EXTRA_AIRBORNE_SCALE_FACTOR * m_robjExtent;
- 			if (WWMath::Fabs(pos.X - bcX) > (beX + extent) ||
- 				WWMath::Fabs(pos.Y - bcY) > (beY + extent) ||
- 				WWMath::Fabs(pos.Z - bcZ) > (beZ + extent))
+ 			if (WWMath::Fabsf_Legacy(pos.X - bcX) > (beX + extent) ||
+ 				WWMath::Fabsf_Legacy(pos.Y - bcY) > (beY + extent) ||
+ 				WWMath::Fabsf_Legacy(pos.Z - bcZ) > (beZ + extent))
  				return;	//shadow can't be visible so no point in updating.
 
 			//this unit is above ground, extend shadow volume to reach lowest point on the terrain plus extra bit to make
@@ -1714,9 +1714,9 @@ void W3DVolumetricShadow::Update()
 			//normal object that is not floating above ground so we don't need to extend the shadow lower than the object's
 			//base since it should be sitting directly at ground level.
 
- 			if (WWMath::Fabs(pos.X - bcX) > (beX + m_robjExtent) ||
- 				WWMath::Fabs(pos.Y - bcY) > (beY + m_robjExtent) ||
- 				WWMath::Fabs(pos.Z - bcZ) > (beZ + m_robjExtent))
+ 			if (WWMath::Fabsf_Legacy(pos.X - bcX) > (beX + m_robjExtent) ||
+ 				WWMath::Fabsf_Legacy(pos.Y - bcY) > (beY + m_robjExtent) ||
+ 				WWMath::Fabsf_Legacy(pos.Z - bcZ) > (beZ + m_robjExtent))
  				return;	//shadow can't be visible so no point in updating.
 
 				//check if this object has never had it's extrusion length updated.  Will only be true for
@@ -1826,6 +1826,13 @@ void W3DVolumetricShadow::updateVolumes(Real zoffset)
 	}
 }
 
+// Returns the X, Y and Z components of a matrix row.
+static Vector3 getRowXYZ(const Matrix4x4& matrix, Int row)
+{
+	const Vector4& r = matrix[row];
+	return Vector3(r.X, r.Y, r.Z);
+}
+
 /*floorZ is the assumed ground height below the model.  The code will try to extrude shadows just long enough to hit this point in order
 to reduce fill rate usage.*/
 void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const Matrix3D *meshXform, const AABoxClass &meshBox, float floorZ )
@@ -1859,20 +1866,16 @@ void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const 
 #else
 	//When dealing with infinite light sources, we can assume that the shadow doesn't
 	//change much based on object position.  Only the orientation to light matters.
-	Real cosAngle = fabs (Vector3::Dot_Product((Vector3 &)(prevXForm->operator [](0)),(Vector3 &)(objectToWorld.operator [](0))));
-	if (cosAngle >= cosAngleToCare)
-	{	cosAngle = fabs (Vector3::Dot_Product((Vector3 &)(prevXForm->operator [](1)),(Vector3 &)(objectToWorld.operator [](1))));
-		if (cosAngle >= cosAngleToCare)
+	for (Int rowIndex = 0; rowIndex < 3; ++rowIndex)
+	{
+		const Vector3 prevRow = getRowXYZ(*prevXForm, rowIndex);
+		const Vector3 currRow = getRowXYZ(objectToWorld, rowIndex);
+		if (fabs(Vector3::Dot_Product(prevRow, currRow)) < cosAngleToCare)
 		{
-			cosAngle = fabs (Vector3::Dot_Product((Vector3 &)(prevXForm->operator [](2)),(Vector3 &)(objectToWorld.operator [](2))));
-			if (cosAngle < cosAngleToCare)
-				isMeshRotating=true;
+			isMeshRotating = true;
+			break;
 		}
-		else
-			isMeshRotating =true;
 	}
-	else
-		isMeshRotating =true;
 #endif
 
 	// get the light
